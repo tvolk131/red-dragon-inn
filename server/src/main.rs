@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate rocket;
 
+mod game;
+
 use rocket::response::content;
 
 #[get("/healthz")]

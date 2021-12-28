@@ -1,0 +1,8 @@
+[package]
+name = "red-dragon-inn-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rocket = "0.5.0-rc.1"
+tokio  = { version = "1.15.0", features = ["rt-multi-thread", "macros"] }
