@@ -1,19 +1,19 @@
 mod drink;
+mod game_logic;
 mod player;
 mod player_card;
-mod game_logic;
 
 use game_logic::GameLogic;
-use player::{Player, PlayerUUID};
+use player::PlayerUUID;
 
 pub struct Game {
-    game_logic: GameLogic
+    game_logic: GameLogic,
 }
 
 impl Game {
     pub fn new(characters: Vec<Character>) -> Self {
         Self {
-            game_logic: GameLogic::new(characters)
+            game_logic: GameLogic::new(characters),
         }
     }
 
@@ -40,7 +40,11 @@ impl Game {
     /// This must be called after the player's action phase is over.
     /// If the player has more than one drink to order, this must
     /// be called repeatedly until all drinks are handed out.
-    pub fn order_drink(&self, player_uuid: PlayerUUID, other_player_uuid: PlayerUUID) -> Option<Error> {
+    pub fn order_drink(
+        &self,
+        player_uuid: PlayerUUID,
+        other_player_uuid: PlayerUUID,
+    ) -> Option<Error> {
         None
     }
 }
@@ -51,5 +55,5 @@ pub enum Character {
     Fiona,
     Zot,
     Deirdre,
-    Gerki
+    Gerki,
 }

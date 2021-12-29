@@ -1,4 +1,3 @@
-
 #[must_use = "this `Drink` may be unintentionally discarded"]
 pub struct Drink {
     name: String,

@@ -1,5 +1,5 @@
-use super::GameLogic;
 use super::player::PlayerUUID;
+use super::GameLogic;
 
 pub trait PlayerCard {
     fn can_play(&self, player_uuid: PlayerUUID, game: &GameLogic) -> bool;
