@@ -1,8 +1,9 @@
 use super::player::{Player, PlayerUUID};
-use super::Character;
+use super::{Character, Error};
+use super::player_card::PlayerCard;
 
 pub struct GameLogic {
-    players: Vec<Player>,
+    players: Vec<(PlayerUUID, Player)>,
     current_player_turn: PlayerUUID,
     gambling_round_or: Option<GamblingRound>,
 }
@@ -33,6 +34,13 @@ impl GameLogic {
     pub fn take_control_of_gambling_round(&self) {}
 
     pub fn gambling_ante_up(&self) {}
+
+    pub fn play_card(&mut self, player_uuid: PlayerUUID, card_index: usize) -> Option<Error> {
+        match self.players.iter_mut().find(|(uuid, _)| *uuid == player_uuid) {
+            Some((player_uuid, player)) => player.play_card_from_hand(card_index),
+            None => Some(Error(format!("Player does not exist with player id {}", player_uuid.to_string())))
+        }
+    }
 }
 
 struct GamblingRound {

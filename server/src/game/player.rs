@@ -1,6 +1,7 @@
 use super::drink::Drink;
 use super::player_card::PlayerCard;
 use std::sync::{Arc, Mutex};
+use super::Error;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PlayerUUID(String);
@@ -9,6 +10,12 @@ impl PlayerUUID {
     pub fn new() -> Self {
         // TODO - Should generate actual unique id rather than an empty string.
         Self("".to_string())
+    }
+}
+
+impl std::string::ToString for PlayerUUID {
+    fn to_string(&self) -> String {
+        self.0.clone()
     }
 }
 
@@ -41,6 +48,20 @@ impl Player {
         while self.hand.len() < 7 {
             self.hand.push(self.draw_pile.pop().unwrap());
         }
+    }
+
+    pub fn play_card_from_hand(&mut self, card_index: usize) -> Option<Error> {
+        if self.hand.get(card_index).is_none() {
+            return Some(Error("Card does not exist".to_string()));
+        }
+        let card = self.hand.remove(card_index);
+
+        return if card.can_play() {
+            card.play();
+            None
+        } else {
+            Some(Error("Card cannot be played at this time".to_string()))
+        };
     }
 
     pub fn drink_from_drink_pile(&mut self) -> Option<Drink> {
