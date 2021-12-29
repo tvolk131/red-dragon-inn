@@ -1,18 +1,19 @@
-use super::Game;
+use super::GameLogic;
+use super::player::PlayerUUID;
 
 pub trait PlayerCard {
-    fn can_play(&self, game: &Game) -> bool;
-    fn play(&self, game: &mut Game);
+    fn can_play(&self, player_uuid: PlayerUUID, game: &GameLogic) -> bool;
+    fn play(&self, player_uuid: PlayerUUID, game: &mut GameLogic);
 }
 
 struct GamblingImInPlayerCard {}
 
 impl PlayerCard for GamblingImInPlayerCard {
-    fn can_play(&self, game: &Game) -> bool {
+    fn can_play(&self, player_uuid: PlayerUUID, game: &GameLogic) -> bool {
         false
     }
 
-    fn play(&self, game: &mut Game) {
+    fn play(&self, player_uuid: PlayerUUID, game: &mut GameLogic) {
         if game.gambling_round_in_progress() {
             game.take_control_of_gambling_round();
         } else {
