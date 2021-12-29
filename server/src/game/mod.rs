@@ -21,7 +21,7 @@ impl Game {
     ///
     /// Accepts a zero-based card index which refers to a card in the player's hand.
     /// Returns an error if the card cannot currently be played or does not exist with given index or if the player does not exist.
-    pub fn play_card(&mut self, player_uuid: PlayerUUID, card_index: usize) -> Option<Error> {
+    pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
         self.game_logic.play_card(player_uuid, card_index)
     }
 
@@ -31,7 +31,7 @@ impl Game {
     /// This must be called at the beginning of every player's turn.
     /// If the player doesn't want to discard anything, an empty vector
     /// should be passed in for `card_indices`.
-    pub fn discard_cards(&self, player_uuid: PlayerUUID, card_indices: Vec<i32>) -> Option<Error> {
+    pub fn discard_cards(&self, player_uuid: &PlayerUUID, card_indices: Vec<i32>) -> Option<Error> {
         None
     }
 
@@ -42,8 +42,8 @@ impl Game {
     /// be called repeatedly until all drinks are handed out.
     pub fn order_drink(
         &self,
-        player_uuid: PlayerUUID,
-        other_player_uuid: PlayerUUID,
+        player_uuid: &PlayerUUID,
+        other_player_uuid: &PlayerUUID,
     ) -> Option<Error> {
         None
     }

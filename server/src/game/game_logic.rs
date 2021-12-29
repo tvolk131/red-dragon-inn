@@ -34,18 +34,41 @@ impl GameLogic {
 
     pub fn gambling_ante_up(&self) {}
 
-    pub fn play_card(&mut self, player_uuid: PlayerUUID, card_index: usize) -> Option<Error> {
-        match self
-            .players
-            .iter_mut()
-            .find(|(uuid, _)| *uuid == player_uuid)
+    fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {
+        match self.players.iter_mut().find(|(uuid, _)| uuid == player_uuid) {
+            Some((_, player)) => Some(player),
+            None => None
+        }
+    }
+
+    pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
+        let card_or = match self
+            .get_player_by_uuid_mut(player_uuid)
         {
-            Some((player_uuid, player)) => player.play_card_from_hand(card_index),
-            None => Some(Error(format!(
+            Some(player) => player.pop_card_from_hand(&player_uuid, card_index),
+            None => return Some(Error(format!(
                 "Player does not exist with player id {}",
                 player_uuid.to_string()
             ))),
+        };
+
+        let card = match card_or {
+            Some(card) => card,
+            None => return Some(Error("Card does not exist".to_string()))
+        };
+
+        let return_val = if card.can_play(&player_uuid, self) {
+            card.play(&player_uuid, self);
+            None
+        } else {
+            Some(Error("Card cannot be played at this time".to_string()))
+        };
+
+        if let Some(player) = self.get_player_by_uuid_mut(player_uuid) {
+            player.discard_card(card);
         }
+
+        return_val
     }
 }
 

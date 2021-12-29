@@ -1,6 +1,7 @@
 use super::drink::Drink;
 use super::player_card::PlayerCard;
 use super::Error;
+use super::game_logic::GameLogic;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PlayerUUID(String);
@@ -49,18 +50,18 @@ impl Player {
         }
     }
 
-    pub fn play_card_from_hand(&mut self, card_index: usize) -> Option<Error> {
+    pub fn pop_card_from_hand(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Box<dyn PlayerCard>> {
+        // This check may look unnecessary, but it's here because Vec::remove() doesn't
+        // return `Option<T>` but instead returns `T` and panics if the index is out of bounds.
         if self.hand.get(card_index).is_none() {
-            return Some(Error("Card does not exist".to_string()));
-        }
-        let card = self.hand.remove(card_index);
-
-        return if card.can_play() {
-            card.play();
             None
         } else {
-            Some(Error("Card cannot be played at this time".to_string()))
-        };
+            Some(self.hand.remove(card_index))
+        }
+    }
+
+    pub fn discard_card(&mut self, card: Box<dyn PlayerCard>) {
+        self.discard_pile.push(card);
     }
 
     pub fn drink_from_drink_pile(&mut self) -> Option<Drink> {
