@@ -2,9 +2,11 @@ mod drink;
 mod game_logic;
 mod player;
 mod player_card;
+mod player_view;
 
 use game_logic::GameLogic;
 use player::PlayerUUID;
+use player_view::GameView;
 
 pub struct Game {
     game_logic: GameLogic,
@@ -46,6 +48,10 @@ impl Game {
         other_player_uuid: &PlayerUUID,
     ) -> Option<Error> {
         None
+    }
+
+    pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
+        self.game_logic.get_game_view(player_uuid)
     }
 }
 

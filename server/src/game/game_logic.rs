@@ -1,5 +1,6 @@
 use super::player::{Player, PlayerUUID};
 use super::{Character, Error};
+use super::player_view::GameView;
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
@@ -34,27 +35,43 @@ impl GameLogic {
 
     pub fn gambling_ante_up(&self) {}
 
+    pub fn is_gambling_turn(&self, player_uuid: &PlayerUUID) -> bool {
+        match &self.gambling_round_or {
+            Some(gambling_round) => &gambling_round.current_player_turn == player_uuid,
+            None => false,
+        }
+    }
+
+    pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
+        // TODO - Implement this method.
+        Err(Error("Method is not yet implemented".to_string()))
+    }
+
     fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {
-        match self.players.iter_mut().find(|(uuid, _)| uuid == player_uuid) {
+        match self
+            .players
+            .iter_mut()
+            .find(|(uuid, _)| uuid == player_uuid)
+        {
             Some((_, player)) => Some(player),
-            None => None
+            None => None,
         }
     }
 
     pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
-        let card_or = match self
-            .get_player_by_uuid_mut(player_uuid)
-        {
+        let card_or = match self.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player.pop_card_from_hand(&player_uuid, card_index),
-            None => return Some(Error(format!(
-                "Player does not exist with player id {}",
-                player_uuid.to_string()
-            ))),
+            None => {
+                return Some(Error(format!(
+                    "Player does not exist with player id {}",
+                    player_uuid.to_string()
+                )))
+            }
         };
 
         let card = match card_or {
             Some(card) => card,
-            None => return Some(Error("Card does not exist".to_string()))
+            None => return Some(Error("Card does not exist".to_string())),
         };
 
         let return_val = if card.can_play(&player_uuid, self) {
@@ -73,7 +90,8 @@ impl GameLogic {
 }
 
 struct GamblingRound {
-    active_player_indexes: Vec<i32>,
+    active_player_indexes: Vec<PlayerUUID>,
+    current_player_turn: PlayerUUID,
     pot_amount: i32,
 }
 
@@ -81,6 +99,7 @@ impl GamblingRound {
     fn new() -> Self {
         Self {
             active_player_indexes: Vec::new(),
+            current_player_turn: PlayerUUID::new(),
             pot_amount: 0,
         }
     }
