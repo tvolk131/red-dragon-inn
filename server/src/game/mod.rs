@@ -12,13 +12,14 @@ use game_logic::GameLogic;
 use player_view::GameView;
 
 pub struct Game {
-    game_logic: GameLogic,
+    // Is `Some` if game is running, otherwise is `None`.
+    game_logic_or: Option<GameLogic>,
 }
 
 impl Game {
-    pub fn new(characters: Vec<Character>) -> Self {
+    pub fn new() -> Self {
         Self {
-            game_logic: GameLogic::new(characters),
+            game_logic_or: None,
         }
     }
 
@@ -27,7 +28,10 @@ impl Game {
     /// Accepts a zero-based card index which refers to a card in the player's hand.
     /// Returns an error if the card cannot currently be played or does not exist with given index or if the player does not exist.
     pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
-        self.game_logic.play_card(player_uuid, card_index)
+        match self.game_logic_or {
+            Some(game_logic) => game_logic.play_card(player_uuid, card_index),
+            None => return Some(game_not_running_error())
+        }
     }
 
     /// Discards any number of cards from the given player's hand.
@@ -37,6 +41,7 @@ impl Game {
     /// If the player doesn't want to discard anything, an empty vector
     /// should be passed in for `card_indices`.
     pub fn discard_cards(&self, player_uuid: &PlayerUUID, card_indices: Vec<i32>) -> Option<Error> {
+        // TODO - Implement.
         None
     }
 
@@ -50,11 +55,15 @@ impl Game {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Option<Error> {
+        // TODO - Implement.
         None
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
-        self.game_logic.get_game_view(player_uuid)
+        match self.game_logic_or {
+            Some(game_logic) => game_logic.get_game_view(player_uuid),
+            None => Err(game_not_running_error())
+        }
     }
 }
 
@@ -63,4 +72,8 @@ pub enum Character {
     Zot,
     Deirdre,
     Gerki,
+}
+
+fn game_not_running_error() -> Error {
+    Error::new("Cannot perform this action because game is not running")
 }

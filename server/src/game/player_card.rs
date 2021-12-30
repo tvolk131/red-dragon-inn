@@ -19,7 +19,7 @@ impl PlayerCard for GamblingImInPlayerCard {
 
     fn play(&self, player_uuid: &PlayerUUID, game: &mut GameLogic) {
         if game.gambling_round_in_progress() {
-            game.take_control_of_gambling_round();
+            game.gambling_take_control_of_round(player_uuid.clone());
         } else {
             game.start_gambling_round();
         }

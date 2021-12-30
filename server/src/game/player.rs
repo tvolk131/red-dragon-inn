@@ -3,7 +3,7 @@ use super::game_logic::GameLogic;
 use super::player_card::PlayerCard;
 use super::Error;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PlayerUUID(String);
 
 impl PlayerUUID {
@@ -80,6 +80,18 @@ impl Player {
     pub fn drink(&mut self, drink: &Drink) {
         self.alcohol_content += drink.get_alcohol_content_modifier();
         self.fortitude += drink.get_fortitude_modifier();
+    }
+
+    pub fn add_gold(&self, amount: i32) {
+        if amount > 0 {
+            self.gold += amount
+        }
+    }
+
+    pub fn remove_gold(&self, amount: i32) {
+        if amount > 0 {
+            self.gold -= amount
+        }
     }
 
     pub fn is_out_of_game(&self) -> bool {

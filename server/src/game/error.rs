@@ -5,3 +5,17 @@ impl Error {
         Self(message.to_string())
     }
 }
+
+// TODO - Abstract this into a procedural macro along with all other Responder impl blocks in other structs (if there are any).
+impl<'r> rocket::response::Responder<'r, 'static> for Error {
+    fn respond_to(
+        self,
+        _request: &'r rocket::request::Request,
+    ) -> Result<rocket::response::Response<'static>, rocket::http::Status> {
+        rocket::Response::build()
+            .status(rocket::http::Status::BadRequest)
+            .header(rocket::http::ContentType::Text)
+            .sized_body(self.0.len(), std::io::Cursor::new(self.0))
+            .ok()
+    }
+}

@@ -27,13 +27,65 @@ impl GameLogic {
 
     pub fn start_gambling_round(&mut self) {
         if self.gambling_round_or.is_none() {
-            self.gambling_round_or = Some(GamblingRound::new());
+            // TODO - Currently this is dummy data. Properly implement it.
+            self.gambling_round_or = Some(GamblingRound {
+                active_player_uuids: Vec::new(),
+                current_player_turn: PlayerUUID::new(),
+                winning_player: PlayerUUID::new(),
+                pot_amount: 0,
+            });
         }
     }
 
-    pub fn take_control_of_gambling_round(&self) {}
+    pub fn gambling_take_control_of_round(&self, player_uuid: PlayerUUID) {
+        let gambling_round = match self.gambling_round_or {
+            Some(gambling_round) => gambling_round,
+            None => return
+        };
 
-    pub fn gambling_ante_up(&self) {}
+        gambling_round.winning_player = player_uuid;
+        self.gambling_increment_player_turn();
+    }
+
+    pub fn gambling_ante_up(&self) {
+        // TODO - Implement
+    }
+
+    pub fn gambling_pass(&self) {
+        self.gambling_increment_player_turn();
+
+        let gambling_round = match self.gambling_round_or {
+            Some(gambling_round) => gambling_round,
+            None => return
+        };
+        
+        if gambling_round.winning_player == gambling_round.current_player_turn {
+            self.get_player_by_uuid_mut(&gambling_round.winning_player).unwrap().add_gold(gambling_round.pot_amount);
+            self.gambling_round_or = None;
+        }
+    }
+
+    fn gambling_increment_player_turn(&self) {
+        let gambling_round = match self.gambling_round_or {
+            Some(gambling_round) => gambling_round,
+            None => return
+        };
+
+        let current_player_gambling_round_index_or = gambling_round.active_player_uuids.iter().position(|player_uuid| player_uuid == &gambling_round.current_player_turn);
+
+        let next_player_gambling_round_index = match current_player_gambling_round_index_or {
+            Some(current_player_gambling_round_index) => {
+                if current_player_gambling_round_index < gambling_round.active_player_uuids.len() - 1 {
+                    current_player_gambling_round_index + 1
+                } else {
+                    0
+                }
+            },
+            None => 0
+        };
+
+        gambling_round.current_player_turn = gambling_round.active_player_uuids.get(next_player_gambling_round_index).unwrap().clone();
+    }
 
     pub fn is_gambling_turn(&self, player_uuid: &PlayerUUID) -> bool {
         match &self.gambling_round_or {
@@ -90,17 +142,8 @@ impl GameLogic {
 }
 
 struct GamblingRound {
-    active_player_indexes: Vec<PlayerUUID>,
+    active_player_uuids: Vec<PlayerUUID>,
     current_player_turn: PlayerUUID,
+    winning_player: PlayerUUID,
     pot_amount: i32,
-}
-
-impl GamblingRound {
-    fn new() -> Self {
-        Self {
-            active_player_indexes: Vec::new(),
-            current_player_turn: PlayerUUID::new(),
-            pot_amount: 0,
-        }
-    }
 }

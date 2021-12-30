@@ -41,7 +41,7 @@ impl GameManager {
             Ok(game) => game,
             Err(error) => return Some(error)
         };
-        game.play_card(player_uuid, other_player_uuid)
+        game.order_drink(player_uuid, other_player_uuid)
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
@@ -55,7 +55,7 @@ impl GameManager {
             Some(game_id) => game_id,
             None => return error
         };
-        match games_by_game_id.get(game_id) {
+        match self.games_by_game_id.get(game_id) {
             Some(game) => Ok(game),
             None => error
         }

@@ -4,7 +4,7 @@ extern crate rocket;
 mod game;
 mod game_manager;
 
-use game::player_view::GameView;
+use game::{Error, player_view::GameView};
 use game_manager::GameManager;
 
 use rocket::{response::content, State};
@@ -15,22 +15,31 @@ async fn healthz_handler() -> content::Html<String> {
 }
 
 #[get("/api/playCard")]
-async fn play_card_handler(game_manager: &State<GameManager>) -> GameView {
-    game_manager.play_card()
+async fn play_card_handler(game_manager: &State<GameManager>) -> Result<GameView, Error> {
+    if let Some(err) = game_manager.play_card() {
+        return Err(err);
+    }
+    game_manager.get_game_view()
 }
 
 #[get("/api/discardCards")]
-async fn discard_cards_handler(game_manager: &State<GameManager>) -> GameView {
-    game_manager.discard_cards()
+async fn discard_cards_handler(game_manager: &State<GameManager>) -> Result<GameView, Error> {
+    if let Some(err) = game_manager.discard_cards() {
+        return Err(err);
+    }
+    game_manager.get_game_view()
 }
 
 #[get("/api/orderDrink")]
-async fn order_drink_handler(game_manager: &State<GameManager>) -> GameView {
-    game_manager.order_drink()
+async fn order_drink_handler(game_manager: &State<GameManager>) -> Result<GameView, Error> {
+    if let Some(err) = game_manager.order_drink() {
+        return Err(err);
+    }
+    game_manager.get_game_view()
 }
 
 #[get("/api/getGameView")]
-async fn get_game_view_handler(game_manager: &State<GameManager>) -> GameView {
+async fn get_game_view_handler(game_manager: &State<GameManager>) -> Result<GameView, Error> {
     game_manager.get_game_view()
 }
 
