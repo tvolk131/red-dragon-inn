@@ -40,7 +40,7 @@ impl GameLogic {
     pub fn gambling_take_control_of_round(&self, player_uuid: PlayerUUID) {
         let gambling_round = match self.gambling_round_or {
             Some(gambling_round) => gambling_round,
-            None => return
+            None => return,
         };
 
         gambling_round.winning_player = player_uuid;
@@ -56,11 +56,13 @@ impl GameLogic {
 
         let gambling_round = match self.gambling_round_or {
             Some(gambling_round) => gambling_round,
-            None => return
+            None => return,
         };
-        
+
         if gambling_round.winning_player == gambling_round.current_player_turn {
-            self.get_player_by_uuid_mut(&gambling_round.winning_player).unwrap().add_gold(gambling_round.pot_amount);
+            self.get_player_by_uuid_mut(&gambling_round.winning_player)
+                .unwrap()
+                .add_gold(gambling_round.pot_amount);
             self.gambling_round_or = None;
         }
     }
@@ -68,23 +70,32 @@ impl GameLogic {
     fn gambling_increment_player_turn(&self) {
         let gambling_round = match self.gambling_round_or {
             Some(gambling_round) => gambling_round,
-            None => return
+            None => return,
         };
 
-        let current_player_gambling_round_index_or = gambling_round.active_player_uuids.iter().position(|player_uuid| player_uuid == &gambling_round.current_player_turn);
+        let current_player_gambling_round_index_or = gambling_round
+            .active_player_uuids
+            .iter()
+            .position(|player_uuid| player_uuid == &gambling_round.current_player_turn);
 
         let next_player_gambling_round_index = match current_player_gambling_round_index_or {
             Some(current_player_gambling_round_index) => {
-                if current_player_gambling_round_index < gambling_round.active_player_uuids.len() - 1 {
+                if current_player_gambling_round_index
+                    < gambling_round.active_player_uuids.len() - 1
+                {
                     current_player_gambling_round_index + 1
                 } else {
                     0
                 }
-            },
-            None => 0
+            }
+            None => 0,
         };
 
-        gambling_round.current_player_turn = gambling_round.active_player_uuids.get(next_player_gambling_round_index).unwrap().clone();
+        gambling_round.current_player_turn = gambling_round
+            .active_player_uuids
+            .get(next_player_gambling_round_index)
+            .unwrap()
+            .clone();
     }
 
     pub fn is_gambling_turn(&self, player_uuid: &PlayerUUID) -> bool {

@@ -19,7 +19,7 @@ impl GameManager {
     pub fn play_card(&self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
-            Err(error) => return Some(error)
+            Err(error) => return Some(error),
         };
         game.play_card(player_uuid, card_index)
     }
@@ -27,7 +27,7 @@ impl GameManager {
     pub fn discard_cards(&self, player_uuid: &PlayerUUID, card_indices: Vec<i32>) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
-            Err(error) => return Some(error)
+            Err(error) => return Some(error),
         };
         game.discard_cards(player_uuid, card_indices)
     }
@@ -39,7 +39,7 @@ impl GameManager {
     ) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
-            Err(error) => return Some(error)
+            Err(error) => return Some(error),
         };
         game.order_drink(player_uuid, other_player_uuid)
     }
@@ -53,11 +53,11 @@ impl GameManager {
         let error = Err(Error::new("Player is not in a game"));
         let game_id = match self.player_uuids_to_game_id.get(player_uuid) {
             Some(game_id) => game_id,
-            None => return error
+            None => return error,
         };
         match self.games_by_game_id.get(game_id) {
             Some(game) => Ok(game),
-            None => error
+            None => error,
         }
     }
 }

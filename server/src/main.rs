@@ -4,7 +4,7 @@ extern crate rocket;
 mod game;
 mod game_manager;
 
-use game::{Error, player_view::GameView};
+use game::{player_view::GameView, Error};
 use game_manager::GameManager;
 
 use rocket::{response::content, State};
@@ -45,7 +45,14 @@ async fn get_game_view_handler(game_manager: &State<GameManager>) -> Result<Game
 
 #[rocket::launch]
 async fn rocket() -> _ {
-    rocket::build()
-        .manage(GameManager::new())
-        .mount("/", routes![healthz_handler, play_card_handler, discard_cards_handler, order_drink_handler])
+    rocket::build().manage(GameManager::new()).mount(
+        "/",
+        routes![
+            healthz_handler,
+            play_card_handler,
+            discard_cards_handler,
+            order_drink_handler,
+            get_game_view_handler
+        ],
+    )
 }
