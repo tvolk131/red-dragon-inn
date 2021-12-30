@@ -1,5 +1,7 @@
 use super::drink::Drink;
 use super::player_card::PlayerCard;
+use super::Error;
+use super::super::auth::SESSION_COOKIE_NAME;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PlayerUUID(String);
@@ -9,11 +11,29 @@ impl PlayerUUID {
         // TODO - Should generate actual unique id rather than an empty string.
         Self("".to_string())
     }
+
+    pub fn from_cookie_jar(cookie_jar: &rocket::http::CookieJar) -> Result<Self, Error> {
+        match cookie_jar.get(SESSION_COOKIE_NAME) {
+            Some(cookie) => Ok(Self(String::from(cookie.value()))),
+            None => Err(Error::new("User is not signed in"))
+        }
+    }
+
+    pub fn to_cookie_jar(&self, cookie_jar: &rocket::http::CookieJar) {
+        cookie_jar.add(rocket::http::Cookie::new(SESSION_COOKIE_NAME, self.to_string()))
+    }
 }
 
 impl std::string::ToString for PlayerUUID {
     fn to_string(&self) -> String {
         self.0.clone()
+    }
+}
+
+impl<'a> rocket::request::FromParam<'a> for PlayerUUID {
+    type Error = String;
+    fn from_param(param: &'a str) -> Result<Self, String> {
+        Ok(Self(String::from(param)))
     }
 }
 
@@ -80,13 +100,13 @@ impl Player {
         self.fortitude += drink.get_fortitude_modifier();
     }
 
-    pub fn add_gold(&self, amount: i32) {
+    pub fn add_gold(&mut self, amount: i32) {
         if amount > 0 {
             self.gold += amount
         }
     }
 
-    pub fn remove_gold(&self, amount: i32) {
+    pub fn remove_gold(&mut self, amount: i32) {
         if amount > 0 {
             self.gold -= amount
         }

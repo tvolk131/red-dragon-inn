@@ -28,7 +28,7 @@ impl Game {
     /// Accepts a zero-based card index which refers to a card in the player's hand.
     /// Returns an error if the card cannot currently be played or does not exist with given index or if the player does not exist.
     pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
-        match self.game_logic_or {
+        match &mut self.game_logic_or {
             Some(game_logic) => game_logic.play_card(player_uuid, card_index),
             None => return Some(game_not_running_error()),
         }
@@ -60,7 +60,7 @@ impl Game {
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
-        match self.game_logic_or {
+        match &self.game_logic_or {
             Some(game_logic) => game_logic.get_game_view(player_uuid),
             None => Err(game_not_running_error()),
         }

@@ -37,8 +37,8 @@ impl GameLogic {
         }
     }
 
-    pub fn gambling_take_control_of_round(&self, player_uuid: PlayerUUID) {
-        let gambling_round = match self.gambling_round_or {
+    pub fn gambling_take_control_of_round(&mut self, player_uuid: PlayerUUID) {
+        let gambling_round = match &mut self.gambling_round_or {
             Some(gambling_round) => gambling_round,
             None => return,
         };
@@ -51,24 +51,34 @@ impl GameLogic {
         // TODO - Implement
     }
 
-    pub fn gambling_pass(&self) {
+    pub fn gambling_pass(&mut self) {
         self.gambling_increment_player_turn();
 
-        let gambling_round = match self.gambling_round_or {
-            Some(gambling_round) => gambling_round,
-            None => return,
+        let (winner_or, pot_amount) = {
+            let gambling_round = match &self.gambling_round_or {
+                Some(gambling_round) => gambling_round,
+                None => return,
+            };
+
+            let winner_or = if self.is_gambling_turn(&gambling_round.winning_player) {
+                Some(gambling_round.winning_player.clone())
+            } else {
+                None
+            };
+
+            (winner_or, gambling_round.pot_amount)
         };
 
-        if gambling_round.winning_player == gambling_round.current_player_turn {
-            self.get_player_by_uuid_mut(&gambling_round.winning_player)
+        if let Some(winner) = winner_or {
+            self.get_player_by_uuid_mut(&winner)
                 .unwrap()
-                .add_gold(gambling_round.pot_amount);
+                .add_gold(pot_amount);
             self.gambling_round_or = None;
         }
     }
 
-    fn gambling_increment_player_turn(&self) {
-        let gambling_round = match self.gambling_round_or {
+    fn gambling_increment_player_turn(&mut self) {
+        let gambling_round = match &mut self.gambling_round_or {
             Some(gambling_round) => gambling_round,
             None => return,
         };
