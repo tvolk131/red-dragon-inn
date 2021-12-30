@@ -19,9 +19,24 @@ async fn play_card_handler(game_manager: &State<GameManager>) -> GameView {
     game_manager.play_card()
 }
 
+#[get("/api/discardCards")]
+async fn discard_cards_handler(game_manager: &State<GameManager>) -> GameView {
+    game_manager.discard_cards()
+}
+
+#[get("/api/orderDrink")]
+async fn order_drink_handler(game_manager: &State<GameManager>) -> GameView {
+    game_manager.order_drink()
+}
+
+#[get("/api/getGameView")]
+async fn get_game_view_handler(game_manager: &State<GameManager>) -> GameView {
+    game_manager.get_game_view()
+}
+
 #[rocket::launch]
 async fn rocket() -> _ {
     rocket::build()
         .manage(GameManager::new())
-        .mount("/", routes![healthz_handler, play_card_handler])
+        .mount("/", routes![healthz_handler, play_card_handler, discard_cards_handler, order_drink_handler])
 }
