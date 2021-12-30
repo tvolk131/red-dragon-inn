@@ -1,7 +1,7 @@
 use super::player::PlayerUUID;
 use super::GameLogic;
 
-pub trait PlayerCard {
+pub trait PlayerCard: Send + Sync {
     fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool;
     fn play(&self, player_uuid: &PlayerUUID, game: &mut GameLogic);
 }

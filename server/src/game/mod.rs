@@ -1,11 +1,14 @@
 mod drink;
+mod error;
 mod game_logic;
 mod player;
 mod player_card;
-mod player_view;
+pub mod player_view;
+
+pub use error::Error;
+pub use player::PlayerUUID;
 
 use game_logic::GameLogic;
-use player::PlayerUUID;
 use player_view::GameView;
 
 pub struct Game {
@@ -54,8 +57,6 @@ impl Game {
         self.game_logic.get_game_view(player_uuid)
     }
 }
-
-pub struct Error(String);
 
 pub enum Character {
     Fiona,

@@ -1,6 +1,6 @@
 use super::player::{Player, PlayerUUID};
-use super::{Character, Error};
 use super::player_view::GameView;
+use super::{Character, Error};
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
@@ -44,7 +44,7 @@ impl GameLogic {
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
         // TODO - Implement this method.
-        Err(Error("Method is not yet implemented".to_string()))
+        Err(Error::new("Method is not yet implemented"))
     }
 
     fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {
@@ -62,7 +62,7 @@ impl GameLogic {
         let card_or = match self.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player.pop_card_from_hand(&player_uuid, card_index),
             None => {
-                return Some(Error(format!(
+                return Some(Error::new(format!(
                     "Player does not exist with player id {}",
                     player_uuid.to_string()
                 )))
@@ -71,14 +71,14 @@ impl GameLogic {
 
         let card = match card_or {
             Some(card) => card,
-            None => return Some(Error("Card does not exist".to_string())),
+            None => return Some(Error::new("Card does not exist")),
         };
 
         let return_val = if card.can_play(&player_uuid, self) {
             card.play(&player_uuid, self);
             None
         } else {
-            Some(Error("Card cannot be played at this time".to_string()))
+            Some(Error::new("Card cannot be played at this time"))
         };
 
         if let Some(player) = self.get_player_by_uuid_mut(player_uuid) {
