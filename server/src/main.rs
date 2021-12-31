@@ -139,6 +139,19 @@ async fn order_drink_handler(
     unlocked_game_manager.get_game_view(&player_uuid)
 }
 
+#[get("/api/pass")]
+async fn pass_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+) -> Result<GameView, Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
+    let unlocked_game_manager = game_manager.read().unwrap();
+    if let Some(err) = unlocked_game_manager.pass(&player_uuid) {
+        return Err(err);
+    }
+    unlocked_game_manager.get_game_view(&player_uuid)
+}
+
 #[get("/api/getGameView")]
 async fn get_game_view_handler(
     game_manager: &State<RwLock<GameManager>>,
@@ -180,6 +193,7 @@ async fn rocket() -> _ {
                 play_card_handler,
                 discard_cards_handler,
                 order_drink_handler,
+                pass_handler,
                 get_game_view_handler
             ],
         )

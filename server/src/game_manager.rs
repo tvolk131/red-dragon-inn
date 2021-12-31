@@ -140,6 +140,19 @@ impl GameManager {
             .order_drink(player_uuid, other_player_uuid)
     }
 
+    pub fn pass(
+        &self,
+        player_uuid: &PlayerUUID,
+    ) -> Option<Error> {
+        let game = match self.get_game_of_player(player_uuid) {
+            Ok(game) => game,
+            Err(error) => return Some(error),
+        };
+        game.read()
+            .unwrap()
+            .pass(player_uuid)
+    }
+
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
         let game = self.get_game_of_player(player_uuid)?;
         game.read().unwrap().get_game_view(player_uuid)

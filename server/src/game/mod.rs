@@ -74,6 +74,11 @@ impl Game {
         None
     }
 
+    pub fn pass(&self, player_uuid: &PlayerUUID) -> Option<Error> {
+        // TODO - Implement.
+        None
+    }
+
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
         match &self.game_logic_or {
             Some(game_logic) => game_logic.get_game_view(player_uuid),
