@@ -1,10 +1,13 @@
+use super::drink::{create_drink_deck, Drink};
 use super::player::{Player, PlayerUUID};
 use super::player_view::GameView;
 use super::{Character, Error};
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
-    current_player_turn: PlayerUUID,
+    drink_deck_draw_pile: Vec<Drink>,
+    drink_deck_discard_pile: Vec<Drink>,
+    turn_info: TurnInfo,
     gambling_round_or: Option<GamblingRound>,
 }
 
@@ -12,13 +15,18 @@ impl GameLogic {
     pub fn new(characters: Vec<Character>) -> Self {
         Self {
             players: Vec::new(),
-            current_player_turn: PlayerUUID::new(),
+            drink_deck_draw_pile: create_drink_deck(),
+            drink_deck_discard_pile: Vec::new(),
+            turn_info: TurnInfo {
+                player_turn: PlayerUUID::new(),
+                turn_phase: TurnPhase::DiscardAndDraw,
+            },
             gambling_round_or: None,
         }
     }
 
     pub fn get_current_player_turn<'a>(&'a self) -> &'a PlayerUUID {
-        &self.current_player_turn
+        &self.turn_info.player_turn
     }
 
     pub fn gambling_round_in_progress(&self) -> bool {
@@ -33,12 +41,16 @@ impl GameLogic {
                 current_player_turn: PlayerUUID::new(),
                 winning_player: PlayerUUID::new(),
                 pot_amount: 0,
-                need_cheating_card_to_take_control: false
+                need_cheating_card_to_take_control: false,
             });
         }
     }
 
-    pub fn gambling_take_control_of_round(&mut self, player_uuid: PlayerUUID, need_cheating_card_to_take_control: bool) {
+    pub fn gambling_take_control_of_round(
+        &mut self,
+        player_uuid: PlayerUUID,
+        need_cheating_card_to_take_control: bool,
+    ) {
         let gambling_round = match &mut self.gambling_round_or {
             Some(gambling_round) => gambling_round,
             None => return,
@@ -82,7 +94,7 @@ impl GameLogic {
     pub fn gambling_need_cheating_card_to_take_control(&self) -> bool {
         match &self.gambling_round_or {
             Some(gambling_round) => gambling_round.need_cheating_card_to_take_control,
-            None => false
+            None => false,
         }
     }
 
@@ -169,6 +181,15 @@ impl GameLogic {
 
         return_val
     }
+
+    pub fn order_drink(
+        &mut self,
+        player_uuid: &PlayerUUID,
+        other_player_uuid: &PlayerUUID,
+    ) -> Option<Error> {
+        // TODO - Implement.
+        None
+    }
 }
 
 struct GamblingRound {
@@ -176,5 +197,17 @@ struct GamblingRound {
     current_player_turn: PlayerUUID,
     winning_player: PlayerUUID,
     pot_amount: i32,
-    need_cheating_card_to_take_control: bool
+    need_cheating_card_to_take_control: bool,
+}
+
+pub struct TurnInfo {
+    player_turn: PlayerUUID,
+    turn_phase: TurnPhase,
+}
+
+enum TurnPhase {
+    DiscardAndDraw,
+    Action,
+    OrderDrinks,
+    Drink,
 }

@@ -51,10 +51,11 @@ impl Game {
     /// Accepts a zero-based card index which refers to a card in the player's hand.
     /// Returns an error if the card cannot currently be played or does not exist with given index or if the player does not exist.
     pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
-        match &mut self.game_logic_or {
-            Some(game_logic) => game_logic.play_card(player_uuid, card_index),
-            None => return Some(game_not_running_error()),
-        }
+        let game_logic = match self.get_mut_game_logic() {
+            Ok(game_logic) => game_logic,
+            Err(err) => return Some(err),
+        };
+        game_logic.play_card(player_uuid, card_index)
     }
 
     /// Discards any number of cards from the given player's hand.
@@ -74,12 +75,15 @@ impl Game {
     /// If the player has more than one drink to order, this must
     /// be called repeatedly until all drinks are handed out.
     pub fn order_drink(
-        &self,
+        &mut self,
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Option<Error> {
-        // TODO - Implement.
-        None
+        let game_logic = match self.get_mut_game_logic() {
+            Ok(game_logic) => game_logic,
+            Err(err) => return Some(err),
+        };
+        game_logic.order_drink(player_uuid, other_player_uuid)
     }
 
     pub fn pass(&self, player_uuid: &PlayerUUID) -> Option<Error> {
@@ -88,9 +92,20 @@ impl Game {
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
+        self.get_game_logic()?.get_game_view(player_uuid)
+    }
+
+    fn get_game_logic(&self) -> Result<&GameLogic, Error> {
         match &self.game_logic_or {
-            Some(game_logic) => game_logic.get_game_view(player_uuid),
-            None => Err(game_not_running_error()),
+            Some(game_logic) => Ok(game_logic),
+            None => Err(Error::new("Game is not currently running")),
+        }
+    }
+
+    fn get_mut_game_logic(&mut self) -> Result<&mut GameLogic, Error> {
+        match &mut self.game_logic_or {
+            Some(game_logic) => Ok(game_logic),
+            None => Err(Error::new("Game is not currently running")),
         }
     }
 }
@@ -100,8 +115,4 @@ pub enum Character {
     Zot,
     Deirdre,
     Gerki,
-}
-
-fn game_not_running_error() -> Error {
-    Error::new("Cannot perform this action because game is not running")
 }

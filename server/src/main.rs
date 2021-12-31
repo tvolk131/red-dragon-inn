@@ -8,7 +8,7 @@ mod game_manager;
 use auth::SESSION_COOKIE_NAME;
 use game::PlayerUUID;
 use game::{player_view::GameView, Error};
-use game_manager::{GameUUID, GameManager};
+use game_manager::{GameManager, GameUUID};
 use std::sync::RwLock;
 
 use rocket::{
@@ -67,7 +67,11 @@ async fn signout_handler(
 }
 
 #[get("/api/createGame/<game_name>")]
-async fn create_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>, game_name: String) -> Result<GameView, Error> {
+async fn create_game_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+    game_name: String,
+) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let mut unlocked_game_manager = game_manager.write().unwrap();
     unlocked_game_manager.create_game(player_uuid.clone(), game_name)?;
@@ -75,7 +79,11 @@ async fn create_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_j
 }
 
 #[get("/api/joinGame/<game_uuid>")]
-async fn join_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>, game_uuid: GameUUID) -> Result<GameView, Error> {
+async fn join_game_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+    game_uuid: GameUUID,
+) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let mut unlocked_game_manager = game_manager.write().unwrap();
     if let Some(err) = unlocked_game_manager.join_game(player_uuid.clone(), game_uuid) {
@@ -85,10 +93,13 @@ async fn join_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar
 }
 
 #[get("/api/leaveGame")]
-async fn leave_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>) -> Option<Error> {
+async fn leave_game_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+) -> Option<Error> {
     let player_uuid = match PlayerUUID::from_cookie_jar(cookie_jar) {
         Ok(player_uuid) => player_uuid,
-        Err(err) => return Some(err)
+        Err(err) => return Some(err),
     };
     let mut unlocked_game_manager = game_manager.write().unwrap();
     unlocked_game_manager.leave_game(&player_uuid)?;

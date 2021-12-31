@@ -134,22 +134,17 @@ impl GameManager {
             Ok(game) => game,
             Err(error) => return Some(error),
         };
-        game.read()
+        game.write()
             .unwrap()
             .order_drink(player_uuid, other_player_uuid)
     }
 
-    pub fn pass(
-        &self,
-        player_uuid: &PlayerUUID,
-    ) -> Option<Error> {
+    pub fn pass(&self, player_uuid: &PlayerUUID) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
             Err(error) => return Some(error),
         };
-        game.read()
-            .unwrap()
-            .pass(player_uuid)
+        game.read().unwrap().pass(player_uuid)
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
@@ -245,11 +240,16 @@ mod tests {
         let player_uuid = PlayerUUID::new();
 
         game_manager.add_player(player_uuid.clone(), String::from("Tommy"));
-        game_manager.create_game(player_uuid.clone(), "Game 1".to_string()).unwrap();
+        game_manager
+            .create_game(player_uuid.clone(), "Game 1".to_string())
+            .unwrap();
 
         assert_eq!(game_manager.games_by_game_id.len(), 1);
         assert_eq!(game_manager.leave_game(&player_uuid), None);
         assert_eq!(game_manager.games_by_game_id.len(), 0);
-        assert_eq!(game_manager.leave_game(&player_uuid), Some(Error::new("Player is not in a game")));
+        assert_eq!(
+            game_manager.leave_game(&player_uuid),
+            Some(Error::new("Player is not in a game"))
+        );
     }
 }
