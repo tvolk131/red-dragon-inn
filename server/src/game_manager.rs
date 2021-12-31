@@ -45,7 +45,7 @@ impl GameManager {
             return Err(err);
         }
         let game_id = GameUUID::new();
-        let game = Game::new();
+        let mut game = Game::new();
         game.join(player_uuid.clone());
         self.games_by_game_id
             .insert(game_id.clone(), RwLock::from(game));
@@ -65,7 +65,7 @@ impl GameManager {
             Some(game) => game,
             None => return Some(Error::new("Game does not exist")),
         };
-        match game.read().unwrap().join(player_uuid.clone()) {
+        match game.write().unwrap().join(player_uuid.clone()) {
             Some(err) => return Some(err),
             None => {}
         };
@@ -74,7 +74,6 @@ impl GameManager {
     }
 
     pub fn leave_game(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
-        // TODO - Remove game if empty.
         if let Some(err) = self.assert_player_exists(&player_uuid) {
             return Some(err);
         }
@@ -87,8 +86,8 @@ impl GameManager {
                 Some(game) => game,
                 None => return Some(Error::new("Game does not exist")),
             };
-            let unlocked_game = game.read().unwrap();
-            match unlocked_game.leave(player_uuid.clone()) {
+            let mut unlocked_game = game.write().unwrap();
+            match unlocked_game.leave(player_uuid) {
                 Some(err) => return Some(err),
                 None => {}
             };
@@ -237,5 +236,20 @@ mod tests {
             game_manager.remove_player(&player_uuid).unwrap(),
             Error::new("Player does not exist")
         );
+    }
+
+    #[test]
+    fn empty_games_are_removed() {
+        let mut game_manager = GameManager::new();
+
+        let player_uuid = PlayerUUID::new();
+
+        game_manager.add_player(player_uuid.clone(), String::from("Tommy"));
+        game_manager.create_game(player_uuid.clone(), "Game 1".to_string()).unwrap();
+
+        assert_eq!(game_manager.games_by_game_id.len(), 1);
+        assert_eq!(game_manager.leave_game(&player_uuid), None);
+        assert_eq!(game_manager.games_by_game_id.len(), 0);
+        assert_eq!(game_manager.leave_game(&player_uuid), Some(Error::new("Player is not in a game")));
     }
 }

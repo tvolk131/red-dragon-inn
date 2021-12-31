@@ -10,8 +10,10 @@ pub use player::PlayerUUID;
 
 use game_logic::GameLogic;
 use player_view::GameView;
+use std::collections::HashSet;
 
 pub struct Game {
+    players: HashSet<PlayerUUID>,
     // Is `Some` if game is running, otherwise is `None`.
     game_logic_or: Option<GameLogic>,
 }
@@ -19,23 +21,29 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         Self {
+            players: HashSet::new(),
             game_logic_or: None,
         }
     }
 
-    pub fn join(&self, player_uuid: PlayerUUID) -> Option<Error> {
-        // TODO - Implement.
-        None
+    pub fn join(&mut self, player_uuid: PlayerUUID) -> Option<Error> {
+        if !self.players.insert(player_uuid) {
+            Some(Error::new("Player is already in this game"))
+        } else {
+            None
+        }
     }
 
-    pub fn leave(&self, player_uuid: PlayerUUID) -> Option<Error> {
-        // TODO - Implement.
-        None
+    pub fn leave(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+        if !self.players.remove(player_uuid) {
+            Some(Error::new("Player is not in this game"))
+        } else {
+            None
+        }
     }
 
     pub fn is_empty(&self) -> bool {
-        // TODO - Implement.
-        false
+        self.players.is_empty()
     }
 
     /// Plays a card from the given player's hand.
