@@ -1,7 +1,7 @@
+use super::super::auth::SESSION_COOKIE_NAME;
 use super::drink::Drink;
 use super::player_card::PlayerCard;
 use super::Error;
-use super::super::auth::SESSION_COOKIE_NAME;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PlayerUUID(String);
@@ -15,12 +15,15 @@ impl PlayerUUID {
     pub fn from_cookie_jar(cookie_jar: &rocket::http::CookieJar) -> Result<Self, Error> {
         match cookie_jar.get(SESSION_COOKIE_NAME) {
             Some(cookie) => Ok(Self(String::from(cookie.value()))),
-            None => Err(Error::new("User is not signed in"))
+            None => Err(Error::new("User is not signed in")),
         }
     }
 
     pub fn to_cookie_jar(&self, cookie_jar: &rocket::http::CookieJar) {
-        cookie_jar.add(rocket::http::Cookie::new(SESSION_COOKIE_NAME, self.to_string()))
+        cookie_jar.add(rocket::http::Cookie::new(
+            SESSION_COOKIE_NAME,
+            self.to_string(),
+        ))
     }
 }
 

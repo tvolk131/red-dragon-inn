@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub struct Error(String);
 
 impl Error {

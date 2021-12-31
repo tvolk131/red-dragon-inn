@@ -23,6 +23,21 @@ impl Game {
         }
     }
 
+    pub fn join(&self, player_uuid: PlayerUUID) -> Option<Error> {
+        // TODO - Implement.
+        None
+    }
+
+    pub fn leave(&self, player_uuid: PlayerUUID) -> Option<Error> {
+        // TODO - Implement.
+        None
+    }
+
+    pub fn is_empty(&self) -> bool {
+        // TODO - Implement.
+        false
+    }
+
     /// Plays a card from the given player's hand.
     ///
     /// Accepts a zero-based card index which refers to a card in the player's hand.
