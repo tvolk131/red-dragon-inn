@@ -33,17 +33,19 @@ impl GameLogic {
                 current_player_turn: PlayerUUID::new(),
                 winning_player: PlayerUUID::new(),
                 pot_amount: 0,
+                need_cheating_card_to_take_control: false
             });
         }
     }
 
-    pub fn gambling_take_control_of_round(&mut self, player_uuid: PlayerUUID) {
+    pub fn gambling_take_control_of_round(&mut self, player_uuid: PlayerUUID, need_cheating_card_to_take_control: bool) {
         let gambling_round = match &mut self.gambling_round_or {
             Some(gambling_round) => gambling_round,
             None => return,
         };
 
         gambling_round.winning_player = player_uuid;
+        gambling_round.need_cheating_card_to_take_control = need_cheating_card_to_take_control;
         self.gambling_increment_player_turn();
     }
 
@@ -74,6 +76,13 @@ impl GameLogic {
                 .unwrap()
                 .add_gold(pot_amount);
             self.gambling_round_or = None;
+        }
+    }
+
+    pub fn gambling_need_cheating_card_to_take_control(&self) -> bool {
+        match &self.gambling_round_or {
+            Some(gambling_round) => gambling_round.need_cheating_card_to_take_control,
+            None => false
         }
     }
 
@@ -167,4 +176,5 @@ struct GamblingRound {
     current_player_turn: PlayerUUID,
     winning_player: PlayerUUID,
     pot_amount: i32,
+    need_cheating_card_to_take_control: bool
 }

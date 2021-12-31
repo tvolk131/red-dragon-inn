@@ -168,6 +168,13 @@ impl GameUUID {
     }
 }
 
+impl<'a> rocket::request::FromParam<'a> for GameUUID {
+    type Error = String;
+    fn from_param(param: &'a str) -> Result<Self, String> {
+        Ok(Self(String::from(param)))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

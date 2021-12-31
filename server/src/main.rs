@@ -8,7 +8,7 @@ mod game_manager;
 use auth::SESSION_COOKIE_NAME;
 use game::PlayerUUID;
 use game::{player_view::GameView, Error};
-use game_manager::GameManager;
+use game_manager::{GameUUID, GameManager};
 use std::sync::RwLock;
 
 use rocket::{
@@ -16,6 +16,8 @@ use rocket::{
     response::content,
     State,
 };
+
+// TODO - Use JWT to sign cookies. Currently they are completely unsecure.
 
 #[get("/healthz")]
 async fn healthz_handler() -> content::Html<String> {
@@ -28,9 +30,8 @@ async fn signin_handler(
     cookie_jar: &CookieJar<'_>,
     display_name: String,
 ) -> Option<Error> {
-    match PlayerUUID::from_cookie_jar(cookie_jar) {
-        Ok(player_uuid) => return Some(Error::new("User is already signed in")),
-        Err(_) => {}
+    if let Ok(_) = PlayerUUID::from_cookie_jar(cookie_jar) {
+        return Some(Error::new("User is already signed in"));
     };
     let player_uuid = PlayerUUID::new();
     if let Some(err) = game_manager
@@ -62,6 +63,35 @@ async fn signout_handler(
         Err(err) => return Some(err),
     };
     cookie_jar.remove(Cookie::named(SESSION_COOKIE_NAME));
+    None
+}
+
+#[get("/api/createGame/<game_name>")]
+async fn create_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>, game_name: String) -> Result<GameView, Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
+    let mut unlocked_game_manager = game_manager.write().unwrap();
+    unlocked_game_manager.create_game(player_uuid.clone(), game_name)?;
+    unlocked_game_manager.get_game_view(&player_uuid)
+}
+
+#[get("/api/joinGame/<game_uuid>")]
+async fn join_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>, game_uuid: GameUUID) -> Result<GameView, Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
+    let mut unlocked_game_manager = game_manager.write().unwrap();
+    if let Some(err) = unlocked_game_manager.join_game(player_uuid.clone(), game_uuid) {
+        return Err(err);
+    };
+    unlocked_game_manager.get_game_view(&player_uuid)
+}
+
+#[get("/api/leaveGame")]
+async fn leave_game_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>) -> Option<Error> {
+    let player_uuid = match PlayerUUID::from_cookie_jar(cookie_jar) {
+        Ok(player_uuid) => player_uuid,
+        Err(err) => return Some(err)
+    };
+    let mut unlocked_game_manager = game_manager.write().unwrap();
+    unlocked_game_manager.leave_game(&player_uuid)?;
     None
 }
 
@@ -144,6 +174,9 @@ async fn rocket() -> _ {
                 healthz_handler,
                 signin_handler,
                 signout_handler,
+                create_game_handler,
+                join_game_handler,
+                leave_game_handler,
                 play_card_handler,
                 discard_cards_handler,
                 order_drink_handler,
