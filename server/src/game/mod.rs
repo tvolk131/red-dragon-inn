@@ -151,9 +151,17 @@ impl Game {
         game_logic.order_drink(player_uuid, other_player_uuid)
     }
 
-    pub fn pass(&self, player_uuid: &PlayerUUID) -> Option<Error> {
-        // TODO - Implement.
-        None
+    pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+        match &mut self.get_mut_game_logic() {
+            Ok(game_logic) => {
+                if game_logic.is_gambling_turn(player_uuid) {
+                    game_logic.gambling_pass();
+                    return None;
+                }
+            },
+            Err(_) => {},
+        };
+        Some(Error::new("Unable to pass at this time"))
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {

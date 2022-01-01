@@ -167,7 +167,7 @@ impl GameManager {
             Ok(game) => game,
             Err(error) => return Some(error),
         };
-        game.read().unwrap().pass(player_uuid)
+        game.write().unwrap().pass(player_uuid)
     }
 
     pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
