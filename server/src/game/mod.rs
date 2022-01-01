@@ -11,6 +11,7 @@ pub use player::PlayerUUID;
 use game_logic::GameLogic;
 use player_view::GameView;
 use std::str::FromStr;
+use std::collections::HashMap;
 
 pub struct Game {
     display_name: String,
@@ -164,8 +165,14 @@ impl Game {
         Some(Error::new("Unable to pass at this time"))
     }
 
-    pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
-        self.get_game_logic()?.get_game_view(player_uuid)
+    pub fn get_game_view(&self, player_uuid: PlayerUUID) -> Result<GameView, Error> {
+        // TODO - Finish implementing.
+        Ok(GameView {
+            self_player_uuid: player_uuid,
+            hand: Vec::new(),
+            player_data: self.game_logic_or.as_ref().unwrap().get_game_view_player_data(),
+            player_display_names: HashMap::new()
+        })
     }
 
     fn get_game_logic(&self) -> Result<&GameLogic, Error> {

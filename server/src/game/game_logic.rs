@@ -1,6 +1,6 @@
 use super::drink::{create_drink_deck, Drink};
 use super::player::{Player, PlayerUUID};
-use super::player_view::GameView;
+use super::player_view::GameViewPlayerData;
 use super::{Character, Error};
 
 pub struct GameLogic {
@@ -153,9 +153,8 @@ impl GameLogic {
         }
     }
 
-    pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
-        // TODO - Implement this method.
-        Err(Error::new("Method is not yet implemented"))
+    pub fn get_game_view_player_data(&self) -> Vec<GameViewPlayerData> {
+        self.players.iter().map(|(player_uuid, player)| player.to_game_view_player_data(player_uuid.clone())).collect()
     }
 
     fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {

@@ -4,6 +4,7 @@ use super::player_card::PlayerCard;
 use super::Character;
 use super::Error;
 use serde::Serialize;
+use super::player_view::GameViewPlayerData;
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct PlayerUUID(String);
@@ -70,6 +71,18 @@ impl Player {
         };
         player.draw_to_full();
         player
+    }
+
+    pub fn to_game_view_player_data(&self, player_uuid: PlayerUUID) -> GameViewPlayerData {
+        GameViewPlayerData {
+            player_uuid,
+            draw_pile_size: self.draw_pile.len(),
+            discard_pile_size: self.discard_pile.len(),
+            drink_deck_size: self.drinks.len(),
+            alcohol_content: self.alcohol_content,
+            fortitude: self.fortitude,
+            gold: self.gold
+        }
     }
 
     pub fn draw_to_full(&mut self) {

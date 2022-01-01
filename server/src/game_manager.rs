@@ -170,8 +170,8 @@ impl GameManager {
         game.write().unwrap().pass(player_uuid)
     }
 
-    pub fn get_game_view(&self, player_uuid: &PlayerUUID) -> Result<GameView, Error> {
-        let game = self.get_game_of_player(player_uuid)?;
+    pub fn get_game_view(&self, player_uuid: PlayerUUID) -> Result<GameView, Error> {
+        let game = self.get_game_of_player(&player_uuid)?;
         game.read().unwrap().get_game_view(player_uuid)
     }
 
