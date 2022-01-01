@@ -1,31 +1,32 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use super::PlayerUUID;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameViewPlayerCard {
     card_name: String,
     is_playable: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GameView {
-    hand: Vec<GameViewPlayerCard>,
+pub struct GameViewPlayerData {
+    player_uuid: PlayerUUID,
+    player_display_name: String,
+    draw_pile_size: i32,
+    discard_pile_size: i32,
+    drink_deck_size: i32,
     alcohol_content: i32,
     fortitude: i32,
     gold: i32,
 }
 
-impl GameView {
-    // TODO - Remove this dummy function.
-    pub fn new() -> Self {
-        Self {
-            hand: Vec::new(),
-            alcohol_content: 0,
-            fortitude: 0,
-            gold: 0,
-        }
-    }
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GameView {
+    self_player_uuid: PlayerUUID,
+    hand: Vec<GameViewPlayerCard>,
+    player_data: Vec<GameViewPlayerData>,
 }
 
 // TODO - Abstract this into a procedural macro along with all other Responder impl blocks in other structs (if there are any).

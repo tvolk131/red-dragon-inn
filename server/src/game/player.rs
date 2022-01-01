@@ -3,8 +3,9 @@ use super::drink::Drink;
 use super::player_card::PlayerCard;
 use super::Character;
 use super::Error;
+use serde::Serialize;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct PlayerUUID(String);
 
 impl PlayerUUID {
