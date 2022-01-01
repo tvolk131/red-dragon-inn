@@ -12,8 +12,12 @@ pub struct GameLogic {
 }
 
 impl GameLogic {
-    pub fn new(characters: Vec<Character>) -> Self {
-        Self {
+    pub fn new(characters: Vec<(PlayerUUID, Character)>) -> Result<Self, Error> {
+        if characters.len() < 2 || characters.len() > 8 {
+            return Err(Error::new("Must have between 2 and 8 players"))
+        }
+
+        Ok(Self {
             players: Vec::new(),
             drink_deck_draw_pile: create_drink_deck(),
             drink_deck_discard_pile: Vec::new(),
@@ -22,7 +26,7 @@ impl GameLogic {
                 turn_phase: TurnPhase::DiscardAndDraw,
             },
             gambling_round_or: None,
-        }
+        })
     }
 
     pub fn get_current_player_turn<'a>(&'a self) -> &'a PlayerUUID {

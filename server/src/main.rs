@@ -10,6 +10,7 @@ use game::PlayerUUID;
 use game::{player_view::GameView, Error};
 use game_manager::{GameManager, GameUUID};
 use std::sync::RwLock;
+use game::Character;
 
 use rocket::{
     http::{Cookie, CookieJar},
@@ -104,6 +105,33 @@ async fn leave_game_handler(
     let mut unlocked_game_manager = game_manager.write().unwrap();
     unlocked_game_manager.leave_game(&player_uuid)?;
     None
+}
+
+#[get("/api/startGame")]
+async fn start_game_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+) -> Result<GameView, Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
+    let unlocked_game_manager = game_manager.read().unwrap();
+    if let Some(err) = unlocked_game_manager.start_game(&player_uuid) {
+        return Err(err);
+    };
+    unlocked_game_manager.get_game_view(&player_uuid)
+}
+
+#[get("/api/selectCharacter/<character>")]
+async fn select_character_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+    character: Character
+) -> Result<GameView, Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
+    let unlocked_game_manager = game_manager.read().unwrap();
+    if let Some(err) = unlocked_game_manager.select_character(&player_uuid, character) {
+        return Err(err);
+    };
+    unlocked_game_manager.get_game_view(&player_uuid)
 }
 
 #[get("/api/playCard/<card_index>")]
@@ -201,6 +229,8 @@ async fn rocket() -> _ {
                 create_game_handler,
                 join_game_handler,
                 leave_game_handler,
+                start_game_handler,
+                select_character_handler,
                 play_card_handler,
                 discard_cards_handler,
                 order_drink_handler,
