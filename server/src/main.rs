@@ -6,11 +6,11 @@ mod game;
 mod game_manager;
 
 use auth::SESSION_COOKIE_NAME;
+use game::Character;
 use game::PlayerUUID;
 use game::{player_view::GameView, Error};
 use game_manager::{GameManager, GameUUID};
 use std::sync::RwLock;
-use game::Character;
 
 use rocket::{
     http::{Cookie, CookieJar},
@@ -124,7 +124,7 @@ async fn start_game_handler(
 async fn select_character_handler(
     game_manager: &State<RwLock<GameManager>>,
     cookie_jar: &CookieJar<'_>,
-    character: Character
+    character: Character,
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();

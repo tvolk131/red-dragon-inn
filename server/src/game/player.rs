@@ -1,6 +1,7 @@
 use super::super::auth::SESSION_COOKIE_NAME;
 use super::drink::Drink;
 use super::player_card::PlayerCard;
+use super::Character;
 use super::Error;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -51,7 +52,12 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(gold: i32, deck: Vec<Box<dyn PlayerCard>>) -> Self {
+    pub fn create_from_character(character: Character, gold: i32) -> Self {
+        // TODO - Create deck for given character.
+        Self::new(gold, Vec::new())
+    }
+
+    fn new(gold: i32, deck: Vec<Box<dyn PlayerCard>>) -> Self {
         let mut player = Self {
             alcohol_content: 0,
             fortitude: 20,

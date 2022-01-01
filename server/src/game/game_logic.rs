@@ -13,12 +13,25 @@ pub struct GameLogic {
 
 impl GameLogic {
     pub fn new(characters: Vec<(PlayerUUID, Character)>) -> Result<Self, Error> {
-        if characters.len() < 2 || characters.len() > 8 {
-            return Err(Error::new("Must have between 2 and 8 players"))
+        let player_count = characters.len();
+
+        if player_count < 2 || player_count > 8 {
+            return Err(Error::new("Must have between 2 and 8 players"));
         }
 
         Ok(Self {
-            players: Vec::new(),
+            players: characters
+                .into_iter()
+                .map(|(player_uuid, character)| {
+                    (
+                        player_uuid,
+                        Player::create_from_character(
+                            character,
+                            Self::get_starting_gold_amount_for_player_count(player_count),
+                        ),
+                    )
+                })
+                .collect(),
             drink_deck_draw_pile: create_drink_deck(),
             drink_deck_discard_pile: Vec::new(),
             turn_info: TurnInfo {
@@ -193,6 +206,16 @@ impl GameLogic {
     ) -> Option<Error> {
         // TODO - Implement.
         None
+    }
+
+    fn get_starting_gold_amount_for_player_count(player_count: usize) -> i32 {
+        if player_count <= 2 {
+            8
+        } else if player_count >= 7 {
+            12
+        } else {
+            10
+        }
     }
 }
 

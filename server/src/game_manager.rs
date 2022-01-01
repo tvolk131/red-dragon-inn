@@ -1,8 +1,8 @@
 use super::game::player_view::GameView;
 use super::game::{Error, Game, PlayerUUID};
+use super::Character;
 use std::collections::HashMap;
 use std::sync::RwLock;
-use super::game::Character;
 
 pub struct GameManager {
     games_by_game_id: HashMap<GameUUID, RwLock<Game>>,
@@ -46,7 +46,7 @@ impl GameManager {
             return Err(err);
         }
         let game_id = GameUUID::new();
-        let mut game = Game::new();
+        let mut game = Game::new(game_name);
         game.join(player_uuid.clone());
         self.games_by_game_id
             .insert(game_id.clone(), RwLock::from(game));
@@ -109,12 +109,18 @@ impl GameManager {
         game.write().unwrap().start(player_uuid)
     }
 
-    pub fn select_character(&self, player_uuid: &PlayerUUID, character: Character) -> Option<Error> {
+    pub fn select_character(
+        &self,
+        player_uuid: &PlayerUUID,
+        character: Character,
+    ) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
             Err(error) => return Some(error),
         };
-        game.write().unwrap().select_character(player_uuid, character)
+        game.write()
+            .unwrap()
+            .select_character(player_uuid, character)
     }
 
     fn assert_player_exists(&self, player_uuid: &PlayerUUID) -> Option<Error> {
