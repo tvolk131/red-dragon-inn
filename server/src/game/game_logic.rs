@@ -154,7 +154,10 @@ impl GameLogic {
     }
 
     pub fn get_game_view_player_data(&self) -> Vec<GameViewPlayerData> {
-        self.players.iter().map(|(player_uuid, player)| player.to_game_view_player_data(player_uuid.clone())).collect()
+        self.players
+            .iter()
+            .map(|(player_uuid, player)| player.to_game_view_player_data(player_uuid.clone()))
+            .collect()
     }
 
     fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {

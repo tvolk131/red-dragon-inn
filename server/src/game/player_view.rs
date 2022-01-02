@@ -1,5 +1,5 @@
-use serde::Serialize;
 use super::PlayerUUID;
+use serde::Serialize;
 use std::collections::HashMap;
 
 #[derive(Serialize)]
@@ -27,7 +27,7 @@ pub struct GameView {
     pub self_player_uuid: PlayerUUID,
     pub hand: Vec<GameViewPlayerCard>,
     pub player_data: Vec<GameViewPlayerData>,
-    pub player_display_names: HashMap<PlayerUUID, String>
+    pub player_display_names: HashMap<PlayerUUID, String>,
 }
 
 // TODO - Abstract this into a procedural macro along with all other Responder impl blocks in other structs (if there are any).

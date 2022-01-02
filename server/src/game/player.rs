@@ -1,10 +1,10 @@
 use super::super::auth::SESSION_COOKIE_NAME;
 use super::drink::Drink;
 use super::player_card::PlayerCard;
+use super::player_view::GameViewPlayerData;
 use super::Character;
 use super::Error;
 use serde::Serialize;
-use super::player_view::GameViewPlayerData;
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct PlayerUUID(String);
@@ -81,7 +81,7 @@ impl Player {
             drink_deck_size: self.drinks.len(),
             alcohol_content: self.alcohol_content,
             fortitude: self.fortitude,
-            gold: self.gold
+            gold: self.gold,
         }
     }
 

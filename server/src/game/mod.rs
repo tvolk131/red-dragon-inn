@@ -10,8 +10,8 @@ pub use player::PlayerUUID;
 
 use game_logic::GameLogic;
 use player_view::GameView;
-use std::str::FromStr;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 pub struct Game {
     display_name: String,
@@ -63,7 +63,11 @@ impl Game {
                 let players: Vec<(PlayerUUID, Character)> = self
                     .players
                     .iter()
-                    .filter_map(|(player_uuid, character_or)| character_or.as_ref().map(|character| (player_uuid.clone(), *character)))
+                    .filter_map(|(player_uuid, character_or)| {
+                        character_or
+                            .as_ref()
+                            .map(|character| (player_uuid.clone(), *character))
+                    })
                     .collect();
                 if players.len() < self.players.len() {
                     return Some(Error::new("Not all players have selected a character"));
@@ -156,8 +160,8 @@ impl Game {
                     game_logic.gambling_pass();
                     return None;
                 }
-            },
-            Err(_) => {},
+            }
+            Err(_) => {}
         };
         Some(Error::new("Unable to pass at this time"))
     }
@@ -167,8 +171,12 @@ impl Game {
         Ok(GameView {
             self_player_uuid: player_uuid,
             hand: Vec::new(),
-            player_data: self.game_logic_or.as_ref().unwrap().get_game_view_player_data(),
-            player_display_names: HashMap::new()
+            player_data: self
+                .game_logic_or
+                .as_ref()
+                .unwrap()
+                .get_game_view_player_data(),
+            player_display_names: HashMap::new(),
         })
     }
 
@@ -187,9 +195,7 @@ impl Game {
     }
 
     fn player_is_in_game(&self, player_uuid: &PlayerUUID) -> bool {
-        self.players
-            .iter()
-            .any(|(uuid, _)| uuid == player_uuid)
+        self.players.iter().any(|(uuid, _)| uuid == player_uuid)
     }
 
     fn get_owner(&self) -> Option<&PlayerUUID> {
