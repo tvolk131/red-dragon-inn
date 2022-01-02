@@ -63,10 +63,7 @@ impl Game {
                 let players: Vec<(PlayerUUID, Character)> = self
                     .players
                     .iter()
-                    .filter_map(|(player_uuid, character_or)| match character_or {
-                        Some(character) => Some((player_uuid.clone(), *character)),
-                        None => None,
-                    })
+                    .filter_map(|(player_uuid, character_or)| character_or.as_ref().map(|character| (player_uuid.clone(), *character)))
                     .collect();
                 if players.len() < self.players.len() {
                     return Some(Error::new("Not all players have selected a character"));
@@ -192,8 +189,7 @@ impl Game {
     fn player_is_in_game(&self, player_uuid: &PlayerUUID) -> bool {
         self.players
             .iter()
-            .find(|(uuid, _)| uuid == player_uuid)
-            .is_some()
+            .any(|(uuid, _)| uuid == player_uuid)
     }
 
     fn get_owner(&self) -> Option<&PlayerUUID> {
@@ -232,6 +228,6 @@ impl FromStr for Character {
 impl<'a> rocket::request::FromParam<'a> for Character {
     type Error = String;
     fn from_param(param: &'a str) -> Result<Self, String> {
-        Ok(Self::from_str(param)?)
+        Self::from_str(param)
     }
 }

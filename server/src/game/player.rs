@@ -112,9 +112,9 @@ impl Player {
     pub fn drink_from_drink_pile(&mut self) -> Option<Drink> {
         if let Some(drink) = self.drinks.pop() {
             self.drink(&drink);
-            return Some(drink);
+            Some(drink)
         } else {
-            return None;
+            None
         }
     }
 

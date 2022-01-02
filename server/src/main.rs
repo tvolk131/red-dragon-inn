@@ -31,7 +31,7 @@ async fn signin_handler(
     cookie_jar: &CookieJar<'_>,
     display_name: String,
 ) -> Option<Error> {
-    if let Ok(_) = PlayerUUID::from_cookie_jar(cookie_jar) {
+    if PlayerUUID::from_cookie_jar(cookie_jar).is_ok() {
         return Some(Error::new("User is already signed in"));
     };
     let player_uuid = PlayerUUID::new();

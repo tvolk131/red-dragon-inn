@@ -15,7 +15,7 @@ impl GameLogic {
     pub fn new(characters: Vec<(PlayerUUID, Character)>) -> Result<Self, Error> {
         let player_count = characters.len();
 
-        if player_count < 2 || player_count > 8 {
+        if !(2..=8).contains(&player_count) {
             return Err(Error::new("Must have between 2 and 8 players"));
         }
 
@@ -42,7 +42,7 @@ impl GameLogic {
         })
     }
 
-    pub fn get_current_player_turn<'a>(&'a self) -> &'a PlayerUUID {
+    pub fn get_current_player_turn(&self) -> &PlayerUUID {
         &self.turn_info.player_turn
     }
 
@@ -170,7 +170,7 @@ impl GameLogic {
 
     pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
         let card_or = match self.get_player_by_uuid_mut(player_uuid) {
-            Some(player) => player.pop_card_from_hand(&player_uuid, card_index),
+            Some(player) => player.pop_card_from_hand(player_uuid, card_index),
             None => {
                 return Some(Error::new(format!(
                     "Player does not exist with player id {}",
@@ -184,8 +184,8 @@ impl GameLogic {
             None => return Some(Error::new("Card does not exist")),
         };
 
-        let return_val = if card.can_play(&player_uuid, self) {
-            card.play(&player_uuid, self);
+        let return_val = if card.can_play(player_uuid, self) {
+            card.play(player_uuid, self);
             None
         } else {
             Some(Error::new("Card cannot be played at this time"))

@@ -66,19 +66,18 @@ impl GameManager {
             Some(game) => game,
             None => return Some(Error::new("Game does not exist")),
         };
-        match game.write().unwrap().join(player_uuid.clone()) {
-            Some(err) => return Some(err),
-            None => {}
-        };
+        if let Some(err) = game.write().unwrap().join(player_uuid.clone()) {
+            return Some(err);
+        }
         self.player_uuids_to_game_id.insert(player_uuid, game_id);
         None
     }
 
     pub fn leave_game(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
-        if let Some(err) = self.assert_player_exists(&player_uuid) {
+        if let Some(err) = self.assert_player_exists(player_uuid) {
             return Some(err);
         }
-        let game_id = match self.player_uuids_to_game_id.get(&player_uuid) {
+        let game_id = match self.player_uuids_to_game_id.get(player_uuid) {
             Some(game_id) => game_id,
             None => return Some(Error::new("Player is not in a game")),
         };
@@ -88,10 +87,9 @@ impl GameManager {
                 None => return Some(Error::new("Game does not exist")),
             };
             let mut unlocked_game = game.write().unwrap();
-            match unlocked_game.leave(player_uuid) {
-                Some(err) => return Some(err),
-                None => {}
-            };
+            if let Some(err) = unlocked_game.leave(player_uuid) {
+                return Some(err);
+            }
             unlocked_game.is_empty()
         };
         if game_is_empty {
@@ -176,7 +174,7 @@ impl GameManager {
     }
 
     fn get_game_of_player(&self, player_uuid: &PlayerUUID) -> Result<&RwLock<Game>, Error> {
-        if let Some(err) = self.assert_player_exists(&player_uuid) {
+        if let Some(err) = self.assert_player_exists(player_uuid) {
             return Err(err);
         }
         let error = Err(Error::new("Player is not in a game"));
