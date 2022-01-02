@@ -55,8 +55,7 @@ pub struct Player {
 
 impl Player {
     pub fn create_from_character(character: Character, gold: i32) -> Self {
-        // TODO - Create deck for given character.
-        Self::new(gold, Vec::new())
+        Self::new(gold, character.create_deck())
     }
 
     fn new(gold: i32, deck: Vec<Box<dyn PlayerCard>>) -> Self {

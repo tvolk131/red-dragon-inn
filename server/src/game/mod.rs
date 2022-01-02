@@ -12,6 +12,7 @@ use game_logic::GameLogic;
 use player_view::GameView;
 use std::collections::HashMap;
 use std::str::FromStr;
+use player_card::PlayerCard;
 
 pub struct Game {
     display_name: String,
@@ -238,5 +239,53 @@ impl<'a> rocket::request::FromParam<'a> for Character {
     type Error = String;
     fn from_param(param: &'a str) -> Result<Self, String> {
         Self::from_str(param)
+    }
+}
+
+impl Character {
+    // TODO - Finish implementing entire decks for each character.
+    pub fn create_deck(&self) -> Vec<Box<dyn PlayerCard>> {
+        match self {
+            Fiona => vec![
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::IRaiseCard {}),
+                Box::from(player_card::IRaiseCard {})
+            ],
+            Zot => vec![
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::IRaiseCard {}),
+                Box::from(player_card::IRaiseCard {})
+            ],
+            Deirdre => vec![
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::IRaiseCard {}),
+                Box::from(player_card::IRaiseCard {})
+            ],
+            Gerki => vec![
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::GamblingImInPlayerCard {}),
+                Box::from(player_card::IRaiseCard {}),
+                Box::from(player_card::IRaiseCard {})
+            ],
+        }
     }
 }
