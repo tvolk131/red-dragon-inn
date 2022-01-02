@@ -2,6 +2,7 @@ use super::drink::{create_drink_deck, Drink};
 use super::player::{Player, PlayerUUID};
 use super::player_view::GameViewPlayerData;
 use super::{Character, Error};
+use std::collections::HashSet;
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
@@ -173,7 +174,7 @@ impl GameLogic {
 
     pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
         let card_or = match self.get_player_by_uuid_mut(player_uuid) {
-            Some(player) => player.pop_card_from_hand(player_uuid, card_index),
+            Some(player) => player.pop_card_from_hand(card_index),
             None => {
                 return Some(Error::new(format!(
                     "Player does not exist with player id {}",
@@ -199,6 +200,41 @@ impl GameLogic {
         }
 
         return_val
+    }
+
+    pub fn discard_cards_and_draw_to_full(&mut self, player_uuid: &PlayerUUID, mut card_indices: Vec<usize>) -> Option<Error> {
+        if self.get_current_player_turn() != player_uuid || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw {
+            return Some(Error::new("Cannot discard cards at this time"));
+        }
+
+        let player = match self.players.iter_mut().find(|(uuid, _)| uuid == player_uuid) {
+            Some((_, player)) => player,
+            None => return Some(Error::new("Player is not in the game"))
+        };
+
+        if card_indices.len() > card_indices.iter().cloned().collect::<HashSet<usize>>().len() {
+            return Some(Error::new("Cannot discard the same card twice"))
+        }
+
+        // Sort and reverse so that we can iterate backwards and pop all cards.
+        // If we pop the cards in any other order, we some indices will have moved by the time we get to them.
+        card_indices.sort_unstable();
+        card_indices.reverse();
+
+        for card_index in card_indices {
+            let card = match player.pop_card_from_hand(card_index) {
+                Some(card) => card,
+                // Since we're iterating through the card indices in reverse order, and
+                // the indices can't be negative since we're using `usize` to represent
+                // them, this error will either be thrown on the first iteration of the
+                // loop or not at all. So we can guarantee that this method will always
+                // behave atomically.
+                None => return Some(Error::new("Card indices do not all correspond to cards in the player's hand"))
+            };
+            player.discard_card(card);
+        }
+        player.draw_to_full();
+        None
     }
 
     pub fn order_drink(
@@ -234,6 +270,7 @@ pub struct TurnInfo {
     turn_phase: TurnPhase,
 }
 
+#[derive(PartialEq)]
 enum TurnPhase {
     DiscardAndDraw,
     Action,

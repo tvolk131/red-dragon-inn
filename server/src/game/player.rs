@@ -93,7 +93,6 @@ impl Player {
 
     pub fn pop_card_from_hand(
         &mut self,
-        player_uuid: &PlayerUUID,
         card_index: usize,
     ) -> Option<Box<dyn PlayerCard>> {
         // This check may look unnecessary, but it's here because Vec::remove() doesn't

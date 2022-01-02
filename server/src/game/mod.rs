@@ -131,9 +131,12 @@ impl Game {
     /// This must be called at the beginning of every player's turn.
     /// If the player doesn't want to discard anything, an empty vector
     /// should be passed in for `card_indices`.
-    pub fn discard_cards(&self, player_uuid: &PlayerUUID, card_indices: Vec<i32>) -> Option<Error> {
-        // TODO - Implement.
-        None
+    pub fn discard_cards_and_draw_to_full(&mut self, player_uuid: &PlayerUUID, card_indices: Vec<usize>) -> Option<Error> {
+        let game_logic = match self.get_mut_game_logic() {
+            Ok(game_logic) => game_logic,
+            Err(err) => return Some(err),
+        };
+        game_logic.discard_cards_and_draw_to_full(player_uuid, card_indices)
     }
 
     /// Order a drink for another player.

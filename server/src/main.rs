@@ -219,7 +219,7 @@ async fn discard_cards_handler(
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
     if let Some(err) =
-        unlocked_game_manager.discard_cards(&player_uuid, parse_i32_vec(card_indices_string)?)
+        unlocked_game_manager.discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)
     {
         return Err(err);
     }
@@ -262,12 +262,12 @@ async fn get_game_view_handler(
     game_manager.read().unwrap().get_game_view(player_uuid)
 }
 
-fn parse_i32_vec(items_string_or: Option<String>) -> Result<Vec<i32>, Error> {
+fn parse_usize_vec(items_string_or: Option<String>) -> Result<Vec<usize>, Error> {
     match items_string_or {
         Some(items_string) => {
-            let mut items: Vec<i32> = Vec::new();
+            let mut items: Vec<usize> = Vec::new();
             for item_string in items_string.split(',') {
-                match item_string.parse::<i32>() {
+                match item_string.parse::<usize>() {
                     Ok(item) => items.push(item),
                     Err(_) => return Err(Error::new("Unable to parse items")),
                 };

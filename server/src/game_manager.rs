@@ -136,14 +136,14 @@ impl GameManager {
         game.write().unwrap().play_card(player_uuid, card_index)
     }
 
-    pub fn discard_cards(&self, player_uuid: &PlayerUUID, card_indices: Vec<i32>) -> Option<Error> {
+    pub fn discard_cards_and_draw_to_full(&self, player_uuid: &PlayerUUID, card_indices: Vec<usize>) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
             Err(error) => return Some(error),
         };
-        game.read()
+        game.write()
             .unwrap()
-            .discard_cards(player_uuid, card_indices)
+            .discard_cards_and_draw_to_full(player_uuid, card_indices)
     }
 
     pub fn order_drink(
