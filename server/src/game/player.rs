@@ -50,7 +50,7 @@ pub struct Player {
     gold: i32,
     hand: Vec<Box<dyn PlayerCard>>,
     deck: AutoShufflingDeck<Box<dyn PlayerCard>>,
-    drinks: Vec<Drink>,
+    drinks: Vec<Box<dyn Drink>>,
 }
 
 impl Player {
@@ -106,7 +106,7 @@ impl Player {
         self.deck.discard_card(card);
     }
 
-    pub fn drink_from_drink_pile(&mut self) -> Option<Drink> {
+    pub fn drink_from_drink_pile(&mut self) -> Option<Box<dyn Drink>> {
         if let Some(drink) = self.drinks.pop() {
             self.drink(&drink);
             Some(drink)
@@ -115,9 +115,16 @@ impl Player {
         }
     }
 
-    pub fn drink(&mut self, drink: &Drink) {
-        self.alcohol_content += drink.get_alcohol_content_modifier();
-        self.fortitude += drink.get_fortitude_modifier();
+    pub fn drink(&mut self, drink: &Box<dyn Drink>) {
+        drink.process(self);
+    }
+
+    pub fn change_alcohol_content(&mut self, amount: i32) {
+        self.alcohol_content += amount;
+    }
+
+    pub fn change_fortitude(&mut self, amount: i32) {
+        self.fortitude += amount;
     }
 
     pub fn add_gold(&mut self, amount: i32) {

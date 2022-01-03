@@ -7,7 +7,7 @@ use super::deck::AutoShufflingDeck;
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
-    drink_deck: AutoShufflingDeck<Drink>,
+    drink_deck: AutoShufflingDeck<Box<dyn Drink>>,
     turn_info: TurnInfo,
     gambling_round_or: Option<GamblingRound>,
 }
@@ -243,7 +243,12 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Option<Error> {
+        if self.get_current_player_turn() != player_uuid || self.turn_info.turn_phase != TurnPhase::OrderDrinks {
+            return Some(Error::new("Cannot order drinks at this time"));
+        }
         // TODO - Implement.
+        self.turn_info.turn_phase = TurnPhase::Drink;
+        // TODO - Automatically initiate drink phase.
         None
     }
 
