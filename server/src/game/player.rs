@@ -5,6 +5,7 @@ use super::player_view::GameViewPlayerData;
 use super::Character;
 use super::Error;
 use serde::Serialize;
+use super::deck::AutoShufflingDeck;
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct PlayerUUID(String);
@@ -48,8 +49,7 @@ pub struct Player {
     fortitude: i32,
     gold: i32,
     hand: Vec<Box<dyn PlayerCard>>,
-    draw_pile: Vec<Box<dyn PlayerCard>>,
-    discard_pile: Vec<Box<dyn PlayerCard>>,
+    deck: AutoShufflingDeck<Box<dyn PlayerCard>>,
     drinks: Vec<Drink>,
 }
 
@@ -64,8 +64,7 @@ impl Player {
             fortitude: 20,
             gold,
             hand: Vec::new(),
-            draw_pile: deck,
-            discard_pile: Vec::new(),
+            deck: AutoShufflingDeck::new(deck),
             drinks: Vec::new(),
         };
         player.draw_to_full();
@@ -75,8 +74,8 @@ impl Player {
     pub fn to_game_view_player_data(&self, player_uuid: PlayerUUID) -> GameViewPlayerData {
         GameViewPlayerData {
             player_uuid,
-            draw_pile_size: self.draw_pile.len(),
-            discard_pile_size: self.discard_pile.len(),
+            draw_pile_size: self.deck.draw_pile_size(),
+            discard_pile_size: self.deck.discard_pile_size(),
             drink_deck_size: self.drinks.len(),
             alcohol_content: self.alcohol_content,
             fortitude: self.fortitude,
@@ -86,7 +85,7 @@ impl Player {
 
     pub fn draw_to_full(&mut self) {
         while self.hand.len() < 7 {
-            self.hand.push(self.draw_pile.pop().unwrap());
+            self.hand.push(self.deck.draw_card().unwrap());
         }
     }
 
@@ -104,7 +103,7 @@ impl Player {
     }
 
     pub fn discard_card(&mut self, card: Box<dyn PlayerCard>) {
-        self.discard_pile.push(card);
+        self.deck.discard_card(card);
     }
 
     pub fn drink_from_drink_pile(&mut self) -> Option<Drink> {

@@ -3,11 +3,11 @@ use super::player::{Player, PlayerUUID};
 use super::player_view::GameViewPlayerData;
 use super::{Character, Error};
 use std::collections::HashSet;
+use super::deck::AutoShufflingDeck;
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
-    drink_deck_draw_pile: Vec<Drink>,
-    drink_deck_discard_pile: Vec<Drink>,
+    drink_deck: AutoShufflingDeck<Drink>,
     turn_info: TurnInfo,
     gambling_round_or: Option<GamblingRound>,
 }
@@ -33,9 +33,9 @@ impl GameLogic {
                     )
                 })
                 .collect(),
-            drink_deck_draw_pile: create_drink_deck(),
-            drink_deck_discard_pile: Vec::new(),
+            drink_deck: AutoShufflingDeck::new(create_drink_deck()),
             turn_info: TurnInfo {
+                // TODO - Set this to the player who should go first.
                 player_turn: PlayerUUID::new(),
                 turn_phase: TurnPhase::DiscardAndDraw,
             },
@@ -234,6 +234,7 @@ impl GameLogic {
             player.discard_card(card);
         }
         player.draw_to_full();
+        self.turn_info.turn_phase = TurnPhase::Action;
         None
     }
 

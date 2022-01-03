@@ -4,6 +4,7 @@ mod game_logic;
 mod player;
 mod player_card;
 pub mod player_view;
+mod deck;
 
 pub use error::Error;
 pub use player::PlayerUUID;
@@ -182,13 +183,6 @@ impl Game {
                 .get_game_view_player_data(),
             player_display_names: HashMap::new(),
         })
-    }
-
-    fn get_game_logic(&self) -> Result<&GameLogic, Error> {
-        match &self.game_logic_or {
-            Some(game_logic) => Ok(game_logic),
-            None => Err(Error::new("Game is not currently running")),
-        }
     }
 
     fn get_mut_game_logic(&mut self) -> Result<&mut GameLogic, Error> {
