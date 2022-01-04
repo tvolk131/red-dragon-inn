@@ -307,10 +307,56 @@ impl GameLogic {
 
         self.turn_info.drinks_to_order -= 1;
         if self.turn_info.drinks_to_order == 0 {
-            self.turn_info.turn_phase = TurnPhase::Drink;
-            // TODO - Automatically initiate drink phase.
+            self.perform_drink_phase(player_uuid)?;
         }
         None
+    }
+
+    fn perform_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+        let player = match self.get_player_by_uuid_mut(player_uuid) {
+            Some(player) => player,
+            None => {
+                return Some(Error::new(format!(
+                    "Player does not exist with player id {}",
+                    player_uuid.to_string()
+                )))
+            }
+        };
+
+        if let Some(drink) = player.drink_from_drink_pile() {
+            self.drink_deck.discard_card(drink);
+        }
+        self.start_next_player_turn();
+        None
+    }
+
+    fn start_next_player_turn(&mut self) {
+        let current_player_index = self.players.iter().position(|(player_uuid, _)| player_uuid == &self.turn_info.player_turn).unwrap();
+        let mut next_player_index = current_player_index + 1;
+        if next_player_index == self.players.len() {
+            next_player_index = 0;
+        }
+
+        let entry = self.players.get(next_player_index).unwrap();
+        let mut next_player_uuid = &entry.0;
+        let mut next_player = &entry.1;
+
+        while next_player.is_out_of_game() {
+            next_player_index += 1;
+            if next_player_index == self.players.len() {
+                next_player_index = 0;
+            }
+
+            let entry = self.players.get(next_player_index).unwrap();
+            next_player_uuid = &entry.0;
+            next_player = &entry.1;
+
+            if next_player_index == current_player_index {
+                // TODO - Break from loop and declare this player as the winner.
+            }
+        }
+
+        self.turn_info = TurnInfo::new(next_player_uuid.clone());
     }
 
     fn get_starting_gold_amount_for_player_count(player_count: usize) -> i32 {
@@ -353,5 +399,4 @@ enum TurnPhase {
     DiscardAndDraw,
     Action,
     OrderDrinks,
-    Drink,
 }
