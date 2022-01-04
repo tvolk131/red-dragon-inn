@@ -194,7 +194,6 @@ impl Game {
         player_uuid: PlayerUUID,
         player_uuids_to_display_names: &HashMap<PlayerUUID, String>,
     ) -> Result<GameView, Error> {
-        // TODO - Finish implementing.
         Ok(GameView {
             game_name: self.display_name.clone(),
             hand: self
