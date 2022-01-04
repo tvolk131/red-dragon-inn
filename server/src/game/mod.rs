@@ -7,9 +7,9 @@ pub mod player_view;
 mod deck;
 mod uuid;
 
-pub use uuid::GameUUID;
+pub use self::uuid::GameUUID;
 pub use error::Error;
-pub use uuid::PlayerUUID;
+pub use self::uuid::PlayerUUID;
 
 use game_logic::GameLogic;
 use player_view::GameView;
@@ -233,7 +233,7 @@ impl FromStr for Character {
 
 impl<'a> rocket::request::FromParam<'a> for Character {
     type Error = String;
-    fn from_param(param: &'a str) -> Result<Self, String> {
+    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
         Self::from_str(param)
     }
 }

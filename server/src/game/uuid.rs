@@ -1,35 +1,48 @@
 use super::super::auth::SESSION_COOKIE_NAME;
 use super::Error;
 use serde::Serialize;
+use uuid::Uuid;
+use std::str::FromStr;
+use std::string::ToString;
 
 macro_rules! uuid {
     ($struct_name:ident) => {
-        #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
-        pub struct $struct_name(String);
+        #[derive(Clone, PartialEq, Eq, Hash, Serialize, Debug)]
+        pub struct $struct_name(Uuid);
 
         impl $struct_name {
             pub fn new() -> Self {
-                // TODO - Should generate actual unique id rather than an empty string.
-                Self(String::from(""))
+                Self(Uuid::new_v4())
             }
         }
 
-        impl std::string::ToString for $struct_name {
+        impl ToString for $struct_name {
             fn to_string(&self) -> String {
-                self.0.clone()
+                let mut buf = [b'!'; 36];
+                self.0.to_simple().encode_lower(&mut buf).to_string()
+            }
+        }
+
+        impl FromStr for $struct_name {
+            type Err = uuid::Error;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                Ok(Self(Uuid::parse_str(s)?))
             }
         }
 
         impl<'a> rocket::request::FromParam<'a> for $struct_name {
-            type Error = String;
-            fn from_param(param: &'a str) -> Result<Self, String> {
-                Ok(Self(String::from(param)))
+            type Error = uuid::Error;
+            fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+                Ok(Self(Uuid::parse_str(param)?))
             }
         }
 
         impl<'a> rocket::form::FromFormField<'a> for $struct_name {
             fn from_value(field: rocket::form::ValueField<'a>) -> rocket::form::Result<'a, Self> {
-                Ok(Self(String::from(field.value)))
+                match Uuid::parse_str(field.value) {
+                    Ok(uuid) => Ok(Self(uuid)),
+                    Err(_) => Err(rocket::form::Error::validation("Not a valid UUID"))?
+                }
             }
         }
     }
@@ -41,7 +54,10 @@ uuid!(GameUUID);
 impl PlayerUUID {
     pub fn from_cookie_jar(cookie_jar: &rocket::http::CookieJar) -> Result<Self, Error> {
         match cookie_jar.get(SESSION_COOKIE_NAME) {
-            Some(cookie) => Ok(Self(String::from(cookie.value()))),
+            Some(cookie) => match Self::from_str(cookie.value()) {
+                Ok(player_uuid) => Ok(player_uuid),
+                Err(_) => Err(Error::new("User is not signed in"))
+            },
             None => Err(Error::new("User is not signed in")),
         }
     }
@@ -51,5 +67,31 @@ impl PlayerUUID {
             SESSION_COOKIE_NAME,
             self.to_string(),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_convert_to_and_from_string() {
+        uuid!(TestUUID);
+
+        let test_uuid = TestUUID::new();
+        assert_eq!(test_uuid, TestUUID::from_str(&test_uuid.to_string()).unwrap());
+
+        // Stringified version is a 32-character hex string.
+        assert!(TestUUID::from_str("1bc68e20bad1456dab8039137094ca6d").is_ok());
+    }
+
+    #[test]
+    fn generates_unique_ids() {
+        uuid!(TestUUID);
+
+        let test_uuid_1 = TestUUID::new();
+        assert!(test_uuid_1 == test_uuid_1.clone()); // Sanity check.
+        let test_uuid_2 = TestUUID::new();
+        assert!(test_uuid_1 != test_uuid_2);
     }
 }
