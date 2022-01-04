@@ -48,8 +48,8 @@ pub struct Player {
     alcohol_content: i32,
     fortitude: i32,
     gold: i32,
-    hand: Vec<Box<dyn PlayerCard>>,
-    deck: AutoShufflingDeck<Box<dyn PlayerCard>>,
+    hand: Vec<PlayerCard>,
+    deck: AutoShufflingDeck<PlayerCard>,
     drinks: Vec<Box<dyn Drink>>,
 }
 
@@ -58,7 +58,7 @@ impl Player {
         Self::new(gold, character.create_deck())
     }
 
-    fn new(gold: i32, deck: Vec<Box<dyn PlayerCard>>) -> Self {
+    fn new(gold: i32, deck: Vec<PlayerCard>) -> Self {
         let mut player = Self {
             alcohol_content: 0,
             fortitude: 20,
@@ -92,7 +92,7 @@ impl Player {
     pub fn pop_card_from_hand(
         &mut self,
         card_index: usize,
-    ) -> Option<Box<dyn PlayerCard>> {
+    ) -> Option<PlayerCard> {
         // This check may look unnecessary, but it's here because Vec::remove() doesn't
         // return `Option<T>` but instead returns `T` and panics if the index is out of bounds.
         if self.hand.get(card_index).is_none() {
@@ -102,7 +102,7 @@ impl Player {
         }
     }
 
-    pub fn discard_card(&mut self, card: Box<dyn PlayerCard>) {
+    pub fn discard_card(&mut self, card: PlayerCard) {
         self.deck.discard_card(card);
     }
 

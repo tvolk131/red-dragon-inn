@@ -238,47 +238,47 @@ impl<'a> rocket::request::FromParam<'a> for Character {
 
 impl Character {
     // TODO - Finish implementing entire decks for each character.
-    pub fn create_deck(&self) -> Vec<Box<dyn PlayerCard>> {
+    pub fn create_deck(&self) -> Vec<PlayerCard> {
         match self {
             Fiona => vec![
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::IRaiseCard {}),
-                Box::from(player_card::IRaiseCard {})
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
             Zot => vec![
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::IRaiseCard {}),
-                Box::from(player_card::IRaiseCard {})
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
             Deirdre => vec![
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::IRaiseCard {}),
-                Box::from(player_card::IRaiseCard {})
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
             Gerki => vec![
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::GamblingImInPlayerCard {}),
-                Box::from(player_card::IRaiseCard {}),
-                Box::from(player_card::IRaiseCard {})
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
         }
     }

@@ -4,6 +4,7 @@ use super::player_view::GameViewPlayerData;
 use super::{Character, Error};
 use std::collections::HashSet;
 use super::deck::AutoShufflingDeck;
+use super::player_card::PlayerCard;
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
@@ -45,6 +46,10 @@ impl GameLogic {
 
     pub fn get_current_player_turn(&self) -> &PlayerUUID {
         &self.turn_info.player_turn
+    }
+
+    pub fn can_play_action_card(&self, player_uuid: &PlayerUUID) -> bool {
+        self.get_current_player_turn() == player_uuid && self.turn_info.turn_phase == TurnPhase::Action
     }
 
     pub fn gambling_round_in_progress(&self) -> bool {
@@ -161,7 +166,7 @@ impl GameLogic {
             .collect()
     }
 
-    fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {
+    pub fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {
         match self
             .players
             .iter_mut()
@@ -188,8 +193,13 @@ impl GameLogic {
             None => return Some(Error::new("Card does not exist")),
         };
 
-        let return_val = if card.can_play(player_uuid, self) {
-            card.play(player_uuid, self);
+        let return_val = if card.as_generic_player_card().can_play(player_uuid, self) {
+            match &card {
+                PlayerCard::SimplePlayerCard(simple_card) => simple_card.play(player_uuid, self),
+                PlayerCard::DirectedPlayerCard(directed_card) => {
+                    // TODO - Implement this. Should somehow invoke `directed_card.play()`.
+                }
+            };
             None
         } else {
             Some(Error::new("Card cannot be played at this time"))
