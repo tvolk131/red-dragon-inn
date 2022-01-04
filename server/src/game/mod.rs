@@ -240,7 +240,7 @@ impl Character {
     // TODO - Finish implementing entire decks for each character.
     pub fn create_deck(&self) -> Vec<PlayerCard> {
         match self {
-            Fiona => vec![
+            Self::Fiona => vec![
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
@@ -250,7 +250,7 @@ impl Character {
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
-            Zot => vec![
+            Self::Zot => vec![
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
@@ -260,7 +260,7 @@ impl Character {
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
-            Deirdre => vec![
+            Self::Deirdre => vec![
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
@@ -270,7 +270,7 @@ impl Character {
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
             ],
-            Gerki => vec![
+            Self::Gerki => vec![
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),

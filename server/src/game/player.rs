@@ -6,6 +6,7 @@ use super::Character;
 use super::Error;
 use serde::Serialize;
 use super::deck::AutoShufflingDeck;
+use std::borrow::Borrow;
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct PlayerUUID(String);
@@ -118,14 +119,14 @@ impl Player {
 
     pub fn drink_from_drink_pile(&mut self) -> Option<Box<dyn Drink>> {
         if let Some(drink) = self.drinks.pop() {
-            self.drink(&drink);
+            self.drink(drink.borrow());
             Some(drink)
         } else {
             None
         }
     }
 
-    pub fn drink(&mut self, drink: &Box<dyn Drink>) {
+    pub fn drink(&mut self, drink: &dyn Drink) {
         drink.process(self);
     }
 
