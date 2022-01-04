@@ -169,7 +169,7 @@ impl GameLogic {
 
     pub fn get_game_view_player_hand(&self, player_uuid: &PlayerUUID) -> Vec<GameViewPlayerCard> {
         match self.get_player_by_uuid(player_uuid) {
-            Some(player) => player.get_game_view_hand(),
+            Some(player) => player.get_game_view_hand(player_uuid, self),
             None => Vec::new(),
         }
     }

@@ -7,6 +7,23 @@ pub enum PlayerCard {
 }
 
 impl PlayerCard {
+    pub fn get_display_name(&self) -> String {
+        match &self {
+            Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.get_display_name()
+            }
+        }
+    }
+    pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
+        match &self {
+            Self::SimplePlayerCard(simple_player_card) => simple_player_card.can_play(player_uuid, game),
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.can_play(player_uuid, game)
+            }
+        }
+    }
+
     pub fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => {
@@ -14,15 +31,6 @@ impl PlayerCard {
             }
             Self::DirectedPlayerCard(directed_player_card) => {
                 directed_player_card.as_generic_player_card()
-            }
-        }
-    }
-
-    pub fn get_display_name(&self) -> String {
-        match &self {
-            Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
-            Self::DirectedPlayerCard(directed_player_card) => {
-                directed_player_card.get_display_name()
             }
         }
     }
