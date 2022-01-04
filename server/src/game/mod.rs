@@ -189,18 +189,39 @@ impl Game {
         Some(Error::new("Unable to pass at this time"))
     }
 
-    pub fn get_game_view(&self, player_uuid: PlayerUUID) -> Result<GameView, Error> {
+    pub fn get_game_view(
+        &self,
+        player_uuid: PlayerUUID,
+        player_uuids_to_display_names: &HashMap<PlayerUUID, String>,
+    ) -> Result<GameView, Error> {
         // TODO - Finish implementing.
         Ok(GameView {
             game_name: self.display_name.clone(),
+            hand: self
+                .game_logic_or
+                .as_ref()
+                .unwrap()
+                .get_game_view_player_hand(&player_uuid),
             self_player_uuid: player_uuid,
-            hand: Vec::new(),
             player_data: self
                 .game_logic_or
                 .as_ref()
                 .unwrap()
                 .get_game_view_player_data(),
-            player_display_names: HashMap::new(),
+            // TODO - Handle this `unwrap`.
+            player_display_names: self
+                .players
+                .iter()
+                .map(|(player_uuid, _)| {
+                    (
+                        player_uuid.clone(),
+                        player_uuids_to_display_names
+                            .get(player_uuid)
+                            .unwrap()
+                            .to_string(),
+                    )
+                })
+                .collect(),
         })
     }
 
@@ -371,16 +392,25 @@ mod tests {
         let player2_uuid = PlayerUUID::new();
         assert_eq!(game.join(player1_uuid.clone()), None);
         assert_eq!(game.join(player2_uuid.clone()), None);
-        assert_eq!(game.select_character(&player1_uuid, Character::Deirdre), None);
+        assert_eq!(
+            game.select_character(&player1_uuid, Character::Deirdre),
+            None
+        );
         assert_eq!(game.select_character(&player2_uuid, Character::Gerki), None);
         assert_eq!(game.start(&player1_uuid), None);
 
         for _ in 1..10 {
-            assert_eq!(game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()), None);
+            assert_eq!(
+                game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
+                None
+            );
             assert_eq!(game.pass(&player1_uuid), None);
             assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), None);
-    
-            assert_eq!(game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()), None);
+
+            assert_eq!(
+                game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
+                None
+            );
             assert_eq!(game.pass(&player2_uuid), None);
             assert_eq!(game.order_drink(&player2_uuid, &player2_uuid), None);
         }

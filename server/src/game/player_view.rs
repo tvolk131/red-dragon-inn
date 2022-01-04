@@ -5,8 +5,8 @@ use std::collections::HashMap;
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameViewPlayerCard {
-    card_name: String,
-    is_playable: bool,
+    pub card_name: String,
+    pub is_playable: bool,
 }
 
 #[derive(Serialize)]

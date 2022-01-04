@@ -1,7 +1,7 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::Drink;
 use super::player_card::PlayerCard;
-use super::player_view::GameViewPlayerData;
+use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
 use std::borrow::Borrow;
@@ -45,6 +45,18 @@ impl Player {
             fortitude: self.fortitude,
             gold: self.gold,
         }
+    }
+
+    pub fn get_game_view_hand(&self) -> Vec<GameViewPlayerCard> {
+        self.hand
+            .iter()
+            .map(|card| {
+                GameViewPlayerCard {
+                    card_name: card.get_display_name(),
+                    is_playable: false, // TODO - Set this to the correct value.
+                }
+            })
+            .collect()
     }
 
     pub fn draw_to_full(&mut self) {

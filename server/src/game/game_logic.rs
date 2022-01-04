@@ -2,7 +2,7 @@ use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::player::Player;
 use super::player_card::PlayerCard;
-use super::player_view::GameViewPlayerData;
+use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use std::collections::HashSet;
@@ -165,6 +165,20 @@ impl GameLogic {
             .iter()
             .map(|(player_uuid, player)| player.to_game_view_player_data(player_uuid.clone()))
             .collect()
+    }
+
+    pub fn get_game_view_player_hand(&self, player_uuid: &PlayerUUID) -> Vec<GameViewPlayerCard> {
+        match self.get_player_by_uuid(player_uuid) {
+            Some(player) => player.get_game_view_hand(),
+            None => Vec::new(),
+        }
+    }
+
+    fn get_player_by_uuid(&self, player_uuid: &PlayerUUID) -> Option<&Player> {
+        match self.players.iter().find(|(uuid, _)| uuid == player_uuid) {
+            Some((_, player)) => Some(player),
+            None => None,
+        }
     }
 
     pub fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {

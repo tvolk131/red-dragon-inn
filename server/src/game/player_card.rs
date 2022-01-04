@@ -17,6 +17,15 @@ impl PlayerCard {
             }
         }
     }
+
+    pub fn get_display_name(&self) -> String {
+        match &self {
+            Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.get_display_name()
+            }
+        }
+    }
 }
 
 pub trait GenericPlayerCard: Send + Sync {

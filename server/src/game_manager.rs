@@ -187,7 +187,9 @@ impl GameManager {
 
     pub fn get_game_view(&self, player_uuid: PlayerUUID) -> Result<GameView, Error> {
         let game = self.get_game_of_player(&player_uuid)?;
-        game.read().unwrap().get_game_view(player_uuid)
+        game.read()
+            .unwrap()
+            .get_game_view(player_uuid, &self.player_ids_to_display_names)
     }
 
     fn get_game_of_player(&self, player_uuid: &PlayerUUID) -> Result<&RwLock<Game>, Error> {
