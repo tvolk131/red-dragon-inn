@@ -176,6 +176,19 @@ impl GameLogic {
         }
     }
 
+    pub fn is_action_phase(&self) -> bool {
+        self.turn_info.turn_phase == TurnPhase::Action
+    }
+
+    pub fn skip_action_phase(&mut self) -> Option<Error> {
+        if self.turn_info.turn_phase == TurnPhase::Action {
+            self.turn_info.turn_phase = TurnPhase::OrderDrinks;
+            None
+        } else {
+            Some(Error::new("It is not the player's action phase"))
+        }
+    }
+
     pub fn play_card(
         &mut self,
         player_uuid: &PlayerUUID,
