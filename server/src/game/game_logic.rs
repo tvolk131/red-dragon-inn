@@ -35,11 +35,8 @@ impl GameLogic {
                 })
                 .collect(),
             drink_deck: AutoShufflingDeck::new(create_drink_deck()),
-            turn_info: TurnInfo {
-                // TODO - Set this to the player who should go first.
-                player_turn: PlayerUUID::new(),
-                turn_phase: TurnPhase::DiscardAndDraw,
-            },
+            // TODO - Set this to the player who should go first.
+            turn_info: TurnInfo::new(PlayerUUID::new()),
             gambling_round_or: None,
         })
     }
@@ -256,9 +253,25 @@ impl GameLogic {
         if self.get_current_player_turn() != player_uuid || self.turn_info.turn_phase != TurnPhase::OrderDrinks {
             return Some(Error::new("Cannot order drinks at this time"));
         }
-        // TODO - Implement.
-        self.turn_info.turn_phase = TurnPhase::Drink;
-        // TODO - Automatically initiate drink phase.
+
+        // TODO - Handle the unwrap here.
+        let drink = self.drink_deck.draw_card().unwrap();
+        let other_player = match self.get_player_by_uuid_mut(player_uuid) {
+            Some(other_player) => other_player,
+            None => {
+                return Some(Error::new(format!(
+                    "Player does not exist with player id {}",
+                    player_uuid.to_string()
+                )))
+            }
+        };
+        other_player.add_drink_to_drink_pile(drink);
+
+        self.turn_info.drinks_to_order -= 1;
+        if self.turn_info.drinks_to_order == 0 {
+            self.turn_info.turn_phase = TurnPhase::Drink;
+            // TODO - Automatically initiate drink phase.
+        }
         None
     }
 
@@ -284,6 +297,17 @@ struct GamblingRound {
 pub struct TurnInfo {
     player_turn: PlayerUUID,
     turn_phase: TurnPhase,
+    drinks_to_order: i32
+}
+
+impl TurnInfo {
+    fn new(player_uuid: PlayerUUID) -> Self {
+        Self {
+            player_turn: player_uuid,
+            turn_phase: TurnPhase::DiscardAndDraw,
+            drinks_to_order: 1
+        }
+    }
 }
 
 #[derive(PartialEq)]

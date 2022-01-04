@@ -112,6 +112,10 @@ impl Player {
         self.is_orc
     }
 
+    pub fn add_drink_to_drink_pile(&mut self, drink: Box<dyn Drink>) {
+        self.drinks.push(drink);
+    }
+
     pub fn drink_from_drink_pile(&mut self) -> Option<Box<dyn Drink>> {
         if let Some(drink) = self.drinks.pop() {
             self.drink(&drink);
