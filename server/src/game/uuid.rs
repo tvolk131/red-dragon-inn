@@ -41,7 +41,7 @@ macro_rules! uuid {
             fn from_value(field: rocket::form::ValueField<'a>) -> rocket::form::Result<'a, Self> {
                 match Uuid::parse_str(field.value) {
                     Ok(uuid) => Ok(Self(uuid)),
-                    Err(_) => Err(rocket::form::Error::validation("Not a valid UUID"))?,
+                    Err(_) => Err(rocket::form::Error::validation("Not a valid UUID").into()),
                 }
             }
         }
