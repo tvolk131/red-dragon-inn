@@ -1,9 +1,9 @@
-use rand::thread_rng;
 use rand::seq::SliceRandom;
+use rand::thread_rng;
 
 pub struct AutoShufflingDeck<T> {
     draw_pile: Vec<T>,
-    discard_pile: Vec<T>
+    discard_pile: Vec<T>,
 }
 
 impl<T> AutoShufflingDeck<T> {
@@ -12,13 +12,15 @@ impl<T> AutoShufflingDeck<T> {
 
         Self {
             draw_pile: items,
-            discard_pile: Vec::new()
+            discard_pile: Vec::new(),
         }
     }
 
     pub fn draw_card(&mut self) -> Option<T> {
         if self.draw_pile.is_empty() {
-            self.discard_pile.drain(..).for_each(|card| self.draw_pile.push(card));
+            self.discard_pile
+                .drain(..)
+                .for_each(|card| self.draw_pile.push(card));
             self.draw_pile.shuffle(&mut thread_rng());
         }
         self.draw_pile.pop()

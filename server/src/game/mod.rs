@@ -1,21 +1,21 @@
+mod deck;
 mod drink;
 mod error;
 mod game_logic;
 mod player;
 mod player_card;
 pub mod player_view;
-mod deck;
 mod uuid;
 
 pub use self::uuid::GameUUID;
-pub use error::Error;
 pub use self::uuid::PlayerUUID;
+pub use error::Error;
 
 use game_logic::GameLogic;
+use player_card::PlayerCard;
 use player_view::GameView;
 use std::collections::HashMap;
 use std::str::FromStr;
-use player_card::PlayerCard;
 
 pub struct Game {
     display_name: String,
@@ -121,7 +121,12 @@ impl Game {
     ///
     /// Accepts a zero-based card index which refers to a card in the player's hand.
     /// Returns an error if the card cannot currently be played or does not exist with given index or if the player does not exist.
-    pub fn play_card(&mut self, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>, card_index: usize) -> Option<Error> {
+    pub fn play_card(
+        &mut self,
+        player_uuid: &PlayerUUID,
+        other_player_uuid_or: &Option<PlayerUUID>,
+        card_index: usize,
+    ) -> Option<Error> {
         let game_logic = match self.get_mut_game_logic() {
             Ok(game_logic) => game_logic,
             Err(err) => return Some(err),
@@ -135,7 +140,11 @@ impl Game {
     /// This must be called at the beginning of every player's turn.
     /// If the player doesn't want to discard anything, an empty vector
     /// should be passed in for `card_indices`.
-    pub fn discard_cards_and_draw_to_full(&mut self, player_uuid: &PlayerUUID, card_indices: Vec<usize>) -> Option<Error> {
+    pub fn discard_cards_and_draw_to_full(
+        &mut self,
+        player_uuid: &PlayerUUID,
+        card_indices: Vec<usize>,
+    ) -> Option<Error> {
         let game_logic = match self.get_mut_game_logic() {
             Ok(game_logic) => game_logic,
             Err(err) => return Some(err),

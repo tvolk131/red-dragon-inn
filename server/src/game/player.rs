@@ -1,10 +1,10 @@
+use super::deck::AutoShufflingDeck;
 use super::drink::Drink;
 use super::player_card::PlayerCard;
 use super::player_view::GameViewPlayerData;
-use super::Character;
-use super::deck::AutoShufflingDeck;
-use std::borrow::Borrow;
 use super::uuid::PlayerUUID;
+use super::Character;
+use std::borrow::Borrow;
 
 pub struct Player {
     alcohol_content: i32,
@@ -13,7 +13,7 @@ pub struct Player {
     hand: Vec<PlayerCard>,
     deck: AutoShufflingDeck<PlayerCard>,
     drinks: Vec<Box<dyn Drink>>,
-    is_orc: bool
+    is_orc: bool,
 }
 
 impl Player {
@@ -29,7 +29,7 @@ impl Player {
             hand: Vec::new(),
             deck: AutoShufflingDeck::new(deck),
             drinks: Vec::new(),
-            is_orc
+            is_orc,
         };
         player.draw_to_full();
         player
@@ -53,10 +53,7 @@ impl Player {
         }
     }
 
-    pub fn pop_card_from_hand(
-        &mut self,
-        card_index: usize,
-    ) -> Option<PlayerCard> {
+    pub fn pop_card_from_hand(&mut self, card_index: usize) -> Option<PlayerCard> {
         // This check may look unnecessary, but it's here because Vec::remove() doesn't
         // return `Option<T>` but instead returns `T` and panics if the index is out of bounds.
         if self.hand.get(card_index).is_none() {

@@ -1,5 +1,5 @@
 use super::game::player_view::GameView;
-use super::game::{GameUUID, Error, Game, PlayerUUID};
+use super::game::{Error, Game, GameUUID, PlayerUUID};
 use super::Character;
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -128,7 +128,12 @@ impl GameManager {
         None
     }
 
-    pub fn play_card(&self, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>, card_index: usize) -> Option<Error> {
+    pub fn play_card(
+        &self,
+        player_uuid: &PlayerUUID,
+        other_player_uuid_or: &Option<PlayerUUID>,
+        card_index: usize,
+    ) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
             Err(error) => return Some(error),
@@ -136,13 +141,19 @@ impl GameManager {
         let mut unlocked_game = game.write().unwrap();
         if let Some(other_player_uuid) = other_player_uuid_or {
             if !unlocked_game.player_is_in_game(other_player_uuid) {
-                return Some(Error::new("Other player is not in the same game or does not exist"));
+                return Some(Error::new(
+                    "Other player is not in the same game or does not exist",
+                ));
             }
         }
         unlocked_game.play_card(player_uuid, other_player_uuid_or, card_index)
     }
 
-    pub fn discard_cards_and_draw_to_full(&self, player_uuid: &PlayerUUID, card_indices: Vec<usize>) -> Option<Error> {
+    pub fn discard_cards_and_draw_to_full(
+        &self,
+        player_uuid: &PlayerUUID,
+        card_indices: Vec<usize>,
+    ) -> Option<Error> {
         let game = match self.get_game_of_player(player_uuid) {
             Ok(game) => game,
             Err(error) => return Some(error),

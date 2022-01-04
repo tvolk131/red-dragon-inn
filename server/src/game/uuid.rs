@@ -1,9 +1,9 @@
 use super::super::auth::SESSION_COOKIE_NAME;
 use super::Error;
 use serde::Serialize;
-use uuid::Uuid;
 use std::str::FromStr;
 use std::string::ToString;
+use uuid::Uuid;
 
 macro_rules! uuid {
     ($struct_name:ident) => {
@@ -41,11 +41,11 @@ macro_rules! uuid {
             fn from_value(field: rocket::form::ValueField<'a>) -> rocket::form::Result<'a, Self> {
                 match Uuid::parse_str(field.value) {
                     Ok(uuid) => Ok(Self(uuid)),
-                    Err(_) => Err(rocket::form::Error::validation("Not a valid UUID"))?
+                    Err(_) => Err(rocket::form::Error::validation("Not a valid UUID"))?,
                 }
             }
         }
-    }
+    };
 }
 
 uuid!(PlayerUUID);
@@ -56,7 +56,7 @@ impl PlayerUUID {
         match cookie_jar.get(SESSION_COOKIE_NAME) {
             Some(cookie) => match Self::from_str(cookie.value()) {
                 Ok(player_uuid) => Ok(player_uuid),
-                Err(_) => Err(Error::new("User is not signed in"))
+                Err(_) => Err(Error::new("User is not signed in")),
             },
             None => Err(Error::new("User is not signed in")),
         }
@@ -79,7 +79,10 @@ mod tests {
         uuid!(TestUUID);
 
         let test_uuid = TestUUID::new();
-        assert_eq!(test_uuid, TestUUID::from_str(&test_uuid.to_string()).unwrap());
+        assert_eq!(
+            test_uuid,
+            TestUUID::from_str(&test_uuid.to_string()).unwrap()
+        );
 
         // Stringified version is a 32-character hex string.
         assert!(TestUUID::from_str("1bc68e20bad1456dab8039137094ca6d").is_ok());

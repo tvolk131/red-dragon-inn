@@ -1,11 +1,11 @@
+use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::player::Player;
-use super::uuid::PlayerUUID;
+use super::player_card::PlayerCard;
 use super::player_view::GameViewPlayerData;
+use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use std::collections::HashSet;
-use super::deck::AutoShufflingDeck;
-use super::player_card::PlayerCard;
 
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
@@ -47,7 +47,8 @@ impl GameLogic {
     }
 
     pub fn can_play_action_card(&self, player_uuid: &PlayerUUID) -> bool {
-        self.get_current_player_turn() == player_uuid && self.turn_info.turn_phase == TurnPhase::Action
+        self.get_current_player_turn() == player_uuid
+            && self.turn_info.turn_phase == TurnPhase::Action
     }
 
     pub fn gambling_round_in_progress(&self) -> bool {
@@ -175,7 +176,12 @@ impl GameLogic {
         }
     }
 
-    pub fn play_card(&mut self, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>, card_index: usize) -> Option<Error> {
+    pub fn play_card(
+        &mut self,
+        player_uuid: &PlayerUUID,
+        other_player_uuid_or: &Option<PlayerUUID>,
+        card_index: usize,
+    ) -> Option<Error> {
         let card_or = match self.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player.pop_card_from_hand(card_index),
             None => {
@@ -198,11 +204,11 @@ impl GameLogic {
                         return Some(Error::new("Cannot direct this card at another player"));
                     }
                     simple_card.play(player_uuid, self);
-                },
+                }
                 PlayerCard::DirectedPlayerCard(directed_card) => {
                     let other_player_uuid = match other_player_uuid_or {
                         Some(other_player_uuid) => other_player_uuid,
-                        None => return Some(Error::new("Must direct this card at another player"))
+                        None => return Some(Error::new("Must direct this card at another player")),
                     };
                     directed_card.play(player_uuid, other_player_uuid, self);
                 }
@@ -219,18 +225,34 @@ impl GameLogic {
         return_val
     }
 
-    pub fn discard_cards_and_draw_to_full(&mut self, player_uuid: &PlayerUUID, mut card_indices: Vec<usize>) -> Option<Error> {
-        if self.get_current_player_turn() != player_uuid || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw {
+    pub fn discard_cards_and_draw_to_full(
+        &mut self,
+        player_uuid: &PlayerUUID,
+        mut card_indices: Vec<usize>,
+    ) -> Option<Error> {
+        if self.get_current_player_turn() != player_uuid
+            || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw
+        {
             return Some(Error::new("Cannot discard cards at this time"));
         }
 
-        let player = match self.players.iter_mut().find(|(uuid, _)| uuid == player_uuid) {
+        let player = match self
+            .players
+            .iter_mut()
+            .find(|(uuid, _)| uuid == player_uuid)
+        {
             Some((_, player)) => player,
-            None => return Some(Error::new("Player is not in the game"))
+            None => return Some(Error::new("Player is not in the game")),
         };
 
-        if card_indices.len() > card_indices.iter().cloned().collect::<HashSet<usize>>().len() {
-            return Some(Error::new("Cannot discard the same card twice"))
+        if card_indices.len()
+            > card_indices
+                .iter()
+                .cloned()
+                .collect::<HashSet<usize>>()
+                .len()
+        {
+            return Some(Error::new("Cannot discard the same card twice"));
         }
 
         // Sort and reverse so that we can iterate backwards and pop all cards.
@@ -246,7 +268,11 @@ impl GameLogic {
                 // them, this error will either be thrown on the first iteration of the
                 // loop or not at all. So we can guarantee that this method will always
                 // behave atomically.
-                None => return Some(Error::new("Card indices do not all correspond to cards in the player's hand"))
+                None => {
+                    return Some(Error::new(
+                        "Card indices do not all correspond to cards in the player's hand",
+                    ))
+                }
             };
             player.discard_card(card);
         }
@@ -260,7 +286,9 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Option<Error> {
-        if self.get_current_player_turn() != player_uuid || self.turn_info.turn_phase != TurnPhase::OrderDrinks {
+        if self.get_current_player_turn() != player_uuid
+            || self.turn_info.turn_phase != TurnPhase::OrderDrinks
+        {
             return Some(Error::new("Cannot order drinks at this time"));
         }
 
@@ -307,7 +335,7 @@ struct GamblingRound {
 pub struct TurnInfo {
     player_turn: PlayerUUID,
     turn_phase: TurnPhase,
-    drinks_to_order: i32
+    drinks_to_order: i32,
 }
 
 impl TurnInfo {
@@ -315,7 +343,7 @@ impl TurnInfo {
         Self {
             player_turn: player_uuid,
             turn_phase: TurnPhase::DiscardAndDraw,
-            drinks_to_order: 1
+            drinks_to_order: 1,
         }
     }
 }

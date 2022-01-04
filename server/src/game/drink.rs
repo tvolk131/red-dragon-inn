@@ -49,7 +49,7 @@ macro_rules! simple_drink {
                 player.change_fortitude($fortitude_mod);
             }
         }
-    }
+    };
 }
 
 simple_drink!(ElvenWine, 3, 0);

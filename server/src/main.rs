@@ -6,7 +6,7 @@ mod game;
 mod game_manager;
 
 use auth::SESSION_COOKIE_NAME;
-use game::{GameUUID, PlayerUUID, Character, player_view::GameView, Error};
+use game::{player_view::GameView, Character, Error, GameUUID, PlayerUUID};
 use game_manager::GameManager;
 use std::sync::RwLock;
 
@@ -203,7 +203,8 @@ async fn play_card_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.play_card(&player_uuid, &other_player_uuid, card_index) {
+    if let Some(err) = unlocked_game_manager.play_card(&player_uuid, &other_player_uuid, card_index)
+    {
         return Err(err);
     }
     unlocked_game_manager.get_game_view(player_uuid)
@@ -217,8 +218,8 @@ async fn discard_cards_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) =
-        unlocked_game_manager.discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)
+    if let Some(err) = unlocked_game_manager
+        .discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)
     {
         return Err(err);
     }

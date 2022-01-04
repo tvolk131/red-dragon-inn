@@ -3,14 +3,18 @@ use super::GameLogic;
 
 pub enum PlayerCard {
     SimplePlayerCard(Box<dyn SimplePlayerCard>),
-    DirectedPlayerCard(Box<dyn DirectedPlayerCard>)
+    DirectedPlayerCard(Box<dyn DirectedPlayerCard>),
 }
 
 impl PlayerCard {
     pub fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
         match &self {
-            Self::SimplePlayerCard(simple_player_card) => simple_player_card.as_generic_player_card(),
-            Self::DirectedPlayerCard(directed_player_card) => directed_player_card.as_generic_player_card()
+            Self::SimplePlayerCard(simple_player_card) => {
+                simple_player_card.as_generic_player_card()
+            }
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.as_generic_player_card()
+            }
         }
     }
 }
@@ -26,7 +30,12 @@ pub trait SimplePlayerCard: GenericPlayerCard {
 }
 
 pub trait DirectedPlayerCard: GenericPlayerCard {
-    fn play(&self, player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, game: &mut GameLogic);
+    fn play(
+        &self,
+        player_uuid: &PlayerUUID,
+        targeted_player_uuid: &PlayerUUID,
+        game: &mut GameLogic,
+    );
 }
 
 pub struct GamblingImInPlayerCard {}
@@ -68,7 +77,9 @@ impl GenericPlayerCard for IRaiseCard {
     }
 
     fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        game.gambling_round_in_progress() && game.is_gambling_turn(player_uuid) && !game.gambling_need_cheating_card_to_take_control()
+        game.gambling_round_in_progress()
+            && game.is_gambling_turn(player_uuid)
+            && !game.gambling_need_cheating_card_to_take_control()
     }
 
     fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
@@ -84,7 +95,7 @@ impl SimplePlayerCard for IRaiseCard {
 
 pub struct ChangeOtherPlayerFortitude {
     display_name: String,
-    fortitude_modifier: i32
+    fortitude_modifier: i32,
 }
 
 impl GenericPlayerCard for ChangeOtherPlayerFortitude {
@@ -102,7 +113,12 @@ impl GenericPlayerCard for ChangeOtherPlayerFortitude {
 }
 
 impl DirectedPlayerCard for ChangeOtherPlayerFortitude {
-    fn play(&self, player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, game: &mut GameLogic) {
+    fn play(
+        &self,
+        player_uuid: &PlayerUUID,
+        targeted_player_uuid: &PlayerUUID,
+        game: &mut GameLogic,
+    ) {
         if let Some(targeted_player) = game.get_player_by_uuid_mut(targeted_player_uuid) {
             targeted_player.change_fortitude(self.fortitude_modifier);
         }
@@ -112,7 +128,7 @@ impl DirectedPlayerCard for ChangeOtherPlayerFortitude {
 pub struct ChangeSimplePlayerStats {
     display_name: String,
     alcohol_content_modifier: i32,
-    fortitude_modifier: i32
+    fortitude_modifier: i32,
 }
 
 impl GenericPlayerCard for ChangeSimplePlayerStats {
