@@ -119,12 +119,12 @@ impl Game {
     ///
     /// Accepts a zero-based card index which refers to a card in the player's hand.
     /// Returns an error if the card cannot currently be played or does not exist with given index or if the player does not exist.
-    pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
+    pub fn play_card(&mut self, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>, card_index: usize) -> Option<Error> {
         let game_logic = match self.get_mut_game_logic() {
             Ok(game_logic) => game_logic,
             Err(err) => return Some(err),
         };
-        game_logic.play_card(player_uuid, card_index)
+        game_logic.play_card(player_uuid, other_player_uuid_or, card_index)
     }
 
     /// Discards any number of cards from the given player's hand.
@@ -192,7 +192,7 @@ impl Game {
         }
     }
 
-    fn player_is_in_game(&self, player_uuid: &PlayerUUID) -> bool {
+    pub fn player_is_in_game(&self, player_uuid: &PlayerUUID) -> bool {
         self.players.iter().any(|(uuid, _)| uuid == player_uuid)
     }
 

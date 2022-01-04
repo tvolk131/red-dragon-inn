@@ -174,7 +174,7 @@ impl GameLogic {
         }
     }
 
-    pub fn play_card(&mut self, player_uuid: &PlayerUUID, card_index: usize) -> Option<Error> {
+    pub fn play_card(&mut self, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>, card_index: usize) -> Option<Error> {
         let card_or = match self.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player.pop_card_from_hand(card_index),
             None => {
@@ -192,9 +192,18 @@ impl GameLogic {
 
         let return_val = if card.as_generic_player_card().can_play(player_uuid, self) {
             match &card {
-                PlayerCard::SimplePlayerCard(simple_card) => simple_card.play(player_uuid, self),
+                PlayerCard::SimplePlayerCard(simple_card) => {
+                    if other_player_uuid_or.is_some() {
+                        return Some(Error::new("Cannot direct this card at another player"));
+                    }
+                    simple_card.play(player_uuid, self);
+                },
                 PlayerCard::DirectedPlayerCard(directed_card) => {
-                    // TODO - Implement this. Should somehow invoke `directed_card.play()`.
+                    let other_player_uuid = match other_player_uuid_or {
+                        Some(other_player_uuid) => other_player_uuid,
+                        None => return Some(Error::new("Must direct this card at another player"))
+                    };
+                    directed_card.play(player_uuid, other_player_uuid, self);
                 }
             };
             None

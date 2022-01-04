@@ -45,6 +45,12 @@ impl<'a> rocket::request::FromParam<'a> for PlayerUUID {
     }
 }
 
+impl<'a> rocket::form::FromFormField<'a> for PlayerUUID {
+    fn from_value(field: rocket::form::ValueField<'a>) -> rocket::form::Result<'a, Self> {
+        Ok(Self(String::from(field.value)))
+    }
+}
+
 pub struct Player {
     alcohol_content: i32,
     fortitude: i32,

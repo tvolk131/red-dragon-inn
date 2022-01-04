@@ -196,15 +196,16 @@ async fn select_character_handler(
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
-#[get("/api/playCard/<card_index>")]
+#[get("/api/playCard?<other_player_uuid>&<card_index>")]
 async fn play_card_handler(
     game_manager: &State<RwLock<GameManager>>,
     cookie_jar: &CookieJar<'_>,
+    other_player_uuid: Option<PlayerUUID>,
     card_index: usize,
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.play_card(&player_uuid, card_index) {
+    if let Some(err) = unlocked_game_manager.play_card(&player_uuid, &other_player_uuid, card_index) {
         return Err(err);
     }
     unlocked_game_manager.get_game_view(player_uuid)
