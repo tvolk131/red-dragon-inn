@@ -24,6 +24,7 @@ pub struct GameViewPlayerData {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameView {
+    pub game_name: String,
     pub self_player_uuid: PlayerUUID,
     pub hand: Vec<GameViewPlayerCard>,
     pub player_data: Vec<GameViewPlayerData>,

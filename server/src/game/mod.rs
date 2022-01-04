@@ -185,6 +185,7 @@ impl Game {
     pub fn get_game_view(&self, player_uuid: PlayerUUID) -> Result<GameView, Error> {
         // TODO - Finish implementing.
         Ok(GameView {
+            game_name: self.display_name.clone(),
             self_player_uuid: player_uuid,
             hand: Vec::new(),
             player_data: self
