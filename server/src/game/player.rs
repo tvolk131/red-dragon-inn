@@ -4,8 +4,8 @@ use super::player_card::PlayerCard;
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
-use std::borrow::Borrow;
 use super::GameLogic;
+use std::borrow::Borrow;
 
 pub struct Player {
     alcohol_content: i32,
@@ -48,14 +48,16 @@ impl Player {
         }
     }
 
-    pub fn get_game_view_hand(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> Vec<GameViewPlayerCard> {
+    pub fn get_game_view_hand(
+        &self,
+        player_uuid: &PlayerUUID,
+        game: &GameLogic,
+    ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()
-            .map(|card| {
-                GameViewPlayerCard {
-                    card_name: card.get_display_name(),
-                    is_playable: card.can_play(player_uuid, game),
-                }
+            .map(|card| GameViewPlayerCard {
+                card_name: card.get_display_name(),
+                is_playable: card.can_play(player_uuid, game),
             })
             .collect()
     }

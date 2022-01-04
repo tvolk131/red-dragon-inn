@@ -93,11 +93,13 @@ impl GameLogic {
             Some(gambling_round) => {
                 gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32;
                 gambling_round.active_player_uuids.clone()
-            },
-            None => return
+            }
+            None => return,
         };
         for player_uuid in active_gambling_players.iter() {
-            self.get_player_by_uuid_mut(player_uuid).unwrap().change_gold(-1);
+            self.get_player_by_uuid_mut(player_uuid)
+                .unwrap()
+                .change_gold(-1);
         }
         self.gambling_increment_player_turn();
     }

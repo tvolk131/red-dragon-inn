@@ -17,7 +17,9 @@ impl PlayerCard {
     }
     pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
         match &self {
-            Self::SimplePlayerCard(simple_player_card) => simple_player_card.can_play(player_uuid, game),
+            Self::SimplePlayerCard(simple_player_card) => {
+                simple_player_card.can_play(player_uuid, game)
+            }
             Self::DirectedPlayerCard(directed_player_card) => {
                 directed_player_card.can_play(player_uuid, game)
             }
