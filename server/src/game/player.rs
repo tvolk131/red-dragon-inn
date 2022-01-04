@@ -96,16 +96,8 @@ impl Player {
         self.fortitude += amount;
     }
 
-    pub fn add_gold(&mut self, amount: i32) {
-        if amount > 0 {
-            self.gold += amount
-        }
-    }
-
-    pub fn remove_gold(&mut self, amount: i32) {
-        if amount > 0 {
-            self.gold -= amount
-        }
+    pub fn change_gold(&mut self, amount: i32) {
+        self.gold += amount
     }
 
     pub fn is_out_of_game(&self) -> bool {

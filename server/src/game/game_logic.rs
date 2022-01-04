@@ -108,7 +108,7 @@ impl GameLogic {
         if let Some(winner) = winner_or {
             self.get_player_by_uuid_mut(&winner)
                 .unwrap()
-                .add_gold(pot_amount);
+                .change_gold(pot_amount);
             self.gambling_round_or = None;
         }
     }
@@ -344,7 +344,11 @@ impl GameLogic {
     }
 
     fn start_next_player_turn(&mut self) {
-        let current_player_index = self.players.iter().position(|(player_uuid, _)| player_uuid == &self.turn_info.player_turn).unwrap();
+        let current_player_index = self
+            .players
+            .iter()
+            .position(|(player_uuid, _)| player_uuid == &self.turn_info.player_turn)
+            .unwrap();
         let mut next_player_index = current_player_index + 1;
         if next_player_index == self.players.len() {
             next_player_index = 0;

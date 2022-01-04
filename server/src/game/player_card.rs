@@ -102,7 +102,7 @@ impl ChangeOtherPlayerFortitude {
     pub fn new(display_name: impl Into<String>, fortitude_modifier: i32) -> Self {
         Self {
             display_name: display_name.into(),
-            fortitude_modifier
+            fortitude_modifier,
         }
     }
 }
@@ -122,12 +122,7 @@ impl GenericPlayerCard for ChangeOtherPlayerFortitude {
 }
 
 impl DirectedPlayerCard for ChangeOtherPlayerFortitude {
-    fn play(
-        &self,
-        player_uuid: &PlayerUUID,
-        targeted_player_uuid: &PlayerUUID,
-        game: &mut GameLogic,
-    ) {
+    fn play(&self, _: &PlayerUUID, targeted_player_uuid: &PlayerUUID, game: &mut GameLogic) {
         if let Some(targeted_player) = game.get_player_by_uuid_mut(targeted_player_uuid) {
             targeted_player.change_fortitude(self.fortitude_modifier);
         }
