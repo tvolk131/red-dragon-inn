@@ -256,7 +256,7 @@ impl GameLogic {
 
         // TODO - Handle the unwrap here.
         let drink = self.drink_deck.draw_card().unwrap();
-        let other_player = match self.get_player_by_uuid_mut(player_uuid) {
+        let other_player = match self.get_player_by_uuid_mut(other_player_uuid) {
             Some(other_player) => other_player,
             None => {
                 return Some(Error::new(format!(
