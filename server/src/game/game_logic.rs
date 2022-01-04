@@ -57,17 +57,17 @@ impl GameLogic {
         self.gambling_round_or.is_some()
     }
 
-    pub fn start_gambling_round(&mut self) {
+    pub fn start_gambling_round(&mut self, player_uuid: PlayerUUID) {
         if self.gambling_round_or.is_none() {
-            // TODO - Currently this is dummy data. Properly implement it.
             self.gambling_round_or = Some(GamblingRound {
-                active_player_uuids: Vec::new(),
-                current_player_turn: PlayerUUID::new(),
-                winning_player: PlayerUUID::new(),
-                pot_amount: 0,
+                active_player_uuids: self.players.iter().map(|(uuid, _)| uuid).cloned().collect(),
+                current_player_turn: player_uuid.clone(),
+                winning_player: player_uuid,
+                pot_amount: self.players.len() as i32,
                 need_cheating_card_to_take_control: false,
             });
         }
+        self.gambling_ante_up();
     }
 
     pub fn gambling_take_control_of_round(
@@ -85,8 +85,21 @@ impl GameLogic {
         self.gambling_increment_player_turn();
     }
 
-    pub fn gambling_ante_up(&self) {
-        // TODO - Implement
+    /// Forces all players that are still in the current gambling round to each
+    /// put one more gold in the gambling pot. Then passes the gambling turn to
+    /// the next player still in the gambling round.
+    pub fn gambling_ante_up(&mut self) {
+        let active_gambling_players = match &mut self.gambling_round_or {
+            Some(gambling_round) => {
+                gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32;
+                gambling_round.active_player_uuids.clone()
+            },
+            None => return
+        };
+        for player_uuid in active_gambling_players.iter() {
+            self.get_player_by_uuid_mut(player_uuid).unwrap().change_gold(-1);
+        }
+        self.gambling_increment_player_turn();
     }
 
     pub fn gambling_pass(&mut self) {

@@ -81,7 +81,7 @@ impl SimplePlayerCard for GamblingImInPlayerCard {
         if game.gambling_round_in_progress() {
             game.gambling_take_control_of_round(player_uuid.clone(), false);
         } else {
-            game.start_gambling_round();
+            game.start_gambling_round(player_uuid.clone());
         }
     }
 }
