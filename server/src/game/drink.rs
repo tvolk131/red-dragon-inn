@@ -25,7 +25,7 @@ pub fn create_drink_deck() -> Vec<Box<dyn Drink>> {
         Box::from(LightAle {}),
         // with_chaser(light_ale()),
         // with_chaser(light_ale()),
-        // orcish_rotgut(),
+        Box::from(OrcishRotgut {}),
         // round_on_the_house(),
         // round_on_the_house(),
         // troll_swill(),
@@ -61,12 +61,14 @@ simple_drink!(DragonBreathAle, 4, 0);
 simple_drink!(Water, -1, 0);
 simple_drink!(HolyWater, 0, 2);
 
-// TODO - Orcish Rotgut should instead be +2 alcohol if player is an orc.
-// fn orcish_rotgut() -> Drink {
-//     Drink {
-//         name: String::from("Orcish Rotgut"),
-//         alcohol_content_modifier: 0,
-//         fortitude_modifier: -2,
-//         has_chaser: false,
-//     }
-// }
+pub struct OrcishRotgut {}
+
+impl Drink for OrcishRotgut {
+    fn process(&self, player: &mut Player) {
+        if player.is_orc() {
+            player.change_alcohol_content(2);
+        } else {
+            player.change_fortitude(-2);
+        }
+    }
+}

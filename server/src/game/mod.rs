@@ -282,4 +282,9 @@ impl Character {
             ],
         }
     }
+
+    pub fn is_orc(&self) -> bool {
+        // Currently none of the implemented characters are orcs. This may change later.
+        false
+    }
 }

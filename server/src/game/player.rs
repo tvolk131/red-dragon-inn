@@ -51,14 +51,15 @@ pub struct Player {
     hand: Vec<PlayerCard>,
     deck: AutoShufflingDeck<PlayerCard>,
     drinks: Vec<Box<dyn Drink>>,
+    is_orc: bool
 }
 
 impl Player {
     pub fn create_from_character(character: Character, gold: i32) -> Self {
-        Self::new(gold, character.create_deck())
+        Self::new(gold, character.create_deck(), character.is_orc())
     }
 
-    fn new(gold: i32, deck: Vec<PlayerCard>) -> Self {
+    fn new(gold: i32, deck: Vec<PlayerCard>, is_orc: bool) -> Self {
         let mut player = Self {
             alcohol_content: 0,
             fortitude: 20,
@@ -66,6 +67,7 @@ impl Player {
             hand: Vec::new(),
             deck: AutoShufflingDeck::new(deck),
             drinks: Vec::new(),
+            is_orc
         };
         player.draw_to_full();
         player
@@ -104,6 +106,10 @@ impl Player {
 
     pub fn discard_card(&mut self, card: PlayerCard) {
         self.deck.discard_card(card);
+    }
+
+    pub fn is_orc(&self) -> bool {
+        self.is_orc
     }
 
     pub fn drink_from_drink_pile(&mut self) -> Option<Box<dyn Drink>> {
