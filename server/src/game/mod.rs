@@ -5,9 +5,11 @@ mod player;
 mod player_card;
 pub mod player_view;
 mod deck;
+mod uuid;
 
+pub use uuid::GameUUID;
 pub use error::Error;
-pub use player::PlayerUUID;
+pub use uuid::PlayerUUID;
 
 use game_logic::GameLogic;
 use player_view::GameView;

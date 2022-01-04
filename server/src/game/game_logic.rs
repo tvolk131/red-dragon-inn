@@ -1,5 +1,6 @@
 use super::drink::{create_drink_deck, Drink};
-use super::player::{Player, PlayerUUID};
+use super::player::Player;
+use super::uuid::PlayerUUID;
 use super::player_view::GameViewPlayerData;
 use super::{Character, Error};
 use std::collections::HashSet;

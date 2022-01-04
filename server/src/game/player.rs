@@ -1,55 +1,10 @@
-use super::super::auth::SESSION_COOKIE_NAME;
 use super::drink::Drink;
 use super::player_card::PlayerCard;
 use super::player_view::GameViewPlayerData;
 use super::Character;
-use super::Error;
-use serde::Serialize;
 use super::deck::AutoShufflingDeck;
 use std::borrow::Borrow;
-
-#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
-pub struct PlayerUUID(String);
-
-impl PlayerUUID {
-    pub fn new() -> Self {
-        // TODO - Should generate actual unique id rather than an empty string.
-        Self("".to_string())
-    }
-
-    pub fn from_cookie_jar(cookie_jar: &rocket::http::CookieJar) -> Result<Self, Error> {
-        match cookie_jar.get(SESSION_COOKIE_NAME) {
-            Some(cookie) => Ok(Self(String::from(cookie.value()))),
-            None => Err(Error::new("User is not signed in")),
-        }
-    }
-
-    pub fn to_cookie_jar(&self, cookie_jar: &rocket::http::CookieJar) {
-        cookie_jar.add(rocket::http::Cookie::new(
-            SESSION_COOKIE_NAME,
-            self.to_string(),
-        ))
-    }
-}
-
-impl std::string::ToString for PlayerUUID {
-    fn to_string(&self) -> String {
-        self.0.clone()
-    }
-}
-
-impl<'a> rocket::request::FromParam<'a> for PlayerUUID {
-    type Error = String;
-    fn from_param(param: &'a str) -> Result<Self, String> {
-        Ok(Self(String::from(param)))
-    }
-}
-
-impl<'a> rocket::form::FromFormField<'a> for PlayerUUID {
-    fn from_value(field: rocket::form::ValueField<'a>) -> rocket::form::Result<'a, Self> {
-        Ok(Self(String::from(field.value)))
-    }
-}
+use super::uuid::PlayerUUID;
 
 pub struct Player {
     alcohol_content: i32,

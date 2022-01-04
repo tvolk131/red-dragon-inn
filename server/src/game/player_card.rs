@@ -1,4 +1,4 @@
-use super::player::PlayerUUID;
+use super::uuid::PlayerUUID;
 use super::GameLogic;
 
 pub enum PlayerCard {

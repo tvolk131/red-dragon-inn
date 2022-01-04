@@ -1,5 +1,5 @@
 use super::game::player_view::GameView;
-use super::game::{Error, Game, PlayerUUID};
+use super::game::{GameUUID, Error, Game, PlayerUUID};
 use super::Character;
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -192,23 +192,6 @@ impl GameManager {
             Some(game) => Ok(game),
             None => error,
         }
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub struct GameUUID(String);
-
-impl GameUUID {
-    pub fn new() -> Self {
-        // TODO - Should generate actual unique id rather than an empty string.
-        Self("".to_string())
-    }
-}
-
-impl<'a> rocket::request::FromParam<'a> for GameUUID {
-    type Error = String;
-    fn from_param(param: &'a str) -> Result<Self, String> {
-        Ok(Self(String::from(param)))
     }
 }
 

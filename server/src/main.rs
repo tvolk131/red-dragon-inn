@@ -6,10 +6,8 @@ mod game;
 mod game_manager;
 
 use auth::SESSION_COOKIE_NAME;
-use game::Character;
-use game::PlayerUUID;
-use game::{player_view::GameView, Error};
-use game_manager::{GameManager, GameUUID};
+use game::{GameUUID, PlayerUUID, Character, player_view::GameView, Error};
+use game_manager::GameManager;
 use std::sync::RwLock;
 
 use rocket::{
