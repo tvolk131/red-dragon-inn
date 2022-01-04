@@ -271,6 +271,11 @@ impl Character {
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("How many times have I told you? Keep your hands off my wand!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("How many times have I told you? Keep your hands off my wand!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("I told you not to distract me!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("Watch out! Don't step on Pooky!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("Down Pooky!", 1))),
             ],
             Self::Deirdre => vec![
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
@@ -281,6 +286,11 @@ impl Character {
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
                 PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("My Goddess made me do it!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("My Goddess made me do it!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("I'm not that kind of priestess!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("Oh no! I think that growth on your arm might be Mummy Rot!", 2))),
+                PlayerCard::DirectedPlayerCard(Box::from(player_card::ChangeOtherPlayerFortitude::new("Sorry, sometimes my healing spells just wear off.", 1))),
             ],
             Self::Gerki => vec![
                 PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),

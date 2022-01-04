@@ -98,6 +98,15 @@ pub struct ChangeOtherPlayerFortitude {
     fortitude_modifier: i32,
 }
 
+impl ChangeOtherPlayerFortitude {
+    pub fn new(display_name: impl Into<String>, fortitude_modifier: i32) -> Self {
+        Self {
+            display_name: display_name.into(),
+            fortitude_modifier
+        }
+    }
+}
+
 impl GenericPlayerCard for ChangeOtherPlayerFortitude {
     fn get_display_name(&self) -> String {
         self.display_name.clone()
