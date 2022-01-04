@@ -358,3 +358,31 @@ impl Character {
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_perform_full_round() {
+        // Setup game with 2 players.
+        let mut game = Game::new("Test Game".to_string());
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+        assert_eq!(game.join(player1_uuid.clone()), None);
+        assert_eq!(game.join(player2_uuid.clone()), None);
+        assert_eq!(game.select_character(&player1_uuid, Character::Deirdre), None);
+        assert_eq!(game.select_character(&player2_uuid, Character::Gerki), None);
+        assert_eq!(game.start(&player1_uuid), None);
+
+        for _ in 1..10 {
+            assert_eq!(game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()), None);
+            assert_eq!(game.pass(&player1_uuid), None);
+            assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), None);
+    
+            assert_eq!(game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()), None);
+            assert_eq!(game.pass(&player2_uuid), None);
+            assert_eq!(game.order_drink(&player2_uuid, &player2_uuid), None);
+        }
+    }
+}

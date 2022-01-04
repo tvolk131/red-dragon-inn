@@ -22,6 +22,9 @@ impl GameLogic {
             return Err(Error::new("Must have between 2 and 8 players"));
         }
 
+        // TODO - Set the first player to a random player (or whatever official RDI rules say).
+        let first_player_uuid = characters.first().unwrap().0.clone();
+
         Ok(Self {
             players: characters
                 .into_iter()
@@ -36,8 +39,7 @@ impl GameLogic {
                 })
                 .collect(),
             drink_deck: AutoShufflingDeck::new(create_drink_deck()),
-            // TODO - Set this to the player who should go first.
-            turn_info: TurnInfo::new(PlayerUUID::new()),
+            turn_info: TurnInfo::new(first_player_uuid),
             gambling_round_or: None,
         })
     }
