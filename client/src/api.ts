@@ -15,7 +15,7 @@ interface GameViewPlayerData {
   gold: number;
 }
 
-interface GameView {
+export interface GameView {
   gameName: string;
   selfPlayerId: string;
   hand: GameViewPlayerCard[];
@@ -57,8 +57,8 @@ export const leaveGame = async (): Promise<void> => {
   return await axios.get('/api/leaveGame');
 }
 
-export const startGame = async (gameId: string): Promise<GameView> => {
-  return (await axios.get(`/api/startGame/${gameId}`)).data as GameView;
+export const startGame = async (): Promise<GameView> => {
+  return (await axios.get('/api/startGame/')).data as GameView;
 }
 
 export const selectCharacter = async (character: string): Promise<GameView> => {

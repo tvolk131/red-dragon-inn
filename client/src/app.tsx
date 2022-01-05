@@ -13,7 +13,7 @@ import {Box} from '@mui/material';
 import {GameListPage} from './pages/GameListPage';
 import {GamePage} from './pages/GamePage';
 import {NotFoundPage} from './pages/NotFoundPage';
-import {me} from './api';
+import {GameView, getGameView, me} from './api';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -31,17 +31,25 @@ const useStyles = makeStyles((theme: Theme) =>
 const SubApp = () => {
   const classes = useStyles();
 
-  const [displayName, setDisplayName] = useState<string | undefined>('');
+  const [displayName, setDisplayName] = useState<string | undefined>(undefined);
   const [loadingDisplayName, setLoadingDisplayName] = useState(true);
+
+  const [gameView, setGameView] = useState<GameView | undefined>(undefined);
+  const [loadingGameView, setLoadingGameView] = useState(true);
   
   useEffect(() => {
     me()
       .then((displayName) => setDisplayName(displayName))
       .catch(() => setDisplayName(undefined))
-      .finally(() => setLoadingDisplayName(false))
+      .finally(() => setLoadingDisplayName(false));
+
+    getGameView()
+      .then((gameView) => setGameView(gameView))
+      .catch(() => setGameView(undefined))
+      .finally(() => setLoadingGameView(false));
   }, []);
 
-  if (loadingDisplayName) {
+  if (loadingDisplayName || loadingGameView) {
     return <div>{loadingDisplayName ? 'Loading...' : displayName}</div>;
   }
 
@@ -59,7 +67,7 @@ const SubApp = () => {
             />
             <Route
               path='/game'
-              element={<GamePage/>}
+              element={<GamePage gameView={gameView}/>}
             />
             <Route
               path='*'
