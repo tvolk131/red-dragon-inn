@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {Button, Card, CardContent, Typography} from '@mui/material';
 import {GameView, selectCharacter, startGame} from '../api';
+import {useNavigate} from 'react-router';
 
 enum Character {
   Fiona,
@@ -23,8 +24,15 @@ interface GamePageProps {
 }
 
 export const GamePage = (props: GamePageProps) => {
+  const navigate = useNavigate();
+
   if (!props.gameView) {
-    return <div>You are not in a game!</div>
+    return (
+      <div>
+        <Typography>You are not in a game!</Typography>
+        <Button onClick={() => navigate('/gameList')}>Join a game</Button>
+      </div>
+    );
   }
 
   return (
