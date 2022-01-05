@@ -14,6 +14,7 @@ import {GameListPage} from './pages/GameListPage';
 import {GamePage} from './pages/GamePage';
 import {NotFoundPage} from './pages/NotFoundPage';
 import {GameView, getGameView, me} from './api';
+import {HomePage} from './pages/HomePage';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -61,6 +62,10 @@ const SubApp = () => {
       <div className={classes.pageContent}>
         <BrowserRouter>
           <Routes>
+            <Route
+              path='/'
+              element={<HomePage/>}
+            />
             <Route
               path='/gameList'
               element={<GameListPage displayName={displayName} setDisplayName={setDisplayName}/>}
