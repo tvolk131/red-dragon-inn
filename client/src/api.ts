@@ -23,7 +23,7 @@ interface GameView {
   playerDisplayNames: {[key: string]: string}
 }
 
-interface ListedGameView {
+export interface ListedGameView {
   gameName: string;
   gameUuid: string;
   playerCount: number;

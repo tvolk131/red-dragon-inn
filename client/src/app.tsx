@@ -6,12 +6,14 @@ import {
 } from '@mui/material/styles';
 import {createStyles, makeStyles} from '@mui/styles';
 import * as React from 'react';
+import {useState, useEffect} from 'react';
 import {Route, Routes} from 'react-router';
 import {BrowserRouter} from 'react-router-dom';
 import {Box} from '@mui/material';
 import {GameListPage} from './pages/GameListPage';
 import {GamePage} from './pages/GamePage';
 import {NotFoundPage} from './pages/NotFoundPage';
+import {me} from './api';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -29,6 +31,20 @@ const useStyles = makeStyles((theme: Theme) =>
 const SubApp = () => {
   const classes = useStyles();
 
+  const [displayName, setDisplayName] = useState<string | undefined>('');
+  const [loadingDisplayName, setLoadingDisplayName] = useState(true);
+  
+  useEffect(() => {
+    me()
+      .then((displayName) => setDisplayName(displayName))
+      .catch(() => setDisplayName(undefined))
+      .finally(() => setLoadingDisplayName(false))
+  }, []);
+
+  if (loadingDisplayName) {
+    return <div>{loadingDisplayName ? 'Loading...' : displayName}</div>;
+  }
+
   return (
     <Box sx={{backgroundColor: 'background.default', color: 'text.primary'}} className={classes.root}>
       {/* This meta tag makes the mobile experience
@@ -39,7 +55,7 @@ const SubApp = () => {
           <Routes>
             <Route
               path='/gameList'
-              element={<GameListPage/>}
+              element={<GameListPage displayName={displayName} setDisplayName={setDisplayName}/>}
             />
             <Route
               path='/game'
