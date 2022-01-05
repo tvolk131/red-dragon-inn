@@ -6,11 +6,11 @@ import {
 } from '@mui/material/styles';
 import {createStyles, makeStyles} from '@mui/styles';
 import * as React from 'react';
-import {useState} from 'react';
 import {Route, Routes} from 'react-router';
 import {BrowserRouter} from 'react-router-dom';
-import {Box, Snackbar} from '@mui/material';
-import {HomePage} from './pages/HomePage';
+import {Box} from '@mui/material';
+import {GameListPage} from './pages/GameListPage';
+import {GamePage} from './pages/GamePage';
 import {NotFoundPage} from './pages/NotFoundPage';
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -38,8 +38,12 @@ const SubApp = () => {
         <BrowserRouter>
           <Routes>
             <Route
-              path='/'
-              element={<HomePage/>}
+              path='/gameList'
+              element={<GameListPage/>}
+            />
+            <Route
+              path='/game'
+              element={<GamePage/>}
             />
             <Route
               path='*'
