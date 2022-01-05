@@ -54,6 +54,9 @@ impl GameManager {
         player_uuid: PlayerUUID,
         game_name: String,
     ) -> Result<GameUUID, Error> {
+        if self.player_uuids_to_game_id.contains_key(&player_uuid) {
+            return Err(Error::new("Player is already in a game"));
+        }
         if let Some(err) = self.assert_player_exists(&player_uuid) {
             return Err(err);
         }
@@ -289,5 +292,21 @@ mod tests {
             game_manager.leave_game(&player_uuid),
             Some(Error::new("Player is not in a game"))
         );
+    }
+
+    #[test]
+    fn cannot_create_game_when_you_are_already_in_one() {
+        let mut game_manager = GameManager::new();
+
+        let player_uuid = PlayerUUID::new();
+
+        game_manager.add_player(player_uuid.clone(), String::from("Tommy"));
+        game_manager
+            .create_game(player_uuid.clone(), "Game 1".to_string())
+            .unwrap();
+        assert_eq!(game_manager
+                .create_game(player_uuid.clone(), "Game 1".to_string()), Err(Error::new("Player is already in a game")));
+
+        assert_eq!(game_manager.games_by_game_id.len(), 1);
     }
 }
