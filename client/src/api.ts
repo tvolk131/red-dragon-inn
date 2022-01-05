@@ -23,12 +23,22 @@ interface GameView {
   playerDisplayNames: {[key: string]: string}
 }
 
+interface ListedGameView {
+  gameName: string;
+  gameUuid: string;
+  playerCount: number;
+}
+
 export const signin = async (displayName: string): Promise<void> => {
   await axios.get('/api/signin', {params: {display_name: displayName}});
 }
 
 export const signout = async (): Promise<void> => {
   await axios.get('/api/signout');
+}
+
+export const listGames = async (): Promise<ListedGameView[]> => {
+  return (await axios.get('/api/listGames')).data as ListedGameView[];
 }
 
 export const createGame = async (gameName: string): Promise<GameView> => {

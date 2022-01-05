@@ -6,7 +6,7 @@ mod game;
 mod game_manager;
 
 use auth::SESSION_COOKIE_NAME;
-use game::{player_view::GameView, Character, Error, GameUUID, PlayerUUID};
+use game::{player_view::{GameView, ListedGameViewCollection}, Character, Error, GameUUID, PlayerUUID};
 use game_manager::GameManager;
 use std::sync::RwLock;
 
@@ -125,6 +125,11 @@ async fn signout_handler(
     };
     cookie_jar.remove(Cookie::named(SESSION_COOKIE_NAME));
     None
+}
+
+#[get("/api/listGames")]
+async fn list_games_handler(game_manager: &State<RwLock<GameManager>>) -> ListedGameViewCollection {
+    game_manager.read().unwrap().list_games()
 }
 
 #[get("/api/createGame/<game_name>")]
@@ -289,6 +294,7 @@ async fn rocket() -> _ {
                 healthz_handler,
                 signin_handler,
                 signout_handler,
+                list_games_handler,
                 create_game_handler,
                 join_game_handler,
                 leave_game_handler,

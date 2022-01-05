@@ -13,7 +13,7 @@ pub use error::Error;
 
 use game_logic::GameLogic;
 use player_card::PlayerCard;
-use player_view::GameView;
+use player_view::{ListedGameView, GameView};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -222,6 +222,15 @@ impl Game {
                 })
                 .collect(),
         })
+    }
+
+    pub fn get_listed_game_view(&self, game_uuid: GameUUID) -> ListedGameView {
+        ListedGameView {
+            game_name: self.display_name.clone(),
+            game_uuid,
+            player_count: self.players.len()
+
+        }
     }
 
     fn get_mut_game_logic(&mut self) -> Result<&mut GameLogic, Error> {

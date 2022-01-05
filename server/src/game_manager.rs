@@ -1,4 +1,4 @@
-use super::game::player_view::GameView;
+use super::game::player_view::{GameView, ListedGameView, ListedGameViewCollection};
 use super::game::{Error, Game, GameUUID, PlayerUUID};
 use super::Character;
 use std::collections::HashMap;
@@ -35,6 +35,14 @@ impl GameManager {
         self.leave_game(player_uuid);
         self.player_ids_to_display_names.remove(player_uuid);
         None
+    }
+
+    pub fn list_games(&self) -> ListedGameViewCollection {
+        let mut listed_game_views: Vec<ListedGameView> = self.games_by_game_id.iter().map(|(game_uuid, game)| {
+            game.read().unwrap().get_listed_game_view(game_uuid.clone())
+        }).collect();
+        listed_game_views.sort();
+        ListedGameViewCollection { listed_game_views }
     }
 
     pub fn create_game(
