@@ -196,17 +196,19 @@ impl Game {
     ) -> Result<GameView, Error> {
         Ok(GameView {
             game_name: self.display_name.clone(),
-            hand: self
+            hand: match self
                 .game_logic_or
-                .as_ref()
-                .unwrap()
-                .get_game_view_player_hand(&player_uuid),
+                .as_ref() {
+                    Some(game_logic) => game_logic.get_game_view_player_hand(&player_uuid),
+                    None => Vec::new()
+                },
             self_player_uuid: player_uuid,
-            player_data: self
+            player_data: match self
                 .game_logic_or
-                .as_ref()
-                .unwrap()
-                .get_game_view_player_data(),
+                .as_ref() {
+                    Some(game_logic) => game_logic.get_game_view_player_data(),
+                    None => Vec::new()
+                },
             // TODO - Handle this `unwrap`.
             player_display_names: self
                 .players
