@@ -7,24 +7,23 @@ use std::sync::RwLock;
 pub struct GameManager {
     games_by_game_id: HashMap<GameUUID, RwLock<Game>>,
     player_uuids_to_game_id: HashMap<PlayerUUID, GameUUID>,
-    // TODO - Rename to `player_uuids_to_display_names`.
-    player_ids_to_display_names: HashMap<PlayerUUID, String>,
+    player_uuids_to_display_names: HashMap<PlayerUUID, String>,
 }
 
 impl GameManager {
     pub fn new() -> Self {
         Self {
-            player_ids_to_display_names: HashMap::new(),
+            player_uuids_to_display_names: HashMap::new(),
             games_by_game_id: HashMap::new(),
             player_uuids_to_game_id: HashMap::new(),
         }
     }
 
     pub fn add_player(&mut self, player_uuid: PlayerUUID, display_name: String) -> Option<Error> {
-        if self.player_ids_to_display_names.contains_key(&player_uuid) {
+        if self.player_uuids_to_display_names.contains_key(&player_uuid) {
             return Some(Error::new("Player already exists"));
         }
-        self.player_ids_to_display_names
+        self.player_uuids_to_display_names
             .insert(player_uuid, display_name);
         None
     }
@@ -34,12 +33,12 @@ impl GameManager {
             return Some(err);
         }
         self.leave_game(player_uuid);
-        self.player_ids_to_display_names.remove(player_uuid);
+        self.player_uuids_to_display_names.remove(player_uuid);
         None
     }
 
     pub fn get_player_display_name(&self, player_uuid: &PlayerUUID) -> Option<&String> {
-        self.player_ids_to_display_names.get(player_uuid)
+        self.player_uuids_to_display_names.get(player_uuid)
     }
 
     pub fn list_games(&self) -> ListedGameViewCollection {
@@ -135,7 +134,7 @@ impl GameManager {
     }
 
     fn assert_player_exists(&self, player_uuid: &PlayerUUID) -> Option<Error> {
-        if !self.player_ids_to_display_names.contains_key(player_uuid) {
+        if !self.player_uuids_to_display_names.contains_key(player_uuid) {
             return Some(Error::new("Player does not exist"));
         }
         None
@@ -202,7 +201,7 @@ impl GameManager {
         let game = self.get_game_of_player(&player_uuid)?;
         game.read()
             .unwrap()
-            .get_game_view(player_uuid, &self.player_ids_to_display_names)
+            .get_game_view(player_uuid, &self.player_uuids_to_display_names)
     }
 
     fn get_game_of_player(&self, player_uuid: &PlayerUUID) -> Result<&RwLock<Game>, Error> {
