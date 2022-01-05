@@ -127,6 +127,16 @@ async fn signout_handler(
     None
 }
 
+#[get("/api/me")]
+async fn me_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>) -> Result<String, Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
+    let unlocked_game_manager = game_manager.read().unwrap();
+    match unlocked_game_manager.get_player_display_name(&player_uuid) {
+        Some(display_name) => Ok(display_name.clone()),
+        None => Err(Error::new("Player does not exist"))
+    }
+}
+
 #[get("/api/listGames")]
 async fn list_games_handler(game_manager: &State<RwLock<GameManager>>) -> ListedGameViewCollection {
     game_manager.read().unwrap().list_games()
@@ -294,6 +304,7 @@ async fn rocket() -> _ {
                 healthz_handler,
                 signin_handler,
                 signout_handler,
+                me_handler,
                 list_games_handler,
                 create_game_handler,
                 join_game_handler,

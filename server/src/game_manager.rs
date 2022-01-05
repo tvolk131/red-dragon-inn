@@ -7,6 +7,7 @@ use std::sync::RwLock;
 pub struct GameManager {
     games_by_game_id: HashMap<GameUUID, RwLock<Game>>,
     player_uuids_to_game_id: HashMap<PlayerUUID, GameUUID>,
+    // TODO - Rename to `player_uuids_to_display_names`.
     player_ids_to_display_names: HashMap<PlayerUUID, String>,
 }
 
@@ -35,6 +36,10 @@ impl GameManager {
         self.leave_game(player_uuid);
         self.player_ids_to_display_names.remove(player_uuid);
         None
+    }
+
+    pub fn get_player_display_name(&self, player_uuid: &PlayerUUID) -> Option<&String> {
+        self.player_ids_to_display_names.get(player_uuid)
     }
 
     pub fn list_games(&self) -> ListedGameViewCollection {

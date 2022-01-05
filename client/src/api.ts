@@ -37,6 +37,10 @@ export const signout = async (): Promise<void> => {
   await axios.get('/api/signout');
 }
 
+export const me = async (): Promise<string> => {
+  return (await axios.get('/api/me')).data as string;
+}
+
 export const listGames = async (): Promise<ListedGameView[]> => {
   return (await axios.get('/api/listGames')).data as ListedGameView[];
 }
