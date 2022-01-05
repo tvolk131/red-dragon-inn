@@ -90,41 +90,39 @@ async fn signin_handler(
     game_manager: &State<RwLock<GameManager>>,
     cookie_jar: &CookieJar<'_>,
     display_name: String,
-) -> Option<Error> {
-    if PlayerUUID::from_cookie_jar(cookie_jar).is_ok() {
-        return Some(Error::new("User is already signed in"));
+) -> Result<(), Error> {
+    let mut unlocked_game_manager = game_manager.write().unwrap();
+    if let Ok(player_uuid) = PlayerUUID::from_cookie_jar(cookie_jar) {
+        if unlocked_game_manager.get_player_display_name(&player_uuid).is_some() {
+            return Err(Error::new("User is already signed in"));
+        }
     };
     let player_uuid = PlayerUUID::new();
-    if let Some(err) = game_manager
-        .write()
-        .unwrap()
-        .add_player(player_uuid.clone(), display_name)
+    if let Some(err) = unlocked_game_manager.add_player(player_uuid.clone(), display_name)
     {
-        return Some(err);
+        return Err(err);
     }
     player_uuid.to_cookie_jar(cookie_jar);
-    None
+    Ok(())
 }
 
 #[get("/api/signout")]
 async fn signout_handler(
     game_manager: &State<RwLock<GameManager>>,
     cookie_jar: &CookieJar<'_>,
-) -> Option<Error> {
-    let player_uuid = match PlayerUUID::from_cookie_jar(cookie_jar) {
-        Ok(player_uuid) => player_uuid,
-        Err(err) => return Some(err),
-    };
+) -> Result<(), Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
 
     if let Some(err) = game_manager.write().unwrap().remove_player(&player_uuid) {
-        return Some(err);
+        return Err(err);
     }
     match PlayerUUID::from_cookie_jar(cookie_jar) {
         Ok(_) => {}
-        Err(err) => return Some(err),
+        Err(err) => return Err(err),
     };
     cookie_jar.remove(Cookie::named(SESSION_COOKIE_NAME));
-    None
+    
+    Ok(())
 }
 
 #[get("/api/me")]
@@ -172,14 +170,13 @@ async fn join_game_handler(
 async fn leave_game_handler(
     game_manager: &State<RwLock<GameManager>>,
     cookie_jar: &CookieJar<'_>,
-) -> Option<Error> {
-    let player_uuid = match PlayerUUID::from_cookie_jar(cookie_jar) {
-        Ok(player_uuid) => player_uuid,
-        Err(err) => return Some(err),
-    };
+) -> Result<(), Error> {
+    let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let mut unlocked_game_manager = game_manager.write().unwrap();
-    unlocked_game_manager.leave_game(&player_uuid)?;
-    None
+    if let Some(err) = unlocked_game_manager.leave_game(&player_uuid) {
+        return Err(err);
+    }
+    Ok(())
 }
 
 #[get("/api/startGame")]

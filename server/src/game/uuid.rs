@@ -63,10 +63,11 @@ impl PlayerUUID {
     }
 
     pub fn to_cookie_jar(&self, cookie_jar: &rocket::http::CookieJar) {
+        cookie_jar.remove(rocket::http::Cookie::named(SESSION_COOKIE_NAME));
         cookie_jar.add(rocket::http::Cookie::new(
             SESSION_COOKIE_NAME,
             self.to_string(),
-        ))
+        ));
     }
 }
 
