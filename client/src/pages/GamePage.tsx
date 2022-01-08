@@ -1,6 +1,6 @@
 import * as React from 'react';
-import {Button, Card, CardContent, Typography} from '@mui/material';
-import {GameView, selectCharacter, startGame} from '../api';
+import {Button, Card, CardActions, CardContent, Typography} from '@mui/material';
+import {GameView, pass, playCard, selectCharacter, startGame} from '../api';
 import {useNavigate} from 'react-router';
 
 enum Character {
@@ -83,6 +83,24 @@ export const GamePage = (props: GamePageProps) => {
           </Card>
         );
       })}
+      {props.gameView.hand.map((card, index) => {
+        return (
+          <Card>
+            <CardContent>
+              {card.cardName}
+            </CardContent>
+            {card.isPlayable && (
+              <CardActions>
+                <Button onClick={() => playCard(index)}>
+                  Play
+                </Button>
+              </CardActions>
+            )}
+          </Card>
+        );
+      })}
+      <Button disabled={!props.gameView.canPass} onClick={() => pass()}>Pass</Button>
+      <div>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</div>
     </div>
   );
 };

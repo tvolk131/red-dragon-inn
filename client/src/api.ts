@@ -17,7 +17,9 @@ interface GameViewPlayerData {
 
 export interface GameView {
   gameName: string;
-  selfPlayerId: string;
+  selfPlayerUuid: string;
+  currentTurnPlayerUuid: string;
+  canPass: boolean;
   hand: GameViewPlayerCard[];
   playerData: GameViewPlayerData[];
   playerDisplayNames: {[key: string]: string}

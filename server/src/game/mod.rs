@@ -12,11 +12,12 @@ pub use self::uuid::PlayerUUID;
 pub use error::Error;
 
 use game_logic::GameLogic;
-use player_card::PlayerCard;
+use player_card::{gambling_im_in_card, i_raise_card, change_other_player_fortitude, PlayerCard};
 use player_view::{ListedGameView, GameView};
 use std::collections::HashMap;
 use std::str::FromStr;
 
+#[derive(Clone)]
 pub struct Game {
     display_name: String,
     players: Vec<(PlayerUUID, Option<Character>)>,
@@ -189,6 +190,10 @@ impl Game {
         Some(Error::new("Unable to pass at this time"))
     }
 
+    fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
+        self.clone().pass(player_uuid).is_none()
+    }
+
     pub fn get_game_view(
         &self,
         player_uuid: PlayerUUID,
@@ -196,16 +201,16 @@ impl Game {
     ) -> Result<GameView, Error> {
         Ok(GameView {
             game_name: self.display_name.clone(),
-            hand: match self
-                .game_logic_or
-                .as_ref() {
+            current_turn_player_uuid: self.game_logic_or.as_ref().map(|game_logic| game_logic.get_current_player_turn().clone()),
+            can_pass: self.player_can_pass(&player_uuid),
+            hand: match &self
+                .game_logic_or  {
                     Some(game_logic) => game_logic.get_game_view_player_hand(&player_uuid),
                     None => Vec::new()
                 },
             self_player_uuid: player_uuid,
-            player_data: match self
-                .game_logic_or
-                .as_ref() {
+            player_data: match &self
+                .game_logic_or {
                     Some(game_logic) => game_logic.get_game_view_player_data(),
                     None => Vec::new()
                 },
@@ -291,95 +296,54 @@ impl Character {
     pub fn create_deck(&self) -> Vec<PlayerCard> {
         match self {
             Self::Fiona => vec![
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
             ],
             Self::Zot => vec![
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "How many times have I told you? Keep your hands off my wand!",
-                        2,
-                    ),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "How many times have I told you? Keep your hands off my wand!",
-                        2,
-                    ),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "I told you not to distract me!",
-                        2,
-                    ),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "Watch out! Don't step on Pooky!",
-                        2,
-                    ),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new("Down Pooky!", 1),
-                )),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("How many times have I told you? Keep your hands off my wand!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("How many times have I told you? Keep your hands off my wand!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("I told you not to distract me!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("Watch out! Don't step on Pooky!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("Down Pooky!", 1)),
             ],
             Self::Deirdre => vec![
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new("My Goddess made me do it!", 2),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new("My Goddess made me do it!", 2),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "I'm not that kind of priestess!",
-                        2,
-                    ),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "Oh no! I think that growth on your arm might be Mummy Rot!",
-                        2,
-                    ),
-                )),
-                PlayerCard::DirectedPlayerCard(Box::from(
-                    player_card::ChangeOtherPlayerFortitude::new(
-                        "Sorry, sometimes my healing spells just wear off.",
-                        1,
-                    ),
-                )),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("My Goddess made me do it!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("My Goddess made me do it!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("I'm not that kind of priestess!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("Oh no! I think that growth on your arm might be Mummy Rot!", 2)),
+                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("Sorry, sometimes my healing spells just wear off.", 1)),
             ],
             Self::Gerki => vec![
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::GamblingImInPlayerCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
-                PlayerCard::SimplePlayerCard(Box::from(player_card::IRaiseCard {})),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
+                PlayerCard::SimplePlayerCard(i_raise_card()),
             ],
         }
     }

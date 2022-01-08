@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
+#[derive(Clone)]
 pub struct AutoShufflingDeck<T> {
     draw_pile: Vec<T>,
     discard_pile: Vec<T>,

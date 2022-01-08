@@ -27,6 +27,8 @@ pub struct GameViewPlayerData {
 pub struct GameView {
     pub game_name: String,
     pub self_player_uuid: PlayerUUID,
+    pub current_turn_player_uuid: Option<PlayerUUID>,
+    pub can_pass: bool,
     pub hand: Vec<GameViewPlayerCard>,
     pub player_data: Vec<GameViewPlayerData>,
     pub player_display_names: HashMap<PlayerUUID, String>,

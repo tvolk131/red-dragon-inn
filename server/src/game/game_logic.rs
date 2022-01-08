@@ -7,6 +7,7 @@ use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use std::collections::HashSet;
 
+#[derive(Clone)]
 pub struct GameLogic {
     players: Vec<(PlayerUUID, Player)>,
     drink_deck: AutoShufflingDeck<Box<dyn Drink>>,
@@ -241,7 +242,7 @@ impl GameLogic {
             None => return Some(Error::new("Card does not exist")),
         };
 
-        let return_val = if card.as_generic_player_card().can_play(player_uuid, self) {
+        let return_val = if card.can_play(player_uuid, self) {
             match &card {
                 PlayerCard::SimplePlayerCard(simple_card) => {
                     if other_player_uuid_or.is_some() {
@@ -418,6 +419,7 @@ impl GameLogic {
     }
 }
 
+#[derive(Clone)]
 struct GamblingRound {
     active_player_uuids: Vec<PlayerUUID>,
     current_player_turn: PlayerUUID,
@@ -426,6 +428,7 @@ struct GamblingRound {
     need_cheating_card_to_take_control: bool,
 }
 
+#[derive(Clone)]
 pub struct TurnInfo {
     player_turn: PlayerUUID,
     turn_phase: TurnPhase,
@@ -442,7 +445,7 @@ impl TurnInfo {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 enum TurnPhase {
     DiscardAndDraw,
     Action,

@@ -1,7 +1,17 @@
 use super::player::Player;
 
-pub trait Drink: Send + Sync {
+pub trait Drink: Send + Sync + DrinkClone {
     fn process(&self, player: &mut Player);
+}
+
+pub trait DrinkClone {
+    fn clone_box(&self) -> Box<dyn Drink>;
+}
+
+impl Clone for Box<dyn Drink> {
+    fn clone(&self) -> Box<dyn Drink> {
+        self.clone_box()
+    }
 }
 
 pub fn create_drink_deck() -> Vec<Box<dyn Drink>> {
@@ -39,8 +49,15 @@ pub fn create_drink_deck() -> Vec<Box<dyn Drink>> {
     ]
 }
 
+impl<T> DrinkClone for T where T: 'static + Drink + Clone {
+    fn clone_box(&self) -> Box<dyn Drink> {
+        Box::new(self.clone())
+    }
+}
+
 macro_rules! simple_drink {
     ($struct_name:ident, $alcohol_content_mod:expr, $fortitude_mod: expr) => {
+        #[derive(Clone)]
         pub struct $struct_name {}
 
         impl Drink for $struct_name {
@@ -61,6 +78,7 @@ simple_drink!(DragonBreathAle, 4, 0);
 simple_drink!(Water, -1, 0);
 simple_drink!(HolyWater, 0, 2);
 
+#[derive(Clone)]
 pub struct OrcishRotgut {}
 
 impl Drink for OrcishRotgut {

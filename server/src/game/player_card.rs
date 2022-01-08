@@ -1,13 +1,15 @@
 use super::uuid::PlayerUUID;
 use super::GameLogic;
+use std::sync::Arc;
 
+#[derive(Clone)]
 pub enum PlayerCard {
-    SimplePlayerCard(Box<dyn SimplePlayerCard>),
-    DirectedPlayerCard(Box<dyn DirectedPlayerCard>),
+    SimplePlayerCard(SimplePlayerCard),
+    DirectedPlayerCard(DirectedPlayerCard),
 }
 
 impl PlayerCard {
-    pub fn get_display_name(&self) -> String {
+    pub fn get_display_name(&self) -> &str {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
             Self::DirectedPlayerCard(directed_player_card) => {
@@ -25,154 +27,100 @@ impl PlayerCard {
             }
         }
     }
+}
 
-    pub fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
-        match &self {
-            Self::SimplePlayerCard(simple_player_card) => {
-                simple_player_card.as_generic_player_card()
-            }
-            Self::DirectedPlayerCard(directed_player_card) => {
-                directed_player_card.as_generic_player_card()
-            }
-        }
+#[derive(Clone)]
+pub struct SimplePlayerCard {
+    display_name: String,
+    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
+    play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>
+}
+
+impl SimplePlayerCard {
+    pub fn get_display_name(&self) -> &str {
+        &self.display_name
+    }
+
+    pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
+        (self.can_play_fn)(player_uuid, game)
+    }
+
+    pub fn play(&self, player_uuid: &PlayerUUID, game_logic: &mut GameLogic) {
+        (self.play_fn)(player_uuid, game_logic)
     }
 }
 
-pub trait GenericPlayerCard: Send + Sync {
-    fn get_display_name(&self) -> String;
-    fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool;
-    fn as_generic_player_card(&self) -> &dyn GenericPlayerCard;
+#[derive(Clone)]
+pub struct DirectedPlayerCard {
+    display_name: String,
+    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
+    play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>
 }
 
-pub trait SimplePlayerCard: GenericPlayerCard {
-    fn play(&self, player_uuid: &PlayerUUID, game: &mut GameLogic);
-}
+impl DirectedPlayerCard {
+    pub fn get_display_name(&self) -> &str {
+        &self.display_name
+    }
 
-pub trait DirectedPlayerCard: GenericPlayerCard {
-    fn play(
+    pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
+        (self.can_play_fn)(player_uuid, game)
+    }
+
+    pub fn play(
         &self,
         player_uuid: &PlayerUUID,
         targeted_player_uuid: &PlayerUUID,
-        game: &mut GameLogic,
-    );
-}
-
-pub struct GamblingImInPlayerCard {}
-
-impl GenericPlayerCard for GamblingImInPlayerCard {
-    fn get_display_name(&self) -> String {
-        String::from("Gambling? I'm in!")
-    }
-
-    fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        if game.gambling_round_in_progress() {
-            game.is_gambling_turn(player_uuid)
-                && !game.gambling_need_cheating_card_to_take_control()
-        } else {
-            game.get_current_player_turn() == player_uuid
-        }
-    }
-
-    fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
-        self
+        game_logic: &mut GameLogic,
+    ) {
+        (self.play_fn)(player_uuid, targeted_player_uuid, game_logic)
     }
 }
 
-impl SimplePlayerCard for GamblingImInPlayerCard {
-    fn play(&self, player_uuid: &PlayerUUID, game: &mut GameLogic) {
-        if game.gambling_round_in_progress() {
-            game.gambling_take_control_of_round(player_uuid.clone(), false);
-        } else {
-            game.start_gambling_round(player_uuid.clone());
-        }
+pub fn gambling_im_in_card() -> SimplePlayerCard {
+    SimplePlayerCard {
+        display_name: String::from("Gambling? I'm in!"),
+        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
+            if game_logic.gambling_round_in_progress() {
+                game_logic.is_gambling_turn(player_uuid)
+                    && !game_logic.gambling_need_cheating_card_to_take_control()
+            } else {
+                game_logic.get_current_player_turn() == player_uuid
+            }
+        },
+        play_fn: Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
+            if game_logic.gambling_round_in_progress() {
+                game_logic.gambling_take_control_of_round(player_uuid.clone(), false);
+            } else {
+                game_logic.start_gambling_round(player_uuid.clone());
+            }
+        })
     }
 }
 
-pub struct IRaiseCard {}
-
-impl GenericPlayerCard for IRaiseCard {
-    fn get_display_name(&self) -> String {
-        String::from("I raise!")
-    }
-
-    fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        game.gambling_round_in_progress()
-            && game.is_gambling_turn(player_uuid)
-            && !game.gambling_need_cheating_card_to_take_control()
-    }
-
-    fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
-        self
+pub fn i_raise_card() -> SimplePlayerCard {
+    SimplePlayerCard {
+        display_name: String::from("Gambling? I'm in!"),
+        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
+            game_logic.gambling_round_in_progress()
+                && game_logic.is_gambling_turn(player_uuid)
+                && !game_logic.gambling_need_cheating_card_to_take_control()
+        },
+        play_fn: Arc::from(|_player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
+            game_logic.gambling_ante_up()
+        })
     }
 }
 
-impl SimplePlayerCard for IRaiseCard {
-    fn play(&self, _: &PlayerUUID, game: &mut GameLogic) {
-        game.gambling_ante_up()
-    }
-}
-
-pub struct ChangeOtherPlayerFortitude {
-    display_name: String,
-    fortitude_modifier: i32,
-}
-
-impl ChangeOtherPlayerFortitude {
-    pub fn new(display_name: impl Into<String>, fortitude_modifier: i32) -> Self {
-        Self {
-            display_name: display_name.into(),
-            fortitude_modifier,
-        }
-    }
-}
-
-impl GenericPlayerCard for ChangeOtherPlayerFortitude {
-    fn get_display_name(&self) -> String {
-        self.display_name.clone()
-    }
-
-    fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        game.can_play_action_card(player_uuid)
-    }
-
-    fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
-        self
-    }
-}
-
-impl DirectedPlayerCard for ChangeOtherPlayerFortitude {
-    fn play(&self, _: &PlayerUUID, targeted_player_uuid: &PlayerUUID, game: &mut GameLogic) {
-        if let Some(targeted_player) = game.get_player_by_uuid_mut(targeted_player_uuid) {
-            targeted_player.change_fortitude(self.fortitude_modifier);
-        }
-    }
-}
-
-pub struct ChangeSimplePlayerStats {
-    display_name: String,
-    alcohol_content_modifier: i32,
-    fortitude_modifier: i32,
-}
-
-impl GenericPlayerCard for ChangeSimplePlayerStats {
-    fn get_display_name(&self) -> String {
-        self.display_name.clone()
-    }
-
-    fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        game.can_play_action_card(player_uuid)
-    }
-
-    fn as_generic_player_card(&self) -> &dyn GenericPlayerCard {
-        self
-    }
-}
-
-impl SimplePlayerCard for ChangeSimplePlayerStats {
-    fn play(&self, player_uuid: &PlayerUUID, game: &mut GameLogic) {
-        if let Some(player) = game.get_player_by_uuid_mut(player_uuid) {
-            player.change_alcohol_content(self.alcohol_content_modifier);
-            player.change_fortitude(self.fortitude_modifier);
-        }
+pub fn change_other_player_fortitude(display_name: impl ToString, amount: i32) -> DirectedPlayerCard {
+    DirectedPlayerCard {
+        display_name: display_name.to_string(),
+        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
+            game_logic.can_play_action_card(player_uuid)
+        },
+        play_fn: Arc::from(move |_player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
+            if let Some(targeted_player) = game_logic.get_player_by_uuid_mut(targeted_player_uuid) {
+                targeted_player.change_fortitude(amount);
+            }
+        })
     }
 }

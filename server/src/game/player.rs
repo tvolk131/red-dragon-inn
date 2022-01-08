@@ -7,6 +7,7 @@ use super::Character;
 use super::GameLogic;
 use std::borrow::Borrow;
 
+#[derive(Clone)]
 pub struct Player {
     alcohol_content: i32,
     fortitude: i32,
@@ -56,7 +57,7 @@ impl Player {
         self.hand
             .iter()
             .map(|card| GameViewPlayerCard {
-                card_name: card.get_display_name(),
+                card_name: card.get_display_name().to_string(),
                 is_playable: card.can_play(player_uuid, game),
             })
             .collect()
