@@ -451,3 +451,33 @@ enum TurnPhase {
     Action,
     OrderDrinks,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_handle_simple_gambling_round() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![(player1_uuid.clone(), Character::Deirdre), (player2_uuid, Character::Gerki)]).unwrap();
+
+        // Sanity check.
+        assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 8);
+        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 8);        
+        assert!(game_logic.gambling_round_or.is_none());
+
+        game_logic.start_gambling_round(player1_uuid);
+
+        assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 7);
+        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
+        assert!(game_logic.gambling_round_or.is_some());
+
+        game_logic.gambling_pass();
+
+        assert!(game_logic.gambling_round_or.is_none());
+        assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 9);
+        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
+    }
+}
