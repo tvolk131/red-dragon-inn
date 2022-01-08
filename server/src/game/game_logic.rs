@@ -63,7 +63,7 @@ impl GameLogic {
                 active_player_uuids: self.players.iter().map(|(uuid, _)| uuid).cloned().collect(),
                 current_player_turn: player_uuid.clone(),
                 winning_player: player_uuid,
-                pot_amount: self.players.len() as i32,
+                pot_amount: 0,
                 need_cheating_card_to_take_control: false,
             });
         }
