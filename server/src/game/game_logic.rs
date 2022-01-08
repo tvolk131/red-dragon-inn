@@ -128,6 +128,7 @@ impl GameLogic {
                 .unwrap()
                 .change_gold(pot_amount);
             self.gambling_round_or = None;
+            self.turn_info.turn_phase = TurnPhase::OrderDrinks
         }
     }
 
@@ -445,7 +446,7 @@ impl TurnInfo {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 enum TurnPhase {
     DiscardAndDraw,
     Action,
@@ -462,22 +463,26 @@ mod tests {
         let player2_uuid = PlayerUUID::new();
 
         let mut game_logic = GameLogic::new(vec![(player1_uuid.clone(), Character::Deirdre), (player2_uuid, Character::Gerki)]).unwrap();
+        game_logic.discard_cards_and_draw_to_full(&player1_uuid, Vec::new());
 
         // Sanity check.
         assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 8);
         assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 8);        
         assert!(game_logic.gambling_round_or.is_none());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         game_logic.start_gambling_round(player1_uuid);
 
         assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 7);
         assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
         assert!(game_logic.gambling_round_or.is_some());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         game_logic.gambling_pass();
 
         assert!(game_logic.gambling_round_or.is_none());
         assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 9);
         assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
     }
 }
