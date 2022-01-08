@@ -48,6 +48,12 @@ const SubApp = () => {
       .then((gameView) => setGameView(gameView))
       .catch(() => setGameView(undefined))
       .finally(() => setLoadingGameView(false));
+
+    // TODO - Use websockets instead of intermittent polling.
+    setInterval(() => {
+      getGameView()
+        .then((gameView) => setGameView(gameView));
+    }, 500);
   }, []);
 
   if (loadingDisplayName || loadingGameView) {
@@ -68,7 +74,7 @@ const SubApp = () => {
             />
             <Route
               path='/gameList'
-              element={<GameListPage displayName={displayName} setDisplayName={setDisplayName}/>}
+              element={<GameListPage displayName={displayName} setDisplayName={setDisplayName} gameView={gameView}/>}
             />
             <Route
               path='/game'

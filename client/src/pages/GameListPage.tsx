@@ -1,14 +1,18 @@
 import * as React from 'react';
 import {useState, useEffect} from 'react';
 import {Button, Card, CardActions, CardContent, CircularProgress, Paper, TextField, Typography} from '@mui/material';
-import {joinGame, ListedGameView, listGames, signin, signout} from '../api';
+import {createGame, GameView, joinGame, ListedGameView, listGames, signin, signout} from '../api';
+import {useNavigate} from 'react-router';
 
 interface GameListPageProps {
   displayName: string | undefined;
   setDisplayName(displayName: string | undefined): void;
+  gameView?: GameView;
 }
 
 export const GameListPage = (props: GameListPageProps) => {
+  const navigate = useNavigate();
+
   const [games, setGames] = useState<ListedGameView[] | undefined>([]);
   const [loadingGames, setLoadingGames] = useState(true);
 
@@ -26,6 +30,8 @@ export const GameListPage = (props: GameListPageProps) => {
         Game List Page
       </Typography>
       {props.displayName === undefined ? <LoginBox {...props}/> : <ProfileBox {...props}/>}
+      {props.displayName !== undefined && props.gameView === undefined && <GameCreatorBox/>}
+      {props.gameView && <Button onClick={() => navigate('/game')}>View Game</Button>}
       {loadingGames ? <CircularProgress/> : games ? games.map((game) => (
         <Card>
           <CardContent>
@@ -80,3 +86,19 @@ const ProfileBox = (props: ProfileBoxProps) => {
     </div>
   );
 }
+
+const GameCreatorBox = () => {
+  const [gameName, setGameName] = useState('');
+
+  return (
+    <div>
+      <Paper>Create a game!</Paper>
+      <TextField label={'Game Name'} value={gameName} onChange={(e) => setGameName(e.target.value)}/>
+      <Button disabled={gameName.length === 0} onClick={() => {
+        createGame(gameName).then(() => {
+          setGameName('');
+        });
+      }}>Login</Button>
+    </div>
+  );
+};
