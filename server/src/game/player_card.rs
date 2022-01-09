@@ -84,7 +84,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
                 game_logic.is_gambling_turn(player_uuid)
                     && !game_logic.gambling_need_cheating_card_to_take_control()
             } else {
-                game_logic.get_current_player_turn() == player_uuid && game_logic.is_action_phase()
+                game_logic.can_play_action_card(player_uuid)
             }
         },
         play_fn: Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {

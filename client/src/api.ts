@@ -18,7 +18,8 @@ interface GameViewPlayerData {
 export interface GameView {
   gameName: string;
   selfPlayerUuid: string;
-  currentTurnPlayerUuid: string;
+  currentTurnPlayerUuid?: string;
+  currentTurnPhase?: string;
   canPass: boolean;
   hand: GameViewPlayerCard[];
   playerData: GameViewPlayerData[];
@@ -72,7 +73,7 @@ export const playCard = async (cardIndex: number, otherPlayerUuid?: string): Pro
 }
 
 export const discardCards = async (cardIndices: number[]): Promise<GameView> => {
-  return (await axios.get('/api/discardCards', {params: {card_indices_string: cardIndices.join(',')}})).data as GameView;
+  return (await axios.get('/api/discardCards', {params: {card_indices_string: cardIndices.length ? cardIndices.join(',') : undefined}})).data as GameView;
 }
 
 export const orderDrink = async (otherPlayerUuid: string): Promise<GameView> => {

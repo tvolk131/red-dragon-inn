@@ -202,6 +202,7 @@ impl Game {
         Ok(GameView {
             game_name: self.display_name.clone(),
             current_turn_player_uuid: self.game_logic_or.as_ref().map(|game_logic| game_logic.get_current_player_turn().clone()),
+            current_turn_phase: self.game_logic_or.as_ref().map(|game_logic| game_logic.get_turn_phase()),
             can_pass: self.player_can_pass(&player_uuid),
             hand: match &self
                 .game_logic_or  {

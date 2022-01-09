@@ -6,6 +6,7 @@ use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use std::collections::HashSet;
+use serde::Serialize;
 
 #[derive(Clone)]
 pub struct GameLogic {
@@ -52,6 +53,7 @@ impl GameLogic {
     pub fn can_play_action_card(&self, player_uuid: &PlayerUUID) -> bool {
         self.get_current_player_turn() == player_uuid
             && self.turn_info.turn_phase == TurnPhase::Action
+            && self.gambling_round_or.is_none()
     }
 
     pub fn gambling_round_in_progress(&self) -> bool {
@@ -211,6 +213,10 @@ impl GameLogic {
 
     pub fn is_action_phase(&self) -> bool {
         self.turn_info.turn_phase == TurnPhase::Action
+    }
+
+    pub fn get_turn_phase(&self) -> TurnPhase {
+        self.turn_info.turn_phase
     }
 
     pub fn skip_action_phase(&mut self) -> Option<Error> {
@@ -446,8 +452,8 @@ impl TurnInfo {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-enum TurnPhase {
+#[derive(Clone, Copy, PartialEq, Debug, Serialize)]
+pub enum TurnPhase {
     DiscardAndDraw,
     Action,
     OrderDrinks,

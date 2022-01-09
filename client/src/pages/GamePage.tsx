@@ -1,6 +1,7 @@
 import * as React from 'react';
-import {Button, Card, CardActions, CardContent, Typography} from '@mui/material';
-import {GameView, pass, playCard, selectCharacter, startGame} from '../api';
+import {useState, useEffect} from 'react';
+import {Button, Card, CardActions, CardContent, Typography, Checkbox} from '@mui/material';
+import {GameView, pass, playCard, selectCharacter, startGame, discardCards, orderDrink} from '../api';
 import {useNavigate} from 'react-router';
 
 enum Character {
@@ -19,12 +20,31 @@ const characterToString = (character: Character): string => {
   }
 }
 
+const getCanDiscardCards = (gameView?: GameView): boolean => {
+  return !!gameView && gameView.currentTurnPlayerUuid == gameView.selfPlayerUuid && gameView.currentTurnPhase == 'DiscardAndDraw';
+}
+
 interface GamePageProps {
   gameView?: GameView;
 }
 
 export const GamePage = (props: GamePageProps) => {
+  const [selectedCardIndices, setSelectedCardIndices] = useState<number[]>([]);
+  const [canDiscardCards, setCanDiscardCards] = useState(getCanDiscardCards(props.gameView));
+
   const navigate = useNavigate();
+
+  const canOrderDrinks = props.gameView && props.gameView.currentTurnPlayerUuid == props.gameView.selfPlayerUuid && props.gameView.currentTurnPhase == 'OrderDrinks';
+
+  useEffect(() => {
+    setCanDiscardCards(getCanDiscardCards(props.gameView));
+  }, [props.gameView]);
+
+  useEffect(() => {
+    if (!canDiscardCards) {
+      setSelectedCardIndices([]);
+    }
+  }, [canDiscardCards])
 
   if (!props.gameView) {
     return (
@@ -88,6 +108,13 @@ export const GamePage = (props: GamePageProps) => {
           <Card>
             <CardContent>
               {card.cardName}
+              {canDiscardCards && <Checkbox onChange={(event) => {
+                if (event.target.checked) {
+                  selectedCardIndices.push(index);
+                } else {
+                  selectedCardIndices.filter((item) => item != index);
+                }
+              }} checked={selectedCardIndices.includes(index)}/>}
             </CardContent>
             {card.isPlayable && (
               <CardActions>
@@ -100,7 +127,18 @@ export const GamePage = (props: GamePageProps) => {
         );
       })}
       <Button disabled={!props.gameView.canPass} onClick={() => pass()}>Pass</Button>
-      <div>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</div>
+      {props.gameView.currentTurnPlayerUuid ? <div>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</div> : <div>Game not running</div>}
+      {canDiscardCards && <Button onClick={() => discardCards(selectedCardIndices).then(() => setSelectedCardIndices([]))}>Discard {selectedCardIndices.length} cards</Button>}
+      {canOrderDrinks && (<div>
+        {props.gameView.playerData.map((player) => {
+          const playerDisplayName = props.gameView?.playerDisplayNames[player.playerUuid];
+          return (
+            <Button onClick={() => orderDrink(player.playerUuid)}>
+              Order drink for {playerDisplayName}
+            </Button>
+          );
+        })}
+      </div>)}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-use super::{PlayerUUID, GameUUID};
+use super::{PlayerUUID, GameUUID, game_logic::TurnPhase};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::cmp::{Ordering, PartialOrd, Ord};
@@ -28,6 +28,7 @@ pub struct GameView {
     pub game_name: String,
     pub self_player_uuid: PlayerUUID,
     pub current_turn_player_uuid: Option<PlayerUUID>,
+    pub current_turn_phase: Option<TurnPhase>,
     pub can_pass: bool,
     pub hand: Vec<GameViewPlayerCard>,
     pub player_data: Vec<GameViewPlayerData>,
