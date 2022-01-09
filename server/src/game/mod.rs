@@ -173,9 +173,7 @@ impl Game {
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
         match &mut self.get_mut_game_logic() {
             Ok(game_logic) => {
-                if game_logic.get_current_player_turn() == player_uuid
-                    && game_logic.is_action_phase()
-                {
+                if game_logic.can_play_action_card(player_uuid) {
                     game_logic.skip_action_phase();
                     return None;
                 }
