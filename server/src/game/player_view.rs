@@ -1,7 +1,7 @@
-use super::{PlayerUUID, GameUUID, game_logic::TurnPhase};
+use super::{game_logic::TurnPhase, GameUUID, PlayerUUID};
 use serde::Serialize;
+use std::cmp::{Ord, Ordering, PartialOrd};
 use std::collections::HashMap;
-use std::cmp::{Ordering, PartialOrd, Ord};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,11 +40,11 @@ pub struct GameView {
 pub struct ListedGameView {
     pub game_name: String,
     pub game_uuid: GameUUID,
-    pub player_count: usize
+    pub player_count: usize,
 }
 
 pub struct ListedGameViewCollection {
-    pub listed_game_views: Vec<ListedGameView>
+    pub listed_game_views: Vec<ListedGameView>,
 }
 
 impl PartialOrd for ListedGameView {

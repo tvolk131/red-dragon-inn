@@ -49,7 +49,10 @@ pub fn create_drink_deck() -> Vec<Box<dyn Drink>> {
     ]
 }
 
-impl<T> DrinkClone for T where T: 'static + Drink + Clone {
+impl<T> DrinkClone for T
+where
+    T: 'static + Drink + Clone,
+{
     fn clone_box(&self) -> Box<dyn Drink> {
         Box::new(self.clone())
     }

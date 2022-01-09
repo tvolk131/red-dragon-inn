@@ -5,8 +5,8 @@ use super::player_card::PlayerCard;
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
-use std::collections::HashSet;
 use serde::Serialize;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct GameLogic {
@@ -468,12 +468,16 @@ mod tests {
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
 
-        let mut game_logic = GameLogic::new(vec![(player1_uuid.clone(), Character::Deirdre), (player2_uuid, Character::Gerki)]).unwrap();
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid, Character::Gerki),
+        ])
+        .unwrap();
         game_logic.discard_cards_and_draw_to_full(&player1_uuid, Vec::new());
 
         // Sanity check.
         assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 8);
-        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 8);        
+        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 8);
         assert!(game_logic.gambling_round_or.is_none());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 

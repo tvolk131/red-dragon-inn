@@ -6,7 +6,10 @@ mod game;
 mod game_manager;
 
 use auth::SESSION_COOKIE_NAME;
-use game::{player_view::{GameView, ListedGameViewCollection}, Character, Error, GameUUID, PlayerUUID};
+use game::{
+    player_view::{GameView, ListedGameViewCollection},
+    Character, Error, GameUUID, PlayerUUID,
+};
 use game_manager::GameManager;
 use std::sync::RwLock;
 
@@ -93,13 +96,15 @@ async fn signin_handler(
 ) -> Result<(), Error> {
     let mut unlocked_game_manager = game_manager.write().unwrap();
     if let Ok(player_uuid) = PlayerUUID::from_cookie_jar(cookie_jar) {
-        if unlocked_game_manager.get_player_display_name(&player_uuid).is_some() {
+        if unlocked_game_manager
+            .get_player_display_name(&player_uuid)
+            .is_some()
+        {
             return Err(Error::new("User is already signed in"));
         }
     };
     let player_uuid = PlayerUUID::new();
-    if let Some(err) = unlocked_game_manager.add_player(player_uuid.clone(), display_name)
-    {
+    if let Some(err) = unlocked_game_manager.add_player(player_uuid.clone(), display_name) {
         return Err(err);
     }
     player_uuid.to_cookie_jar(cookie_jar);
@@ -121,17 +126,20 @@ async fn signout_handler(
         Err(err) => return Err(err),
     };
     cookie_jar.remove(Cookie::named(SESSION_COOKIE_NAME));
-    
+
     Ok(())
 }
 
 #[get("/api/me")]
-async fn me_handler(game_manager: &State<RwLock<GameManager>>, cookie_jar: &CookieJar<'_>) -> Result<String, Error> {
+async fn me_handler(
+    game_manager: &State<RwLock<GameManager>>,
+    cookie_jar: &CookieJar<'_>,
+) -> Result<String, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
     match unlocked_game_manager.get_player_display_name(&player_uuid) {
         Some(display_name) => Ok(display_name.clone()),
-        None => Err(Error::new("Player does not exist"))
+        None => Err(Error::new("Player does not exist")),
     }
 }
 

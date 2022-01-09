@@ -20,7 +20,10 @@ impl GameManager {
     }
 
     pub fn add_player(&mut self, player_uuid: PlayerUUID, display_name: String) -> Option<Error> {
-        if self.player_uuids_to_display_names.contains_key(&player_uuid) {
+        if self
+            .player_uuids_to_display_names
+            .contains_key(&player_uuid)
+        {
             return Some(Error::new("Player already exists"));
         }
         self.player_uuids_to_display_names
@@ -42,9 +45,11 @@ impl GameManager {
     }
 
     pub fn list_games(&self) -> ListedGameViewCollection {
-        let mut listed_game_views: Vec<ListedGameView> = self.games_by_game_id.iter().map(|(game_uuid, game)| {
-            game.read().unwrap().get_listed_game_view(game_uuid.clone())
-        }).collect();
+        let mut listed_game_views: Vec<ListedGameView> = self
+            .games_by_game_id
+            .iter()
+            .map(|(game_uuid, game)| game.read().unwrap().get_listed_game_view(game_uuid.clone()))
+            .collect();
         listed_game_views.sort();
         ListedGameViewCollection { listed_game_views }
     }
@@ -304,8 +309,10 @@ mod tests {
         game_manager
             .create_game(player_uuid.clone(), "Game 1".to_string())
             .unwrap();
-        assert_eq!(game_manager
-                .create_game(player_uuid.clone(), "Game 1".to_string()), Err(Error::new("Player is already in a game")));
+        assert_eq!(
+            game_manager.create_game(player_uuid.clone(), "Game 1".to_string()),
+            Err(Error::new("Player is already in a game"))
+        );
 
         assert_eq!(game_manager.games_by_game_id.len(), 1);
     }

@@ -33,7 +33,7 @@ impl PlayerCard {
 pub struct SimplePlayerCard {
     display_name: String,
     can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
-    play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>
+    play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
 
 impl SimplePlayerCard {
@@ -54,7 +54,7 @@ impl SimplePlayerCard {
 pub struct DirectedPlayerCard {
     display_name: String,
     can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
-    play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>
+    play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
 
 impl DirectedPlayerCard {
@@ -93,7 +93,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
             } else {
                 game_logic.start_gambling_round(player_uuid.clone());
             }
-        })
+        }),
     }
 }
 
@@ -107,20 +107,29 @@ pub fn i_raise_card() -> SimplePlayerCard {
         },
         play_fn: Arc::from(|_player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
             game_logic.gambling_ante_up()
-        })
+        }),
     }
 }
 
-pub fn change_other_player_fortitude(display_name: impl ToString, amount: i32) -> DirectedPlayerCard {
+pub fn change_other_player_fortitude(
+    display_name: impl ToString,
+    amount: i32,
+) -> DirectedPlayerCard {
     DirectedPlayerCard {
         display_name: display_name.to_string(),
         can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
             game_logic.can_play_action_card(player_uuid)
         },
-        play_fn: Arc::from(move |_player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
-            if let Some(targeted_player) = game_logic.get_player_by_uuid_mut(targeted_player_uuid) {
-                targeted_player.change_fortitude(amount);
-            }
-        })
+        play_fn: Arc::from(
+            move |_player_uuid: &PlayerUUID,
+                  targeted_player_uuid: &PlayerUUID,
+                  game_logic: &mut GameLogic| {
+                if let Some(targeted_player) =
+                    game_logic.get_player_by_uuid_mut(targeted_player_uuid)
+                {
+                    targeted_player.change_fortitude(amount);
+                }
+            },
+        ),
     }
 }
