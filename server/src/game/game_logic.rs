@@ -276,7 +276,11 @@ impl GameLogic {
         };
 
         if let Some(player) = self.get_player_by_uuid_mut(player_uuid) {
-            player.discard_card(card);
+            if return_val.is_some() {
+                player.return_card_to_hand(card, card_index);
+            } else {
+                player.discard_card(card);
+            }
         }
 
         return_val

@@ -79,6 +79,14 @@ impl Player {
         }
     }
 
+    pub fn return_card_to_hand(&mut self, card: PlayerCard, mut card_index: usize) {
+        if card_index > self.hand.len() {
+            card_index = self.hand.len();
+        }
+        // Will never panic due to the check above.
+        self.hand.insert(card_index, card);
+    }
+
     pub fn discard_card(&mut self, card: PlayerCard) {
         self.deck.discard_card(card);
     }
