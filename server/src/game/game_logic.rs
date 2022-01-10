@@ -270,8 +270,7 @@ impl GameLogic {
                         None => Some(Error::new("Must direct this card at another player")),
                     }
                 }
-            };
-            None
+            }
         } else {
             Some(Error::new("Card cannot be played at this time"))
         };
