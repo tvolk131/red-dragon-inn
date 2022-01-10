@@ -244,6 +244,8 @@ impl GameLogic {
             }
         };
 
+        // This must be discarded before the functions ends. So
+        // there should be no early returns after this statement.
         let card = match card_or {
             Some(card) => card,
             None => return Some(Error::new("Card does not exist")),
@@ -253,16 +255,20 @@ impl GameLogic {
             match &card {
                 PlayerCard::SimplePlayerCard(simple_card) => {
                     if other_player_uuid_or.is_some() {
-                        return Some(Error::new("Cannot direct this card at another player"));
+                        Some(Error::new("Cannot direct this card at another player"))
+                    } else {
+                        simple_card.play(player_uuid, self);
+                        None
                     }
-                    simple_card.play(player_uuid, self);
                 }
                 PlayerCard::DirectedPlayerCard(directed_card) => {
-                    let other_player_uuid = match other_player_uuid_or {
-                        Some(other_player_uuid) => other_player_uuid,
-                        None => return Some(Error::new("Must direct this card at another player")),
-                    };
-                    directed_card.play(player_uuid, other_player_uuid, self);
+                    match other_player_uuid_or {
+                        Some(other_player_uuid) => {
+                            directed_card.play(player_uuid, other_player_uuid, self);
+                            None
+                        },
+                        None => Some(Error::new("Must direct this card at another player")),
+                    }
                 }
             };
             None
