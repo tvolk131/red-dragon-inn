@@ -1,3 +1,4 @@
+use super::game_logic::{GameInterruptType, PlayerCardInfo};
 use super::uuid::PlayerUUID;
 use super::GameLogic;
 use std::sync::Arc;
@@ -17,13 +18,30 @@ impl PlayerCard {
             }
         }
     }
-    pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
+
+    pub fn can_play(
+        &self,
+        player_uuid: &PlayerUUID,
+        game_logic: &GameLogic,
+        game_interrupt_or: Option<GameInterruptType>,
+    ) -> bool {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => {
-                simple_player_card.can_play(player_uuid, game)
+                simple_player_card.can_play(player_uuid, game_logic, game_interrupt_or)
             }
             Self::DirectedPlayerCard(directed_player_card) => {
-                directed_player_card.can_play(player_uuid, game)
+                directed_player_card.can_play(player_uuid, game_logic, game_interrupt_or)
+            }
+        }
+    }
+
+    pub fn get_interrupt_type_or(&self) -> &Option<GameInterruptType> {
+        match &self {
+            Self::SimplePlayerCard(simple_player_card) => {
+                simple_player_card.get_interrupt_type_or()
+            }
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.get_interrupt_type_or()
             }
         }
     }
@@ -32,7 +50,12 @@ impl PlayerCard {
 #[derive(Clone)]
 pub struct SimplePlayerCard {
     display_name: String,
-    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
+    can_play_fn: fn(
+        player_uuid: &PlayerUUID,
+        game_logic: &GameLogic,
+        game_interrupt_or: Option<GameInterruptType>,
+    ) -> bool,
+    interrupt_type_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
 
@@ -41,8 +64,17 @@ impl SimplePlayerCard {
         &self.display_name
     }
 
-    pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        (self.can_play_fn)(player_uuid, game)
+    pub fn can_play(
+        &self,
+        player_uuid: &PlayerUUID,
+        game_logic: &GameLogic,
+        game_interrupt_or: Option<GameInterruptType>,
+    ) -> bool {
+        (self.can_play_fn)(player_uuid, game_logic, game_interrupt_or)
+    }
+
+    pub fn get_interrupt_type_or(&self) -> &Option<GameInterruptType> {
+        &self.interrupt_type_or
     }
 
     pub fn play(&self, player_uuid: &PlayerUUID, game_logic: &mut GameLogic) {
@@ -53,7 +85,12 @@ impl SimplePlayerCard {
 #[derive(Clone)]
 pub struct DirectedPlayerCard {
     display_name: String,
-    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
+    can_play_fn: fn(
+        player_uuid: &PlayerUUID,
+        game_logic: &GameLogic,
+        game_interrupt_or: Option<GameInterruptType>,
+    ) -> bool,
+    interrupt_type_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
 
@@ -62,8 +99,17 @@ impl DirectedPlayerCard {
         &self.display_name
     }
 
-    pub fn can_play(&self, player_uuid: &PlayerUUID, game: &GameLogic) -> bool {
-        (self.can_play_fn)(player_uuid, game)
+    pub fn can_play(
+        &self,
+        player_uuid: &PlayerUUID,
+        game_logic: &GameLogic,
+        game_interrupt_or: Option<GameInterruptType>,
+    ) -> bool {
+        (self.can_play_fn)(player_uuid, game_logic, game_interrupt_or)
+    }
+
+    pub fn get_interrupt_type_or(&self) -> &Option<GameInterruptType> {
+        &self.interrupt_type_or
     }
 
     pub fn play(
@@ -79,7 +125,10 @@ impl DirectedPlayerCard {
 pub fn gambling_im_in_card() -> SimplePlayerCard {
     SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
-        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      game_logic: &GameLogic,
+                      game_interrupt_or: Option<GameInterruptType>|
+         -> bool {
             if game_logic.gambling_round_in_progress() {
                 game_logic.is_gambling_turn(player_uuid)
                     && !game_logic.gambling_need_cheating_card_to_take_control()
@@ -87,6 +136,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
                 game_logic.can_play_action_card(player_uuid)
             }
         },
+        interrupt_type_or: Some(GameInterruptType::AboutToAnte),
         play_fn: Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
             if game_logic.gambling_round_in_progress() {
                 game_logic.gambling_take_control_of_round(player_uuid.clone(), false);
@@ -100,11 +150,15 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
 pub fn i_raise_card() -> SimplePlayerCard {
     SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
-        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      game_logic: &GameLogic,
+                      game_interrupt_or: Option<GameInterruptType>|
+         -> bool {
             game_logic.gambling_round_in_progress()
                 && game_logic.is_gambling_turn(player_uuid)
                 && !game_logic.gambling_need_cheating_card_to_take_control()
         },
+        interrupt_type_or: Some(GameInterruptType::AboutToAnte),
         play_fn: Arc::from(|_player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
             game_logic.gambling_ante_up()
         }),
@@ -117,9 +171,13 @@ pub fn change_other_player_fortitude(
 ) -> DirectedPlayerCard {
     DirectedPlayerCard {
         display_name: display_name.to_string(),
-        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
-            game_logic.can_play_action_card(player_uuid)
-        },
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      game_logic: &GameLogic,
+                      game_interrupt_or: Option<GameInterruptType>|
+         -> bool { game_logic.can_play_action_card(player_uuid) },
+        interrupt_type_or: Some(GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            affects_fortitude: true,
+        })),
         play_fn: Arc::from(
             move |_player_uuid: &PlayerUUID,
                   targeted_player_uuid: &PlayerUUID,
