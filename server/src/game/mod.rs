@@ -1,7 +1,7 @@
 mod deck;
 mod drink;
 mod error;
-mod game_interrupt_stack;
+mod game_interrupt;
 mod game_logic;
 mod player;
 mod player_card;

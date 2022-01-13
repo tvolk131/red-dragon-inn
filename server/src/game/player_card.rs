@@ -1,4 +1,4 @@
-use super::game_logic::{GameInterruptType, PlayerCardInfo};
+use super::game_interrupt::{GameInterruptType, PlayerCardInfo};
 use super::uuid::PlayerUUID;
 use super::GameLogic;
 use std::sync::Arc;
@@ -23,7 +23,7 @@ impl PlayerCard {
         &self,
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
-        game_interrupt_or: Option<GameInterruptType>,
+        game_interrupt_or: &Option<GameInterruptType>,
     ) -> bool {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => {
@@ -53,7 +53,7 @@ pub struct SimplePlayerCard {
     can_play_fn: fn(
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
-        game_interrupt_or: Option<GameInterruptType>,
+        game_interrupt_or: &Option<GameInterruptType>,
     ) -> bool,
     interrupt_type_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>,
@@ -68,7 +68,7 @@ impl SimplePlayerCard {
         &self,
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
-        game_interrupt_or: Option<GameInterruptType>,
+        game_interrupt_or: &Option<GameInterruptType>,
     ) -> bool {
         (self.can_play_fn)(player_uuid, game_logic, game_interrupt_or)
     }
@@ -88,7 +88,7 @@ pub struct DirectedPlayerCard {
     can_play_fn: fn(
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
-        game_interrupt_or: Option<GameInterruptType>,
+        game_interrupt_or: &Option<GameInterruptType>,
     ) -> bool,
     interrupt_type_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
@@ -103,7 +103,7 @@ impl DirectedPlayerCard {
         &self,
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
-        game_interrupt_or: Option<GameInterruptType>,
+        game_interrupt_or: &Option<GameInterruptType>,
     ) -> bool {
         (self.can_play_fn)(player_uuid, game_logic, game_interrupt_or)
     }
@@ -127,7 +127,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
         can_play_fn: |player_uuid: &PlayerUUID,
                       game_logic: &GameLogic,
-                      game_interrupt_or: Option<GameInterruptType>|
+                      game_interrupt_or: &Option<GameInterruptType>|
          -> bool {
             if game_logic.gambling_round_in_progress() {
                 game_logic.is_gambling_turn(player_uuid)
@@ -152,7 +152,7 @@ pub fn i_raise_card() -> SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
         can_play_fn: |player_uuid: &PlayerUUID,
                       game_logic: &GameLogic,
-                      game_interrupt_or: Option<GameInterruptType>|
+                      game_interrupt_or: &Option<GameInterruptType>|
          -> bool {
             game_logic.gambling_round_in_progress()
                 && game_logic.is_gambling_turn(player_uuid)
@@ -173,7 +173,7 @@ pub fn change_other_player_fortitude(
         display_name: display_name.to_string(),
         can_play_fn: |player_uuid: &PlayerUUID,
                       game_logic: &GameLogic,
-                      game_interrupt_or: Option<GameInterruptType>|
+                      game_interrupt_or: &Option<GameInterruptType>|
          -> bool { game_logic.can_play_action_card(player_uuid) },
         interrupt_type_or: Some(GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: true,

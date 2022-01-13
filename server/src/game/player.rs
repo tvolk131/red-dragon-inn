@@ -6,6 +6,7 @@ use super::uuid::PlayerUUID;
 use super::Character;
 use super::GameLogic;
 use std::borrow::Borrow;
+use super::game_interrupt::GameInterruptType;
 
 #[derive(Clone)]
 pub struct Player {
@@ -53,12 +54,13 @@ impl Player {
         &self,
         player_uuid: &PlayerUUID,
         game: &GameLogic,
+        game_interrupt_or: &Option<GameInterruptType>
     ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()
             .map(|card| GameViewPlayerCard {
                 card_name: card.get_display_name().to_string(),
-                is_playable: card.can_play(player_uuid, game),
+                is_playable: card.can_play(player_uuid, game, game_interrupt_or),
             })
             .collect()
     }

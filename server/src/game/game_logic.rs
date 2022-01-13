@@ -7,6 +7,7 @@ use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use serde::Serialize;
 use std::collections::HashSet;
+use super::game_interrupt::GameInterruptType;
 
 #[derive(Clone)]
 pub struct GameLogic {
@@ -14,6 +15,7 @@ pub struct GameLogic {
     drink_deck: AutoShufflingDeck<Box<dyn Drink>>,
     turn_info: TurnInfo,
     gambling_round_or: Option<GamblingRound>,
+    card_interrupt_stack: Vec<PlayerCard>
 }
 
 impl GameLogic {
@@ -43,6 +45,7 @@ impl GameLogic {
             drink_deck: AutoShufflingDeck::new(create_drink_deck()),
             turn_info: TurnInfo::new(first_player_uuid),
             gambling_round_or: None,
+            card_interrupt_stack: Vec::new()
         })
     }
 
@@ -188,7 +191,7 @@ impl GameLogic {
 
     pub fn get_game_view_player_hand(&self, player_uuid: &PlayerUUID) -> Vec<GameViewPlayerCard> {
         match self.get_player_by_uuid(player_uuid) {
-            Some(player) => player.get_game_view_hand(player_uuid, self),
+            Some(player) => player.get_game_view_hand(player_uuid, self, self.get_current_game_interrupt()),
             None => Vec::new(),
         }
     }
@@ -197,6 +200,13 @@ impl GameLogic {
         match self.players.iter().find(|(uuid, _)| uuid == player_uuid) {
             Some((_, player)) => Some(player),
             None => None,
+        }
+    }
+
+    fn get_current_game_interrupt(&self) -> &Option<GameInterruptType> {
+        match self.card_interrupt_stack.last() {
+            Some(card) => card.get_interrupt_type_or(),
+            None => &None
         }
     }
 
@@ -251,7 +261,7 @@ impl GameLogic {
             None => return Some(Error::new("Card does not exist")),
         };
 
-        let return_val = if card.can_play(player_uuid, self) {
+        let return_val = if card.can_play(player_uuid, self, self.get_current_game_interrupt()) {
             match &card {
                 PlayerCard::SimplePlayerCard(simple_card) => {
                     if other_player_uuid_or.is_some() {

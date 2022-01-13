@@ -1,6 +1,10 @@
 use super::error::Error;
 use super::player_card::PlayerCard;
 
+pub struct GameInterrupts {
+    interrupt_stacks: Vec<GameInterruptStack>
+}
+
 pub struct GameInterruptStack {
     interrupt_card_stack: Vec<PlayerCard>,
 }
