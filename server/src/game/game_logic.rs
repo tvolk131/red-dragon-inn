@@ -261,15 +261,13 @@ impl GameLogic {
                         None
                     }
                 }
-                PlayerCard::DirectedPlayerCard(directed_card) => {
-                    match other_player_uuid_or {
-                        Some(other_player_uuid) => {
-                            directed_card.play(player_uuid, other_player_uuid, self);
-                            None
-                        },
-                        None => Some(Error::new("Must direct this card at another player")),
+                PlayerCard::DirectedPlayerCard(directed_card) => match other_player_uuid_or {
+                    Some(other_player_uuid) => {
+                        directed_card.play(player_uuid, other_player_uuid, self);
+                        None
                     }
-                }
+                    None => Some(Error::new("Must direct this card at another player")),
+                },
             }
         } else {
             Some(Error::new("Card cannot be played at this time"))
