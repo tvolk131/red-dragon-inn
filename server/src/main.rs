@@ -104,9 +104,7 @@ async fn signin_handler(
         }
     };
     let player_uuid = PlayerUUID::new();
-    if let Some(err) = unlocked_game_manager.add_player(player_uuid.clone(), display_name) {
-        return Err(err);
-    }
+    unlocked_game_manager.add_player(player_uuid.clone(), display_name)?;
     player_uuid.to_cookie_jar(cookie_jar);
     Ok(())
 }
@@ -118,13 +116,8 @@ async fn signout_handler(
 ) -> Result<(), Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
 
-    if let Some(err) = game_manager.write().unwrap().remove_player(&player_uuid) {
-        return Err(err);
-    }
-    match PlayerUUID::from_cookie_jar(cookie_jar) {
-        Ok(_) => {}
-        Err(err) => return Err(err),
-    };
+    game_manager.write().unwrap().remove_player(&player_uuid)?;
+    PlayerUUID::from_cookie_jar(cookie_jar)?;
     cookie_jar.remove(Cookie::named(SESSION_COOKIE_NAME));
 
     Ok(())
@@ -168,9 +161,7 @@ async fn join_game_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let mut unlocked_game_manager = game_manager.write().unwrap();
-    if let Some(err) = unlocked_game_manager.join_game(player_uuid.clone(), game_uuid) {
-        return Err(err);
-    };
+    unlocked_game_manager.join_game(player_uuid.clone(), game_uuid)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
@@ -181,10 +172,7 @@ async fn leave_game_handler(
 ) -> Result<(), Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let mut unlocked_game_manager = game_manager.write().unwrap();
-    if let Some(err) = unlocked_game_manager.leave_game(&player_uuid) {
-        return Err(err);
-    }
-    Ok(())
+    unlocked_game_manager.leave_game(&player_uuid)
 }
 
 #[get("/api/startGame")]
@@ -194,9 +182,7 @@ async fn start_game_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.start_game(&player_uuid) {
-        return Err(err);
-    };
+    unlocked_game_manager.start_game(&player_uuid)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
@@ -208,9 +194,7 @@ async fn select_character_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.select_character(&player_uuid, character) {
-        return Err(err);
-    };
+    unlocked_game_manager.select_character(&player_uuid, character)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
@@ -223,10 +207,7 @@ async fn play_card_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.play_card(&player_uuid, &other_player_uuid, card_index)
-    {
-        return Err(err);
-    }
+    unlocked_game_manager.play_card(&player_uuid, &other_player_uuid, card_index)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
@@ -238,11 +219,7 @@ async fn discard_cards_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager
-        .discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)
-    {
-        return Err(err);
-    }
+    unlocked_game_manager.discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
@@ -254,9 +231,7 @@ async fn order_drink_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.order_drink(&player_uuid, &other_player_uuid) {
-        return Err(err);
-    }
+    unlocked_game_manager.order_drink(&player_uuid, &other_player_uuid)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 
@@ -267,9 +242,7 @@ async fn pass_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    if let Some(err) = unlocked_game_manager.pass(&player_uuid) {
-        return Err(err);
-    }
+    unlocked_game_manager.pass(&player_uuid)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 

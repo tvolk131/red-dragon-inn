@@ -35,18 +35,18 @@ impl Game {
         }
     }
 
-    pub fn join(&mut self, player_uuid: PlayerUUID) -> Option<Error> {
+    pub fn join(&mut self, player_uuid: PlayerUUID) -> Result<(), Error> {
         if self.player_is_in_game(&player_uuid) {
-            Some(Error::new("Player is already in this game"))
+            Err(Error::new("Player is already in this game"))
         } else {
             self.players.push((player_uuid, None));
-            None
+            Ok(())
         }
     }
 
-    pub fn leave(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+    pub fn leave(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if !self.player_is_in_game(player_uuid) {
-            Some(Error::new("Player is not in this game"))
+            Err(Error::new("Player is not in this game"))
         } else {
             // TODO - Find out why the clone on this line is necessary.
             self.players = self
@@ -55,16 +55,16 @@ impl Game {
                 .into_iter()
                 .filter(|(uuid, _)| uuid != player_uuid)
                 .collect();
-            None
+            Ok(())
         }
     }
 
-    pub fn start(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+    pub fn start(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if !self.is_owner(player_uuid) {
-            return Some(Error::new("Must be game owner to start game"));
+            return Err(Error::new("Must be game owner to start game"));
         }
         match self.game_logic_or {
-            Some(_) => return Some(Error::new("Game is already running")),
+            Some(_) => return Err(Error::new("Game is already running")),
             None => {
                 let players: Vec<(PlayerUUID, Character)> = self
                     .players
@@ -76,28 +76,28 @@ impl Game {
                     })
                     .collect();
                 if players.len() < self.players.len() {
-                    return Some(Error::new("Not all players have selected a character"));
+                    return Err(Error::new("Not all players have selected a character"));
                 }
                 let game_logic = match GameLogic::new(players) {
                     Ok(game_logic) => game_logic,
-                    Err(err) => return Some(err),
+                    Err(err) => return Err(err),
                 };
                 self.game_logic_or = Some(game_logic);
             }
         };
-        None
+        Ok(())
     }
 
     pub fn select_character(
         &mut self,
         player_uuid: &PlayerUUID,
         character: Character,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         if !self.player_is_in_game(player_uuid) {
-            return Some(Error::new("Player is not in this game"));
+            return Err(Error::new("Player is not in this game"));
         }
         if self.game_logic_or.is_some() {
-            return Some(Error::new("Cannot change characters while game is running"));
+            return Err(Error::new("Cannot change characters while game is running"));
         }
         // TODO - Find out why the clone on this line is necessary.
         self.players = self
@@ -112,7 +112,7 @@ impl Game {
                 }
             })
             .collect();
-        None
+        Ok(())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -128,10 +128,10 @@ impl Game {
         player_uuid: &PlayerUUID,
         other_player_uuid_or: &Option<PlayerUUID>,
         card_index: usize,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         let game_logic = match self.get_mut_game_logic() {
             Ok(game_logic) => game_logic,
-            Err(err) => return Some(err),
+            Err(err) => return Err(err),
         };
         game_logic.play_card(player_uuid, other_player_uuid_or, card_index)
     }
@@ -146,10 +146,10 @@ impl Game {
         &mut self,
         player_uuid: &PlayerUUID,
         card_indices: Vec<usize>,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         let game_logic = match self.get_mut_game_logic() {
             Ok(game_logic) => game_logic,
-            Err(err) => return Some(err),
+            Err(err) => return Err(err),
         };
         game_logic.discard_cards_and_draw_to_full(player_uuid, card_indices)
     }
@@ -163,34 +163,34 @@ impl Game {
         &mut self,
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         let game_logic = match self.get_mut_game_logic() {
             Ok(game_logic) => game_logic,
-            Err(err) => return Some(err),
+            Err(err) => return Err(err),
         };
         game_logic.order_drink(player_uuid, other_player_uuid)
     }
 
-    pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+    pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         match &mut self.get_mut_game_logic() {
             Ok(game_logic) => {
                 if game_logic.can_play_action_card(player_uuid) {
-                    game_logic.skip_action_phase();
-                    return None;
+                    game_logic.skip_action_phase()?;
+                    return Ok(());
                 }
 
                 if game_logic.is_gambling_turn(player_uuid) {
                     game_logic.gambling_pass();
-                    return None;
+                    return Ok(());
                 }
             }
             Err(_) => {}
         };
-        Some(Error::new("Unable to pass at this time"))
+        Err(Error::new("Unable to pass at this time"))
     }
 
     fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
-        self.clone().pass(player_uuid).is_none()
+        self.clone().pass(player_uuid).is_ok()
     }
 
     pub fn get_game_view(
@@ -394,29 +394,29 @@ mod tests {
         let mut game = Game::new("Test Game".to_string());
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
-        assert_eq!(game.join(player1_uuid.clone()), None);
-        assert_eq!(game.join(player2_uuid.clone()), None);
+        assert_eq!(game.join(player1_uuid.clone()), Ok(()));
+        assert_eq!(game.join(player2_uuid.clone()), Ok(()));
         assert_eq!(
             game.select_character(&player1_uuid, Character::Deirdre),
-            None
+            Ok(())
         );
-        assert_eq!(game.select_character(&player2_uuid, Character::Gerki), None);
-        assert_eq!(game.start(&player1_uuid), None);
+        assert_eq!(game.select_character(&player2_uuid, Character::Gerki), Ok(()));
+        assert_eq!(game.start(&player1_uuid), Ok(()));
 
         for _ in 1..10 {
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
-                None
+                Ok(())
             );
-            assert_eq!(game.pass(&player1_uuid), None);
-            assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), None);
+            assert_eq!(game.pass(&player1_uuid), Ok(()));
+            assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), Ok(()));
 
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
-                None
+                Ok(())
             );
-            assert_eq!(game.pass(&player2_uuid), None);
-            assert_eq!(game.order_drink(&player2_uuid, &player2_uuid), None);
+            assert_eq!(game.pass(&player2_uuid), Ok(()));
+            assert_eq!(game.order_drink(&player2_uuid, &player2_uuid), Ok(()));
         }
     }
 }

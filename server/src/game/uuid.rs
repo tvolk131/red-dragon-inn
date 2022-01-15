@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 macro_rules! uuid {
     ($struct_name:ident) => {
-        #[derive(Clone, PartialEq, Eq, Hash, Serialize, Debug)]
+        #[derive(Clone, PartialEq, Eq, Hash, Serialize, Debug, Default)]
         pub struct $struct_name(Uuid);
 
         impl $struct_name {
