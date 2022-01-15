@@ -219,12 +219,12 @@ impl GameLogic {
         self.turn_info.turn_phase
     }
 
-    pub fn skip_action_phase(&mut self) -> Option<Error> {
+    pub fn skip_action_phase(&mut self) -> Result<(), Error> {
         if self.turn_info.turn_phase == TurnPhase::Action {
             self.turn_info.turn_phase = TurnPhase::OrderDrinks;
-            None
+            Ok(())
         } else {
-            Some(Error::new("It is not the player's action phase"))
+            Err(Error::new("It is not the player's action phase"))
         }
     }
 
@@ -233,11 +233,11 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         other_player_uuid_or: &Option<PlayerUUID>,
         card_index: usize,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         let card_or = match self.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player.pop_card_from_hand(card_index),
             None => {
-                return Some(Error::new(format!(
+                return Err(Error::new(format!(
                     "Player does not exist with player id {}",
                     player_uuid.to_string()
                 )))
@@ -248,33 +248,33 @@ impl GameLogic {
         // there should be no early returns after this statement.
         let card = match card_or {
             Some(card) => card,
-            None => return Some(Error::new("Card does not exist")),
+            None => return Err(Error::new("Card does not exist")),
         };
 
         let return_val = if card.can_play(player_uuid, self) {
             match &card {
                 PlayerCard::SimplePlayerCard(simple_card) => {
                     if other_player_uuid_or.is_some() {
-                        Some(Error::new("Cannot direct this card at another player"))
+                        Err(Error::new("Cannot direct this card at another player"))
                     } else {
                         simple_card.play(player_uuid, self);
-                        None
+                        Ok(())
                     }
                 }
                 PlayerCard::DirectedPlayerCard(directed_card) => match other_player_uuid_or {
                     Some(other_player_uuid) => {
                         directed_card.play(player_uuid, other_player_uuid, self);
-                        None
+                        Ok(())
                     }
-                    None => Some(Error::new("Must direct this card at another player")),
+                    None => Err(Error::new("Must direct this card at another player")),
                 },
             }
         } else {
-            Some(Error::new("Card cannot be played at this time"))
+            Err(Error::new("Card cannot be played at this time"))
         };
 
         if let Some(player) = self.get_player_by_uuid_mut(player_uuid) {
-            if return_val.is_some() {
+            if return_val.is_err() {
                 player.return_card_to_hand(card, card_index);
             } else {
                 player.discard_card(card);
@@ -288,11 +288,11 @@ impl GameLogic {
         &mut self,
         player_uuid: &PlayerUUID,
         mut card_indices: Vec<usize>,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         if self.get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw
         {
-            return Some(Error::new("Cannot discard cards at this time"));
+            return Err(Error::new("Cannot discard cards at this time"));
         }
 
         let player = match self
@@ -301,7 +301,7 @@ impl GameLogic {
             .find(|(uuid, _)| uuid == player_uuid)
         {
             Some((_, player)) => player,
-            None => return Some(Error::new("Player is not in the game")),
+            None => return Err(Error::new("Player is not in the game")),
         };
 
         if card_indices.len()
@@ -311,7 +311,7 @@ impl GameLogic {
                 .collect::<HashSet<usize>>()
                 .len()
         {
-            return Some(Error::new("Cannot discard the same card twice"));
+            return Err(Error::new("Cannot discard the same card twice"));
         }
 
         // Sort and reverse so that we can iterate backwards and pop all cards.
@@ -328,7 +328,7 @@ impl GameLogic {
                 // loop or not at all. So we can guarantee that this method will always
                 // behave atomically.
                 None => {
-                    return Some(Error::new(
+                    return Err(Error::new(
                         "Card indices do not all correspond to cards in the player's hand",
                     ))
                 }
@@ -337,18 +337,18 @@ impl GameLogic {
         }
         player.draw_to_full();
         self.turn_info.turn_phase = TurnPhase::Action;
-        None
+        Ok(())
     }
 
     pub fn order_drink(
         &mut self,
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
-    ) -> Option<Error> {
+    ) -> Result<(), Error> {
         if self.get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::OrderDrinks
         {
-            return Some(Error::new("Cannot order drinks at this time"));
+            return Err(Error::new("Cannot order drinks at this time"));
         }
 
         // TODO - Handle the unwrap here.
@@ -356,7 +356,7 @@ impl GameLogic {
         let other_player = match self.get_player_by_uuid_mut(other_player_uuid) {
             Some(other_player) => other_player,
             None => {
-                return Some(Error::new(format!(
+                return Err(Error::new(format!(
                     "Player does not exist with player id {}",
                     player_uuid.to_string()
                 )))
@@ -368,14 +368,14 @@ impl GameLogic {
         if self.turn_info.drinks_to_order == 0 {
             self.perform_drink_phase(player_uuid)?;
         }
-        None
+        Ok(())
     }
 
-    fn perform_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Option<Error> {
+    fn perform_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         let player = match self.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player,
             None => {
-                return Some(Error::new(format!(
+                return Err(Error::new(format!(
                     "Player does not exist with player id {}",
                     player_uuid.to_string()
                 )))
@@ -386,7 +386,7 @@ impl GameLogic {
             self.drink_deck.discard_card(drink);
         }
         self.start_next_player_turn();
-        None
+        Ok(())
     }
 
     fn start_next_player_turn(&mut self) {
@@ -480,7 +480,7 @@ mod tests {
             (player2_uuid, Character::Gerki),
         ])
         .unwrap();
-        game_logic.discard_cards_and_draw_to_full(&player1_uuid, Vec::new());
+        game_logic.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()).unwrap();
 
         // Sanity check.
         assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 8);
