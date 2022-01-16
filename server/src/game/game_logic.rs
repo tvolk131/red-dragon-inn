@@ -203,7 +203,7 @@ impl GameLogic {
         }
     }
 
-    fn get_current_game_interrupt(&self) -> &Option<GameInterruptType> {
+    pub fn get_current_game_interrupt(&self) -> &Option<GameInterruptType> {
         // TODO - Use `GameInterrupts` struct instead of a `Vec`.
         match self.card_interrupt_stack.last() {
             Some(card) => card.get_interrupt_type_output_or(),
@@ -279,6 +279,10 @@ impl GameLogic {
                     }
                     None => Err(Error::new("Must direct this card at another player")),
                 },
+                PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
+                    interrupt_player_card.interrupt(player_uuid, self);
+                    Ok(())
+                }
             }
         } else {
             Err(Error::new("Card cannot be played at this time"))

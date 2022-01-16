@@ -7,15 +7,15 @@ use std::sync::Arc;
 pub enum PlayerCard {
     SimplePlayerCard(SimplePlayerCard),
     DirectedPlayerCard(DirectedPlayerCard),
+    InterruptPlayerCard(InterruptPlayerCard)
 }
 
 impl PlayerCard {
     pub fn get_display_name(&self) -> &str {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
-            Self::DirectedPlayerCard(directed_player_card) => {
-                directed_player_card.get_display_name()
-            }
+            Self::DirectedPlayerCard(directed_player_card) => directed_player_card.get_display_name(),
+            Self::InterruptPlayerCard(interrupt_player_card) => interrupt_player_card.get_display_name()
         }
     }
 
@@ -30,6 +30,13 @@ impl PlayerCard {
             }
             Self::DirectedPlayerCard(directed_player_card) => {
                 directed_player_card.can_play(player_uuid, game_logic)
+            },
+            Self::InterruptPlayerCard(interrupt_player_card) => {
+                let current_game_interrupt = match game_logic.get_current_game_interrupt() {
+                    Some(current_game_interrupt) => current_game_interrupt,
+                    None => return false
+                };
+                interrupt_player_card.get_interrupt_type_input().variant_eq(current_game_interrupt)
             }
         }
     }
@@ -41,6 +48,9 @@ impl PlayerCard {
             }
             Self::DirectedPlayerCard(directed_player_card) => {
                 directed_player_card.get_interrupt_type_output_or()
+            },
+            Self::InterruptPlayerCard(interrupt_player_card) => {
+                interrupt_player_card.get_interrupt_type_output_or()
             }
         }
     }
