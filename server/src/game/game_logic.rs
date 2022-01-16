@@ -191,7 +191,7 @@ impl GameLogic {
 
     pub fn get_game_view_player_hand(&self, player_uuid: &PlayerUUID) -> Vec<GameViewPlayerCard> {
         match self.get_player_by_uuid(player_uuid) {
-            Some(player) => player.get_game_view_hand(player_uuid, self, self.get_current_game_interrupt()),
+            Some(player) => player.get_game_view_hand(player_uuid, self),
             None => Vec::new(),
         }
     }
@@ -204,8 +204,9 @@ impl GameLogic {
     }
 
     fn get_current_game_interrupt(&self) -> &Option<GameInterruptType> {
+        // TODO - Use `GameInterrupts` struct instead of a `Vec`.
         match self.card_interrupt_stack.last() {
-            Some(card) => card.get_interrupt_type_or(),
+            Some(card) => card.get_interrupt_type_output_or(),
             None => &None
         }
     }
@@ -261,7 +262,7 @@ impl GameLogic {
             None => return Err(Error::new("Card does not exist")),
         };
 
-        let return_val = if card.can_play(player_uuid, self, self.get_current_game_interrupt()) {
+        let return_val = if card.can_play(player_uuid, self) {
             match &card {
                 PlayerCard::SimplePlayerCard(simple_card) => {
                     if other_player_uuid_or.is_some() {

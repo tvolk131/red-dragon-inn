@@ -53,14 +53,13 @@ impl Player {
     pub fn get_game_view_hand(
         &self,
         player_uuid: &PlayerUUID,
-        game: &GameLogic,
-        game_interrupt_or: &Option<GameInterruptType>
+        game: &GameLogic
     ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()
             .map(|card| GameViewPlayerCard {
                 card_name: card.get_display_name().to_string(),
-                is_playable: card.can_play(player_uuid, game, game_interrupt_or),
+                is_playable: card.can_play(player_uuid, game),
             })
             .collect()
     }
