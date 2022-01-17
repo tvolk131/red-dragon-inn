@@ -6,7 +6,6 @@ use super::uuid::PlayerUUID;
 use super::Character;
 use super::GameLogic;
 use std::borrow::Borrow;
-use super::game_interrupt::GameInterruptType;
 
 #[derive(Clone)]
 pub struct Player {

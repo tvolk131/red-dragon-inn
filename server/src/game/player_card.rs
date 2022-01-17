@@ -32,11 +32,11 @@ impl PlayerCard {
                 directed_player_card.can_play(player_uuid, game_logic)
             },
             Self::InterruptPlayerCard(interrupt_player_card) => {
-                let current_game_interrupt = match game_logic.get_current_game_interrupt() {
-                    Some(current_game_interrupt) => current_game_interrupt,
+                let current_interrupt = match game_logic.get_current_interrupt() {
+                    Some(current_interrupt) => current_interrupt,
                     None => return false
                 };
-                interrupt_player_card.get_interrupt_type_input().variant_eq(current_game_interrupt)
+                interrupt_player_card.get_interrupt_type_input().variant_eq(current_interrupt)
             }
         }
     }
@@ -148,6 +148,7 @@ impl InterruptPlayerCard {
         &self.interrupt_type_output_or
     }
 
+    // TODO - Try to change `game_logic` argument to `game_interrupts` after all.
     pub fn interrupt(&self, player_uuid: &PlayerUUID, game_logic: &mut GameLogic) {
         (self.interrupt_fn)(player_uuid, game_logic)
     }

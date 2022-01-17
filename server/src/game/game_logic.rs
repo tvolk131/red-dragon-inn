@@ -7,7 +7,7 @@ use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use serde::Serialize;
 use std::collections::HashSet;
-use super::game_interrupt::GameInterruptType;
+use super::game_interrupt::{GameInterrupts, GameInterruptType};
 
 #[derive(Clone)]
 pub struct GameLogic {
@@ -15,7 +15,7 @@ pub struct GameLogic {
     drink_deck: AutoShufflingDeck<Box<dyn Drink>>,
     turn_info: TurnInfo,
     gambling_round_or: Option<GamblingRound>,
-    card_interrupt_stack: Vec<PlayerCard>
+    interrupts: GameInterrupts
 }
 
 impl GameLogic {
@@ -45,7 +45,7 @@ impl GameLogic {
             drink_deck: AutoShufflingDeck::new(create_drink_deck()),
             turn_info: TurnInfo::new(first_player_uuid),
             gambling_round_or: None,
-            card_interrupt_stack: Vec::new()
+            interrupts: GameInterrupts::new()
         })
     }
 
@@ -203,12 +203,8 @@ impl GameLogic {
         }
     }
 
-    pub fn get_current_game_interrupt(&self) -> &Option<GameInterruptType> {
-        // TODO - Use `GameInterrupts` struct instead of a `Vec`.
-        match self.card_interrupt_stack.last() {
-            Some(card) => card.get_interrupt_type_output_or(),
-            None => &None
-        }
+    pub fn get_current_interrupt(&self) -> Option<GameInterruptType> {
+        self.interrupts.get_current_interrupt()
     }
 
     pub fn get_player_by_uuid_mut(&mut self, player_uuid: &PlayerUUID) -> Option<&mut Player> {

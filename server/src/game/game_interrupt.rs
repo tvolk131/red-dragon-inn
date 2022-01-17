@@ -3,6 +3,7 @@ use super::PlayerUUID;
 use super::player_card::PlayerCard;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct GameInterrupts {
     interrupt_stacks: Vec<Vec<GameInterruptData>>
 }
@@ -43,39 +44,20 @@ impl GameInterrupts {
         }
     }
 
-    pub fn push_to_current_stack(&mut self, game_interrupt_type: GameInterruptType, card: PlayerCard, card_owner_uuid: &PlayerUUID, interrupt_override_player_uuid: &PlayerUUID) -> Result<(), PlayerCard> {
+    pub fn push_to_current_stack(&mut self, game_interrupt_type: GameInterruptType, card: PlayerCard, card_owner_uuid: PlayerUUID, interrupt_override_player_uuid: PlayerUUID) {
         let current_stack = match self.interrupt_stacks.first_mut() {
             Some(current_stack) => current_stack,
-            None => return Err(card)
+            None => return self.push_new_stack(game_interrupt_type, card, card_owner_uuid, interrupt_override_player_uuid)
         };
 
-        let can_push_to_current_stack = if let Some(game_interrupt_data) = current_stack.last() {
-            if let Some(interrupt_type) = game_interrupt_data.card.get_interrupt_type_output_or() {
-                // TODO - Finish implementing this statement. It should not be hardcoded to `false`.
-                false
-            } else {
-                // Card is uninterruptable.
-                false
+        current_stack.push(
+            GameInterruptData {
+                game_interrupt_type,
+                card: Arc::from(card),
+                card_owner_uuid: card_owner_uuid.clone(),
+                interrupt_override_player_uuid: interrupt_override_player_uuid.clone()
             }
-        } else {
-            // This line should never be hit. If it is, that
-            // means the struct isn't being pruned properly.
-            true
-        };
-
-        if can_push_to_current_stack {
-            current_stack.push(
-                GameInterruptData {
-                    game_interrupt_type,
-                    card: Arc::from(card),
-                    card_owner_uuid: card_owner_uuid.clone(),
-                    interrupt_override_player_uuid: interrupt_override_player_uuid.clone()
-                }
-            );
-            Ok(())
-        } else {
-            Err(card)
-        }
+        );
     }
 
     pub fn resolve_current_stack(&mut self) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
@@ -103,6 +85,15 @@ impl GameInterrupts {
         Ok(return_val)
     }
 
+    pub fn get_current_interrupt(&self) -> Option<GameInterruptType> {
+        let current_stack = match self.interrupt_stacks.first() {
+            Some(current_stack) => current_stack,
+            None => return None
+        };
+
+        Some(current_stack.last()?.game_interrupt_type)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.interrupt_stacks.is_empty()
     }
@@ -122,11 +113,12 @@ pub enum GameInterruptType {
 }
 
 impl GameInterruptType {
-    pub fn variant_eq(&self, other: &Self) -> bool {
-        std::mem::discriminant(self) == std::mem::discriminant(other)
+    pub fn variant_eq(&self, other: Self) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(&other)
     }
 }
 
+#[derive(Clone)]
 struct GameInterruptData {
     game_interrupt_type: GameInterruptType,
     card: Arc<PlayerCard>,
