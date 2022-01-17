@@ -1,11 +1,11 @@
 use super::error::Error;
 use super::PlayerUUID;
-use super::player_card::PlayerCard;
+use super::player_card::{PlayerCard, InterruptPlayerCard, DirectedPlayerCard};
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct GameInterrupts {
-    interrupt_stacks: Vec<Vec<GameInterruptData>>
+    interrupt_stacks: Vec<GameInterruptStack>
 }
 
 impl GameInterrupts {
@@ -15,49 +15,48 @@ impl GameInterrupts {
         }
     }
 
-    pub fn push_new_stack(&mut self, game_interrupt_type: GameInterruptType, card: PlayerCard, card_owner_uuid: PlayerUUID, interrupt_override_player_uuid: PlayerUUID) {
-        self.interrupt_stacks.push(vec![
-            GameInterruptData {
-                game_interrupt_type,
-                card: Arc::from(card),
-                card_owner_uuid,
-                interrupt_override_player_uuid
-            }
-        ]);
+    pub fn push_new_stack(&mut self, game_interrupt_type: GameInterruptType, card: DirectedPlayerCard, card_owner_uuid: PlayerUUID, targeted_player_uuid: PlayerUUID) {
+        self.interrupt_stacks.push(GameInterruptStack {
+            root_card: Arc::from(card),
+            root_card_interrupt_type: game_interrupt_type,
+            root_card_owner_uuid: card_owner_uuid,
+            targeted_player_uuid,
+            interrupt_cards: Vec::new()
+        });
     }
 
     /// Create multiple consecutive interrupt stacks each targeting a different player.
     /// This is used for cards where multiple players are affected individually, such as
     /// an `I Raise` card, which forces each individual user to ante.
-    pub fn push_new_stacks(&mut self, game_interrupt_type: GameInterruptType, card: PlayerCard, card_owner_uuid: &PlayerUUID, interrupt_override_player_uuids: Vec<PlayerUUID>) {
+    pub fn push_new_stacks(&mut self, game_interrupt_type: GameInterruptType, card: DirectedPlayerCard, card_owner_uuid: &PlayerUUID, targeted_player_uuids: Vec<PlayerUUID>) {
         let card_arc = Arc::from(card);
 
-        for interrupt_override_player_uuid in interrupt_override_player_uuids {
-            self.interrupt_stacks.push(vec![
-                GameInterruptData {
-                    game_interrupt_type,
-                    card: card_arc.clone(),
-                    card_owner_uuid: card_owner_uuid.clone(),
-                    interrupt_override_player_uuid
-                }
-            ]);
+        for targeted_player_uuid in targeted_player_uuids {
+            self.interrupt_stacks.push(GameInterruptStack {
+                root_card: card_arc.clone(),
+                root_card_interrupt_type: game_interrupt_type,
+                root_card_owner_uuid: card_owner_uuid.clone(),
+                targeted_player_uuid,
+                interrupt_cards: Vec::new()
+            });
         }
     }
 
-    pub fn push_to_current_stack(&mut self, game_interrupt_type: GameInterruptType, card: PlayerCard, card_owner_uuid: PlayerUUID, interrupt_override_player_uuid: PlayerUUID) {
+    pub fn push_to_current_stack(&mut self, game_interrupt_type: GameInterruptType, card: InterruptPlayerCard, card_owner_uuid: PlayerUUID) -> Result<(), InterruptPlayerCard> {
         let current_stack = match self.interrupt_stacks.first_mut() {
             Some(current_stack) => current_stack,
-            None => return self.push_new_stack(game_interrupt_type, card, card_owner_uuid, interrupt_override_player_uuid)
+            None => return Err(card)
         };
 
-        current_stack.push(
+        current_stack.interrupt_cards.push(
             GameInterruptData {
-                game_interrupt_type,
-                card: Arc::from(card),
-                card_owner_uuid: card_owner_uuid.clone(),
-                interrupt_override_player_uuid: interrupt_override_player_uuid.clone()
+                card,
+                card_interrupt_type: game_interrupt_type,
+                card_owner_uuid
             }
         );
+
+        Ok(())
     }
 
     pub fn resolve_current_stack(&mut self) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
@@ -67,22 +66,21 @@ impl GameInterrupts {
         // The check above will prevent `remove` from panicking.
         let mut current_stack = self.interrupt_stacks.remove(0);
 
-        let mut return_val = Vec::new();
+        let mut spent_cards = Vec::new();
 
         // TODO - Finish implementing this method.
-        while let Some(game_interrupt_data) = current_stack.pop() {
-            match game_interrupt_data.card.as_ref() {
-                PlayerCard::SimplePlayerCard(simple_player_card) => {},
-                PlayerCard::DirectedPlayerCard(directed_player_card) => {},
-                PlayerCard::InterruptPlayerCard(interrupt_player_card) => {}
-            };
-
-            if let Ok(card) = Arc::try_unwrap(game_interrupt_data.card) {
-                return_val.push((game_interrupt_data.card_owner_uuid, card));
-            };
+        while let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
+            game_interrupt_data.card.interrupt(&game_interrupt_data.card_owner_uuid, self);
+            spent_cards.push((game_interrupt_data.card_owner_uuid, game_interrupt_data.card.into()));
         }
 
-        Ok(return_val)
+        current_stack.root_card.play(&current_stack.root_card_owner_uuid, &current_stack.targeted_player_uuid, game_logic);
+
+        if let Ok(card) = Arc::try_unwrap(current_stack.root_card) {
+            spent_cards.push((current_stack.root_card_owner_uuid, card.into()));
+        };
+
+        Ok(spent_cards)
     }
 
     pub fn get_current_interrupt(&self) -> Option<GameInterruptType> {
@@ -91,15 +89,14 @@ impl GameInterrupts {
             None => return None
         };
 
-        Some(current_stack.last()?.game_interrupt_type)
+        Some(match current_stack.interrupt_cards.last() {
+            Some(most_recent_interrupt_data) => most_recent_interrupt_data.card_interrupt_type,
+            None => current_stack.root_card_interrupt_type
+        })
     }
 
     pub fn is_empty(&self) -> bool {
         self.interrupt_stacks.is_empty()
-    }
-
-    fn prune(&mut self) {
-        self.interrupt_stacks.retain(|stack| !stack.is_empty());
     }
 }
 
@@ -119,11 +116,19 @@ impl GameInterruptType {
 }
 
 #[derive(Clone)]
+struct GameInterruptStack {
+    root_card: Arc<DirectedPlayerCard>,
+    root_card_interrupt_type: GameInterruptType,
+    root_card_owner_uuid: PlayerUUID,
+    targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
+    interrupt_cards: Vec<GameInterruptData>
+}
+
+#[derive(Clone)]
 struct GameInterruptData {
-    game_interrupt_type: GameInterruptType,
-    card: Arc<PlayerCard>,
-    card_owner_uuid: PlayerUUID,
-    interrupt_override_player_uuid: PlayerUUID
+    card: InterruptPlayerCard,
+    card_interrupt_type: GameInterruptType,
+    card_owner_uuid: PlayerUUID
 }
 
 #[derive(Clone, Copy)]
@@ -140,7 +145,7 @@ mod tests {
     fn is_empty_returns_correct_value() {
         let mut game_interrupts = GameInterrupts::new();
         assert_eq!(game_interrupts.is_empty(), true);
-        game_interrupts.push_new_stack(GameInterruptType::AboutToDrink, PlayerCard::SimplePlayerCard(gambling_im_in_card()), PlayerUUID::new(), PlayerUUID::new());
+        game_interrupts.push_new_stack(GameInterruptType::AboutToDrink, gambling_im_in_card().into(), PlayerUUID::new(), PlayerUUID::new());
         assert_eq!(game_interrupts.is_empty(), false);
         game_interrupts.resolve_current_stack().unwrap();
         assert_eq!(game_interrupts.is_empty(), true);

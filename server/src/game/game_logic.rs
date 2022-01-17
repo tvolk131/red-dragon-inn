@@ -1,7 +1,7 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::player::Player;
-use super::player_card::PlayerCard;
+use super::player_card::{PlayerCard, ActionPlayerCard};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
@@ -260,24 +260,32 @@ impl GameLogic {
 
         let return_val = if card.can_play(player_uuid, self) {
             match &card {
-                PlayerCard::SimplePlayerCard(simple_card) => {
+                PlayerCard::ActionPlayerCard(action_player_card) => {
+                    match action_player_card {
+                        ActionPlayerCard::SimplePlayerCard(simple_player_card) => {
+                            if other_player_uuid_or.is_some() {
+                                Err(Error::new("Cannot direct this card at another player"))
+                            } else {
+                                simple_player_card.play(player_uuid, self);
+                                Ok(())
+                            }
+                        },
+                        ActionPlayerCard::DirectedPlayerCard(directed_player_card) => match other_player_uuid_or {
+                            Some(other_player_uuid) => {
+                                directed_player_card.play(player_uuid, other_player_uuid, self);
+                                Ok(())
+                            }
+                            None => Err(Error::new("Must direct this card at another player")),
+                        }
+                    }
+                },
+                PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
                     if other_player_uuid_or.is_some() {
                         Err(Error::new("Cannot direct this card at another player"))
                     } else {
-                        simple_card.play(player_uuid, self);
+                        interrupt_player_card.interrupt(player_uuid, &mut self.interrupts);
                         Ok(())
                     }
-                }
-                PlayerCard::DirectedPlayerCard(directed_card) => match other_player_uuid_or {
-                    Some(other_player_uuid) => {
-                        directed_card.play(player_uuid, other_player_uuid, self);
-                        Ok(())
-                    }
-                    None => Err(Error::new("Must direct this card at another player")),
-                },
-                PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
-                    interrupt_player_card.interrupt(player_uuid, self);
-                    Ok(())
                 }
             }
         } else {
