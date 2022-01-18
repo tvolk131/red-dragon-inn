@@ -36,13 +36,6 @@ impl PlayerCard {
             }
         }
     }
-
-    pub fn get_interrupt_type_output_or(&self) -> &Option<GameInterruptType> {
-        match &self {
-            Self::ActionPlayerCard(action_player_card) => action_player_card.get_interrupt_type_output_or(),
-            Self::InterruptPlayerCard(interrupt_player_card) => interrupt_player_card.get_interrupt_type_output_or()
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -65,13 +58,6 @@ impl ActionPlayerCard {
             Self::DirectedPlayerCard(directed_player_card) => directed_player_card.can_play(player_uuid, game_logic)
         }
     }
-
-    pub fn get_interrupt_type_output_or(&self) -> &Option<GameInterruptType> {
-        match &self {
-            Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_interrupt_type_output_or(),
-            Self::DirectedPlayerCard(directed_player_card) => directed_player_card.get_interrupt_type_output_or()
-        }
-    }
 }
 
 impl Into<PlayerCard> for ActionPlayerCard {
@@ -87,7 +73,6 @@ pub struct SimplePlayerCard {
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
     ) -> bool,
-    interrupt_type_output_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
 
@@ -102,10 +87,6 @@ impl SimplePlayerCard {
         game_logic: &GameLogic,
     ) -> bool {
         (self.can_play_fn)(player_uuid, game_logic)
-    }
-
-    pub fn get_interrupt_type_output_or(&self) -> &Option<GameInterruptType> {
-        &self.interrupt_type_output_or
     }
 
     pub fn play(&self, player_uuid: &PlayerUUID, game_logic: &mut GameLogic) {
@@ -149,8 +130,8 @@ impl DirectedPlayerCard {
         (self.can_play_fn)(player_uuid, game_logic)
     }
 
-    pub fn get_interrupt_type_output_or(&self) -> &Option<GameInterruptType> {
-        &self.interrupt_type_output_or
+    pub fn get_interrupt_type_output_or(&self) -> Option<GameInterruptType> {
+        self.interrupt_type_output_or
     }
 
     pub fn play(
@@ -173,7 +154,7 @@ impl Into<PlayerCard> for DirectedPlayerCard {
 pub struct InterruptPlayerCard {
     display_name: String,
     interrupt_type_input: GameInterruptType,
-    interrupt_type_output_or: Option<GameInterruptType>,
+    interrupt_type_output: GameInterruptType,
     interrupt_fn: Arc<dyn Fn(&PlayerUUID, &mut GameInterrupts) + Send + Sync>,
 }
 
@@ -182,12 +163,12 @@ impl InterruptPlayerCard {
         &self.display_name
     }
 
-    pub fn get_interrupt_type_input(&self) -> &GameInterruptType {
-        &self.interrupt_type_input
+    pub fn get_interrupt_type_input(&self) -> GameInterruptType {
+        self.interrupt_type_input
     }
 
-    pub fn get_interrupt_type_output_or(&self) -> &Option<GameInterruptType> {
-        &self.interrupt_type_output_or
+    pub fn get_interrupt_type_output(&self) -> GameInterruptType {
+        self.interrupt_type_output
     }
 
     pub fn interrupt(&self, player_uuid: &PlayerUUID, game_interrupts: &mut GameInterrupts) {
@@ -201,6 +182,7 @@ impl Into<PlayerCard> for InterruptPlayerCard {
     }
 }
 
+// TODO - Rework this as a `DirectedPlayerCard` that is directed at everyone.
 pub fn gambling_im_in_card() -> SimplePlayerCard {
     SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
@@ -214,7 +196,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
                 game_logic.can_play_action_card(player_uuid)
             }
         },
-        interrupt_type_output_or: Some(GameInterruptType::AboutToAnte),
+        // interrupt_type_output_or: Some(GameInterruptType::AboutToAnte), TODO - Remove this line.
         play_fn: Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
             if game_logic.gambling_round_in_progress() {
                 game_logic.gambling_take_control_of_round(player_uuid.clone(), false);
@@ -225,6 +207,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
     }
 }
 
+// TODO - Rework this as a `DirectedPlayerCard` that is directed at everyone.
 pub fn i_raise_card() -> SimplePlayerCard {
     SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
@@ -235,7 +218,7 @@ pub fn i_raise_card() -> SimplePlayerCard {
                 && game_logic.is_gambling_turn(player_uuid)
                 && !game_logic.gambling_need_cheating_card_to_take_control()
         },
-        interrupt_type_output_or: Some(GameInterruptType::AboutToAnte),
+        // interrupt_type_output_or: Some(GameInterruptType::AboutToAnte), TODO - Remove this line.
         play_fn: Arc::from(|_player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
             game_logic.gambling_ante_up()
         }),

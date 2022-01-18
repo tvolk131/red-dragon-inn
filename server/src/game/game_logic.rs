@@ -258,49 +258,64 @@ impl GameLogic {
             None => return Err(Error::new("Card does not exist")),
         };
 
-        let return_val = if card.can_play(player_uuid, self) {
-            match &card {
+        // This is a bit complex, but the type of `return_val` was carefully chosen. If `Ok` is returned, then the wrapped card should be discarded if it exists.
+        // If an error is returned, the card should always be returned to the player's hand.
+        let return_val: Result<Option<PlayerCard>, (PlayerCard, Error)> = if card.can_play(player_uuid, self) {
+            match card {
                 PlayerCard::ActionPlayerCard(action_player_card) => {
                     match action_player_card {
                         ActionPlayerCard::SimplePlayerCard(simple_player_card) => {
                             if other_player_uuid_or.is_some() {
-                                Err(Error::new("Cannot direct this card at another player"))
+                                Err((simple_player_card.into(), Error::new("Cannot direct this card at another player")))
                             } else {
                                 simple_player_card.play(player_uuid, self);
-                                Ok(())
+                                Ok(Some(simple_player_card.into()))
                             }
                         },
                         ActionPlayerCard::DirectedPlayerCard(directed_player_card) => match other_player_uuid_or {
                             Some(other_player_uuid) => {
-                                directed_player_card.play(player_uuid, other_player_uuid, self);
-                                Ok(())
+                                if let Some(interrupt_type_output) = directed_player_card.get_interrupt_type_output_or() {
+                                    self.interrupts.push_new_stack(interrupt_type_output, directed_player_card, player_uuid.clone(), other_player_uuid.clone());
+                                    Ok(None)
+                                } else {
+                                    directed_player_card.play(player_uuid, other_player_uuid, self);
+                                    Ok(Some(directed_player_card.into()))
+                                }
                             }
-                            None => Err(Error::new("Must direct this card at another player")),
+                            None => Err((directed_player_card.into(), Error::new("Must direct this card at another player"))),
                         }
                     }
                 },
                 PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
                     if other_player_uuid_or.is_some() {
-                        Err(Error::new("Cannot direct this card at another player"))
+                        Err((interrupt_player_card.into(), Error::new("Cannot direct this card at another player")))
+                    } else if self.interrupts.is_empty() {
+                        Err((interrupt_player_card.into(), Error::new("Cannot play an interrupt card at this time")))
                     } else {
-                        interrupt_player_card.interrupt(player_uuid, &mut self.interrupts);
-                        Ok(())
+                        if let Err(interrupt_player_card) = self.interrupts.push_to_current_stack(interrupt_player_card.get_interrupt_type_output(), interrupt_player_card, player_uuid.clone()) {
+                            Err((interrupt_player_card.into(), Error::new("Cannot play an interrupt card at this time")))
+                        } else {
+                            Ok(None)
+                        }
                     }
                 }
             }
         } else {
-            Err(Error::new("Card cannot be played at this time"))
+            Err((card, Error::new("Card cannot be played at this time")))
         };
 
-        if let Some(player) = self.get_player_by_uuid_mut(player_uuid) {
-            if return_val.is_err() {
-                player.return_card_to_hand(card, card_index);
-            } else {
-                player.discard_card(card);
+        match return_val {
+            Ok(card_or) => {
+                if let Some(card) = card_or {
+                    self.get_player_by_uuid_mut(player_uuid).unwrap().discard_card(card);
+                }
+                Ok(())
+            },
+            Err((card, err)) => {
+                self.get_player_by_uuid_mut(player_uuid).unwrap().return_card_to_hand(card, card_index);
+                Err(err)
             }
         }
-
-        return_val
     }
 
     pub fn discard_cards_and_draw_to_full(

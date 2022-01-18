@@ -2,6 +2,7 @@ use super::error::Error;
 use super::PlayerUUID;
 use super::player_card::{PlayerCard, InterruptPlayerCard, DirectedPlayerCard};
 use std::sync::Arc;
+use super::GameLogic;
 
 #[derive(Clone)]
 pub struct GameInterrupts {
@@ -59,7 +60,7 @@ impl GameInterrupts {
         Ok(())
     }
 
-    pub fn resolve_current_stack(&mut self) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
+    pub fn resolve_current_stack(&mut self, game_logic: &mut GameLogic) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
         if self.interrupt_stacks.is_empty() {
             return Err(Error::new("No stacks to resolve"));
         }
@@ -139,13 +140,13 @@ pub struct PlayerCardInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::player_card::gambling_im_in_card;
+    use super::super::player_card::change_other_player_fortitude;
 
     #[test]
     fn is_empty_returns_correct_value() {
         let mut game_interrupts = GameInterrupts::new();
         assert_eq!(game_interrupts.is_empty(), true);
-        game_interrupts.push_new_stack(GameInterruptType::AboutToDrink, gambling_im_in_card().into(), PlayerUUID::new(), PlayerUUID::new());
+        game_interrupts.push_new_stack(GameInterruptType::AboutToDrink, change_other_player_fortitude("Face punch", 2).into(), PlayerUUID::new(), PlayerUUID::new());
         assert_eq!(game_interrupts.is_empty(), false);
         game_interrupts.resolve_current_stack().unwrap();
         assert_eq!(game_interrupts.is_empty(), true);
