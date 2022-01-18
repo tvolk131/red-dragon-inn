@@ -5,14 +5,14 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub enum PlayerCard {
-    ActionPlayerCard(ActionPlayerCard),
+    RootPlayerCard(RootPlayerCard),
     InterruptPlayerCard(InterruptPlayerCard)
 }
 
 impl PlayerCard {
     pub fn get_display_name(&self) -> &str {
         match &self {
-            Self::ActionPlayerCard(action_player_card) => action_player_card.get_display_name(),
+            Self::RootPlayerCard(root_player_card) => root_player_card.get_display_name(),
             Self::InterruptPlayerCard(interrupt_player_card) => interrupt_player_card.get_display_name()
         }
     }
@@ -23,8 +23,8 @@ impl PlayerCard {
         game_logic: &GameLogic,
     ) -> bool {
         match &self {
-            Self::ActionPlayerCard(action_player_card) => {
-                action_player_card.can_play(player_uuid, game_logic)
+            Self::RootPlayerCard(root_player_card) => {
+                root_player_card.can_play(player_uuid, game_logic)
             }
             Self::InterruptPlayerCard(interrupt_player_card) => {
                 let current_interrupt = match game_logic.get_current_interrupt() {
@@ -37,21 +37,21 @@ impl PlayerCard {
     }
 }
 
-impl From<ActionPlayerCard> for PlayerCard {
-    fn from(action_player_card: ActionPlayerCard) -> PlayerCard {
-        PlayerCard::ActionPlayerCard(action_player_card)
+impl From<RootPlayerCard> for PlayerCard {
+    fn from(root_player_card: RootPlayerCard) -> PlayerCard {
+        PlayerCard::RootPlayerCard(root_player_card)
     }
 }
 
 impl From<SimplePlayerCard> for PlayerCard {
     fn from(simple_player_card: SimplePlayerCard) -> PlayerCard {
-        PlayerCard::ActionPlayerCard(ActionPlayerCard::SimplePlayerCard(simple_player_card))
+        PlayerCard::RootPlayerCard(RootPlayerCard::SimplePlayerCard(simple_player_card))
     }
 }
 
 impl From<DirectedPlayerCard> for PlayerCard {
     fn from(directed_player_card: DirectedPlayerCard) -> PlayerCard {
-        PlayerCard::ActionPlayerCard(ActionPlayerCard::DirectedPlayerCard(directed_player_card))
+        PlayerCard::RootPlayerCard(RootPlayerCard::DirectedPlayerCard(directed_player_card))
     }
 }
 
@@ -62,12 +62,12 @@ impl From<InterruptPlayerCard> for PlayerCard {
 }
 
 #[derive(Clone)]
-pub enum ActionPlayerCard {
+pub enum RootPlayerCard {
     SimplePlayerCard(SimplePlayerCard),
     DirectedPlayerCard(DirectedPlayerCard)
 }
 
-impl ActionPlayerCard {
+impl RootPlayerCard {
     pub fn get_display_name(&self) -> &str {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
@@ -83,15 +83,15 @@ impl ActionPlayerCard {
     }
 }
 
-impl From<SimplePlayerCard> for ActionPlayerCard {
-    fn from(simple_player_card: SimplePlayerCard) -> ActionPlayerCard {
-        ActionPlayerCard::SimplePlayerCard(simple_player_card)
+impl From<SimplePlayerCard> for RootPlayerCard {
+    fn from(simple_player_card: SimplePlayerCard) -> RootPlayerCard {
+        RootPlayerCard::SimplePlayerCard(simple_player_card)
     }
 }
 
-impl From<DirectedPlayerCard> for ActionPlayerCard {
-    fn from(directed_player_card: DirectedPlayerCard) -> ActionPlayerCard {
-        ActionPlayerCard::DirectedPlayerCard(directed_player_card)
+impl From<DirectedPlayerCard> for RootPlayerCard {
+    fn from(directed_player_card: DirectedPlayerCard) -> RootPlayerCard {
+        RootPlayerCard::DirectedPlayerCard(directed_player_card)
     }
 }
 

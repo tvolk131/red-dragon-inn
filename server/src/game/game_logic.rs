@@ -1,7 +1,7 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::player::Player;
-use super::player_card::{PlayerCard, ActionPlayerCard};
+use super::player_card::{PlayerCard, RootPlayerCard};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
@@ -262,9 +262,9 @@ impl GameLogic {
         // If an error is returned, the card should always be returned to the player's hand.
         let return_val: Result<Option<PlayerCard>, (PlayerCard, Error)> = if card.can_play(player_uuid, self) {
             match card {
-                PlayerCard::ActionPlayerCard(action_player_card) => {
-                    match action_player_card {
-                        ActionPlayerCard::SimplePlayerCard(simple_player_card) => {
+                PlayerCard::RootPlayerCard(root_player_card) => {
+                    match root_player_card {
+                        RootPlayerCard::SimplePlayerCard(simple_player_card) => {
                             if other_player_uuid_or.is_some() {
                                 Err((simple_player_card.into(), Error::new("Cannot direct this card at another player")))
                             } else {
@@ -272,7 +272,7 @@ impl GameLogic {
                                 Ok(Some(simple_player_card.into()))
                             }
                         },
-                        ActionPlayerCard::DirectedPlayerCard(directed_player_card) => match other_player_uuid_or {
+                        RootPlayerCard::DirectedPlayerCard(directed_player_card) => match other_player_uuid_or {
                             Some(other_player_uuid) => {
                                 if let Some(interrupt_type_output) = directed_player_card.get_interrupt_type_output_or() {
                                     self.interrupts.push_new_stack(interrupt_type_output, directed_player_card, player_uuid.clone(), other_player_uuid.clone());
