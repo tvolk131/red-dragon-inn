@@ -291,12 +291,10 @@ impl GameLogic {
                         Err((interrupt_player_card.into(), Error::new("Cannot direct this card at another player")))
                     } else if self.interrupts.is_empty() {
                         Err((interrupt_player_card.into(), Error::new("Cannot play an interrupt card at this time")))
+                    } else if let Err(interrupt_player_card) = self.interrupts.push_to_current_stack(interrupt_player_card.get_interrupt_type_output(), interrupt_player_card, player_uuid.clone()) {
+                        Err((interrupt_player_card.into(), Error::new("Cannot play an interrupt card at this time")))
                     } else {
-                        if let Err(interrupt_player_card) = self.interrupts.push_to_current_stack(interrupt_player_card.get_interrupt_type_output(), interrupt_player_card, player_uuid.clone()) {
-                            Err((interrupt_player_card.into(), Error::new("Cannot play an interrupt card at this time")))
-                        } else {
-                            Ok(None)
-                        }
+                        Ok(None)
                     }
                 }
             }

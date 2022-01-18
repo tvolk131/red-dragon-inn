@@ -2,7 +2,6 @@ use super::game_interrupt::{GameInterrupts, GameInterruptType, PlayerCardInfo};
 use super::uuid::PlayerUUID;
 use super::GameLogic;
 use std::sync::Arc;
-use std::convert::Into;
 
 #[derive(Clone)]
 pub enum PlayerCard {
@@ -38,6 +37,30 @@ impl PlayerCard {
     }
 }
 
+impl From<ActionPlayerCard> for PlayerCard {
+    fn from(action_player_card: ActionPlayerCard) -> PlayerCard {
+        PlayerCard::ActionPlayerCard(action_player_card)
+    }
+}
+
+impl From<SimplePlayerCard> for PlayerCard {
+    fn from(simple_player_card: SimplePlayerCard) -> PlayerCard {
+        PlayerCard::ActionPlayerCard(ActionPlayerCard::SimplePlayerCard(simple_player_card))
+    }
+}
+
+impl From<DirectedPlayerCard> for PlayerCard {
+    fn from(directed_player_card: DirectedPlayerCard) -> PlayerCard {
+        PlayerCard::ActionPlayerCard(ActionPlayerCard::DirectedPlayerCard(directed_player_card))
+    }
+}
+
+impl From<InterruptPlayerCard> for PlayerCard {
+    fn from(interrupt_player_card: InterruptPlayerCard) -> PlayerCard {
+        PlayerCard::InterruptPlayerCard(interrupt_player_card)
+    }
+}
+
 #[derive(Clone)]
 pub enum ActionPlayerCard {
     SimplePlayerCard(SimplePlayerCard),
@@ -60,9 +83,15 @@ impl ActionPlayerCard {
     }
 }
 
-impl Into<PlayerCard> for ActionPlayerCard {
-    fn into(self) -> PlayerCard {
-        PlayerCard::ActionPlayerCard(self)
+impl From<SimplePlayerCard> for ActionPlayerCard {
+    fn from(simple_player_card: SimplePlayerCard) -> ActionPlayerCard {
+        ActionPlayerCard::SimplePlayerCard(simple_player_card)
+    }
+}
+
+impl From<DirectedPlayerCard> for ActionPlayerCard {
+    fn from(directed_player_card: DirectedPlayerCard) -> ActionPlayerCard {
+        ActionPlayerCard::DirectedPlayerCard(directed_player_card)
     }
 }
 
@@ -91,18 +120,6 @@ impl SimplePlayerCard {
 
     pub fn play(&self, player_uuid: &PlayerUUID, game_logic: &mut GameLogic) {
         (self.play_fn)(player_uuid, game_logic)
-    }
-}
-
-impl Into<ActionPlayerCard> for SimplePlayerCard {
-    fn into(self) -> ActionPlayerCard {
-        ActionPlayerCard::SimplePlayerCard(self)
-    }
-}
-
-impl Into<PlayerCard> for SimplePlayerCard {
-    fn into(self) -> PlayerCard {
-        PlayerCard::ActionPlayerCard(ActionPlayerCard::SimplePlayerCard(self))
     }
 }
 
@@ -144,12 +161,6 @@ impl DirectedPlayerCard {
     }
 }
 
-impl Into<PlayerCard> for DirectedPlayerCard {
-    fn into(self) -> PlayerCard {
-        PlayerCard::ActionPlayerCard(ActionPlayerCard::DirectedPlayerCard(self))
-    }
-}
-
 #[derive(Clone)]
 pub struct InterruptPlayerCard {
     display_name: String,
@@ -173,12 +184,6 @@ impl InterruptPlayerCard {
 
     pub fn interrupt(&self, player_uuid: &PlayerUUID, game_interrupts: &mut GameInterrupts) {
         (self.interrupt_fn)(player_uuid, game_interrupts)
-    }
-}
-
-impl Into<PlayerCard> for InterruptPlayerCard {
-    fn into(self) -> PlayerCard {
-        PlayerCard::InterruptPlayerCard(self)
     }
 }
 

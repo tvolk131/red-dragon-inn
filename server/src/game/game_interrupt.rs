@@ -101,6 +101,12 @@ impl GameInterrupts {
     }
 }
 
+impl Default for GameInterrupts {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum GameInterruptType {
     AboutToAnte,
