@@ -130,6 +130,7 @@ pub struct DirectedPlayerCard {
         player_uuid: &PlayerUUID,
         game_logic: &GameLogic,
     ) -> bool,
+    target_style: TargetStyle,
     interrupt_type_output_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
@@ -147,6 +148,10 @@ impl DirectedPlayerCard {
         (self.can_play_fn)(player_uuid, game_logic)
     }
 
+    pub fn get_target_style(&self) -> TargetStyle {
+        self.target_style
+    }
+
     pub fn get_interrupt_type_output_or(&self) -> Option<GameInterruptType> {
         self.interrupt_type_output_or
     }
@@ -159,6 +164,13 @@ impl DirectedPlayerCard {
     ) {
         (self.play_fn)(player_uuid, targeted_player_uuid, game_logic)
     }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum TargetStyle {
+    SingleOtherPlayer,
+    AllOtherPlayers,
+    AllPlayersIncludingSelf
 }
 
 #[derive(Clone)]
@@ -242,6 +254,7 @@ pub fn change_other_player_fortitude(
         interrupt_type_output_or: Some(GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: true,
         })),
+        target_style: TargetStyle::SingleOtherPlayer,
         play_fn: Arc::from(
             move |_player_uuid: &PlayerUUID,
                   targeted_player_uuid: &PlayerUUID,

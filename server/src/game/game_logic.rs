@@ -1,7 +1,7 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::player::Player;
-use super::player_card::{PlayerCard, RootPlayerCard};
+use super::player_card::{PlayerCard, RootPlayerCard, TargetStyle};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
@@ -274,7 +274,9 @@ impl GameLogic {
                         },
                         RootPlayerCard::DirectedPlayerCard(directed_player_card) => match other_player_uuid_or {
                             Some(other_player_uuid) => {
-                                if let Some(interrupt_type_output) = directed_player_card.get_interrupt_type_output_or() {
+                                if directed_player_card.get_target_style() != TargetStyle::SingleOtherPlayer {
+                                    Err((directed_player_card.into(), Error::new("Cannot direct this card at another player")))
+                                } else if let Some(interrupt_type_output) = directed_player_card.get_interrupt_type_output_or() {
                                     self.interrupts.push_new_stack(interrupt_type_output, directed_player_card, player_uuid.clone(), other_player_uuid.clone());
                                     Ok(None)
                                 } else {
@@ -282,7 +284,38 @@ impl GameLogic {
                                     Ok(Some(directed_player_card.into()))
                                 }
                             }
-                            None => Err((directed_player_card.into(), Error::new("Must direct this card at another player"))),
+                            None => match directed_player_card.get_target_style() {
+                                TargetStyle::SingleOtherPlayer => Err((directed_player_card.into(), Error::new("Must direct this card at another player"))),
+                                TargetStyle::AllOtherPlayers => {
+                                    let mut targeted_player_uuids = rotate_player_vec_to_start_with_player(self.players.iter().map(|(player_uuid, _)| player_uuid).cloned().collect(), player_uuid);
+                                    // Remove self from list.
+                                    // TODO - Add check here so that `remove` never panicks.
+                                    targeted_player_uuids.remove(0);
+
+                                    if let Some(interrupt_type_output) = directed_player_card.get_interrupt_type_output_or() {
+                                        self.interrupts.push_new_stacks(interrupt_type_output, directed_player_card, player_uuid, targeted_player_uuids);
+                                        Ok(None)
+                                    } else {
+                                        for targeted_player_uuid in targeted_player_uuids {
+                                            directed_player_card.play(player_uuid, &targeted_player_uuid, self)
+                                        }
+                                        Ok(Some(directed_player_card.into()))
+                                    }
+                                },
+                                TargetStyle::AllPlayersIncludingSelf => {
+                                    let targeted_player_uuids = rotate_player_vec_to_start_with_player(self.players.iter().map(|(player_uuid, _)| player_uuid).cloned().collect(), player_uuid);
+
+                                    if let Some(interrupt_type_output) = directed_player_card.get_interrupt_type_output_or() {
+                                        self.interrupts.push_new_stacks(interrupt_type_output, directed_player_card, player_uuid, targeted_player_uuids);
+                                        Ok(None)
+                                    } else {
+                                        for targeted_player_uuid in targeted_player_uuids {
+                                            directed_player_card.play(player_uuid, &targeted_player_uuid, self)
+                                        }
+                                        Ok(Some(directed_player_card.into()))
+                                    }
+                                }
+                            },
                         }
                     }
                 },
@@ -498,6 +531,12 @@ pub enum TurnPhase {
     OrderDrinks,
 }
 
+fn rotate_player_vec_to_start_with_player(mut players: Vec<PlayerUUID>, starting_player_uuid: &PlayerUUID) -> Vec<PlayerUUID> {
+    let player_index = players.iter().position(|player_uuid| player_uuid == starting_player_uuid).unwrap_or(0);
+    players.rotate_left(player_index);
+    players
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -533,5 +572,55 @@ mod tests {
         assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 9);
         assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
+    }
+
+    #[test]
+    fn test_rotate_player_vec_to_start_with_player() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+        let player3_uuid = PlayerUUID::new();
+        let player4_uuid = PlayerUUID::new();
+
+        let player_uuids = vec![
+            player1_uuid.clone(),
+            player2_uuid.clone(),
+            player3_uuid.clone(),
+            player4_uuid.clone()
+        ];
+
+        assert_eq!(rotate_player_vec_to_start_with_player(player_uuids.clone(), &player1_uuid), vec![
+            player1_uuid.clone(),
+            player2_uuid.clone(),
+            player3_uuid.clone(),
+            player4_uuid.clone()
+        ]);
+
+        assert_eq!(rotate_player_vec_to_start_with_player(player_uuids.clone(), &player2_uuid), vec![
+            player2_uuid.clone(),
+            player3_uuid.clone(),
+            player4_uuid.clone(),
+            player1_uuid.clone(),
+        ]);
+
+        assert_eq!(rotate_player_vec_to_start_with_player(player_uuids.clone(), &player3_uuid), vec![
+            player3_uuid.clone(),
+            player4_uuid.clone(),
+            player1_uuid.clone(),
+            player2_uuid.clone(),
+        ]);
+
+        assert_eq!(rotate_player_vec_to_start_with_player(player_uuids.clone(), &player4_uuid), vec![
+            player4_uuid.clone(),
+            player1_uuid.clone(),
+            player2_uuid.clone(),
+            player3_uuid.clone(),
+        ]);
+
+        assert_eq!(rotate_player_vec_to_start_with_player(player_uuids, &PlayerUUID::new()), vec![
+            player1_uuid.clone(),
+            player2_uuid.clone(),
+            player3_uuid.clone(),
+            player4_uuid.clone(),
+        ]);
     }
 }
