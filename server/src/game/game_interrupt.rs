@@ -85,14 +85,20 @@ impl GameInterrupts {
     }
 
     pub fn get_current_interrupt(&self) -> Option<GameInterruptType> {
-        let current_stack = match self.interrupt_stacks.first() {
-            Some(current_stack) => current_stack,
-            None => return None
-        };
+        let current_stack = self.interrupt_stacks.first()?;
 
         Some(match current_stack.interrupt_cards.last() {
             Some(most_recent_interrupt_data) => most_recent_interrupt_data.card_interrupt_type,
             None => current_stack.root_card_interrupt_type
+        })
+    }
+
+    pub fn get_last_player_to_play_on_current_stack(&self) -> Option<&PlayerUUID> {
+        let current_stack = self.interrupt_stacks.first()?;
+
+        Some(match current_stack.interrupt_cards.last() {
+            Some(most_recent_interrupt_data) => &most_recent_interrupt_data.card_owner_uuid,
+            None => &current_stack.root_card_owner_uuid
         })
     }
 
