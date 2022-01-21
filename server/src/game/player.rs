@@ -52,7 +52,7 @@ impl Player {
     pub fn get_game_view_hand(
         &self,
         player_uuid: &PlayerUUID,
-        game: &GameLogic
+        game: &GameLogic,
     ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()

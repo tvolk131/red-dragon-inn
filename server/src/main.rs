@@ -219,7 +219,8 @@ async fn discard_cards_handler(
 ) -> Result<GameView, Error> {
     let player_uuid = PlayerUUID::from_cookie_jar(cookie_jar)?;
     let unlocked_game_manager = game_manager.read().unwrap();
-    unlocked_game_manager.discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)?;
+    unlocked_game_manager
+        .discard_cards_and_draw_to_full(&player_uuid, parse_usize_vec(card_indices_string)?)?;
     unlocked_game_manager.get_game_view(player_uuid)
 }
 

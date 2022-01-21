@@ -1,4 +1,4 @@
-use super::game_interrupt::{GameInterrupts, GameInterruptType, PlayerCardInfo};
+use super::game_interrupt::{GameInterruptType, GameInterrupts, PlayerCardInfo};
 use super::uuid::PlayerUUID;
 use super::GameLogic;
 use std::sync::Arc;
@@ -6,22 +6,20 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub enum PlayerCard {
     RootPlayerCard(RootPlayerCard),
-    InterruptPlayerCard(InterruptPlayerCard)
+    InterruptPlayerCard(InterruptPlayerCard),
 }
 
 impl PlayerCard {
     pub fn get_display_name(&self) -> &str {
         match &self {
             Self::RootPlayerCard(root_player_card) => root_player_card.get_display_name(),
-            Self::InterruptPlayerCard(interrupt_player_card) => interrupt_player_card.get_display_name()
+            Self::InterruptPlayerCard(interrupt_player_card) => {
+                interrupt_player_card.get_display_name()
+            }
         }
     }
 
-    pub fn can_play(
-        &self,
-        player_uuid: &PlayerUUID,
-        game_logic: &GameLogic,
-    ) -> bool {
+    pub fn can_play(&self, player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool {
         match &self {
             Self::RootPlayerCard(root_player_card) => {
                 root_player_card.can_play(player_uuid, game_logic)
@@ -29,9 +27,11 @@ impl PlayerCard {
             Self::InterruptPlayerCard(interrupt_player_card) => {
                 let current_interrupt = match game_logic.get_current_interrupt() {
                     Some(current_interrupt) => current_interrupt,
-                    None => return false
+                    None => return false,
                 };
-                interrupt_player_card.get_interrupt_type_input().variant_eq(current_interrupt)
+                interrupt_player_card
+                    .get_interrupt_type_input()
+                    .variant_eq(current_interrupt)
             }
         }
     }
@@ -64,21 +64,27 @@ impl From<InterruptPlayerCard> for PlayerCard {
 #[derive(Clone)]
 pub enum RootPlayerCard {
     SimplePlayerCard(SimplePlayerCard),
-    DirectedPlayerCard(DirectedPlayerCard)
+    DirectedPlayerCard(DirectedPlayerCard),
 }
 
 impl RootPlayerCard {
     pub fn get_display_name(&self) -> &str {
         match &self {
             Self::SimplePlayerCard(simple_player_card) => simple_player_card.get_display_name(),
-            Self::DirectedPlayerCard(directed_player_card) => directed_player_card.get_display_name()
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.get_display_name()
+            }
         }
     }
 
     pub fn can_play(&self, player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool {
         match &self {
-            Self::SimplePlayerCard(simple_player_card) => simple_player_card.can_play(player_uuid, game_logic),
-            Self::DirectedPlayerCard(directed_player_card) => directed_player_card.can_play(player_uuid, game_logic)
+            Self::SimplePlayerCard(simple_player_card) => {
+                simple_player_card.can_play(player_uuid, game_logic)
+            }
+            Self::DirectedPlayerCard(directed_player_card) => {
+                directed_player_card.can_play(player_uuid, game_logic)
+            }
         }
     }
 }
@@ -98,10 +104,7 @@ impl From<DirectedPlayerCard> for RootPlayerCard {
 #[derive(Clone)]
 pub struct SimplePlayerCard {
     display_name: String,
-    can_play_fn: fn(
-        player_uuid: &PlayerUUID,
-        game_logic: &GameLogic,
-    ) -> bool,
+    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
     play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>,
 }
 
@@ -110,11 +113,7 @@ impl SimplePlayerCard {
         &self.display_name
     }
 
-    pub fn can_play(
-        &self,
-        player_uuid: &PlayerUUID,
-        game_logic: &GameLogic,
-    ) -> bool {
+    pub fn can_play(&self, player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool {
         (self.can_play_fn)(player_uuid, game_logic)
     }
 
@@ -126,10 +125,7 @@ impl SimplePlayerCard {
 #[derive(Clone)]
 pub struct DirectedPlayerCard {
     display_name: String,
-    can_play_fn: fn(
-        player_uuid: &PlayerUUID,
-        game_logic: &GameLogic,
-    ) -> bool,
+    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
     target_style: TargetStyle,
     interrupt_type_output_or: Option<GameInterruptType>,
     play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
@@ -140,11 +136,7 @@ impl DirectedPlayerCard {
         &self.display_name
     }
 
-    pub fn can_play(
-        &self,
-        player_uuid: &PlayerUUID,
-        game_logic: &GameLogic,
-    ) -> bool {
+    pub fn can_play(&self, player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool {
         (self.can_play_fn)(player_uuid, game_logic)
     }
 
@@ -170,7 +162,7 @@ impl DirectedPlayerCard {
 pub enum TargetStyle {
     SingleOtherPlayer,
     AllOtherPlayers,
-    AllPlayersIncludingSelf
+    AllPlayersIncludingSelf,
 }
 
 #[derive(Clone)]
@@ -203,9 +195,7 @@ impl InterruptPlayerCard {
 pub fn gambling_im_in_card() -> SimplePlayerCard {
     SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
-        can_play_fn: |player_uuid: &PlayerUUID,
-                      game_logic: &GameLogic|
-         -> bool {
+        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
             if game_logic.gambling_round_in_progress() {
                 game_logic.is_gambling_turn(player_uuid)
                     && !game_logic.gambling_need_cheating_card_to_take_control()
@@ -228,9 +218,7 @@ pub fn gambling_im_in_card() -> SimplePlayerCard {
 pub fn i_raise_card() -> SimplePlayerCard {
     SimplePlayerCard {
         display_name: String::from("Gambling? I'm in!"),
-        can_play_fn: |player_uuid: &PlayerUUID,
-                      game_logic: &GameLogic|
-         -> bool {
+        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
             game_logic.gambling_round_in_progress()
                 && game_logic.is_gambling_turn(player_uuid)
                 && !game_logic.gambling_need_cheating_card_to_take_control()
@@ -248,9 +236,9 @@ pub fn change_other_player_fortitude(
 ) -> DirectedPlayerCard {
     DirectedPlayerCard {
         display_name: display_name.to_string(),
-        can_play_fn: |player_uuid: &PlayerUUID,
-                      game_logic: &GameLogic|
-         -> bool { game_logic.can_play_action_card(player_uuid) },
+        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
+            game_logic.can_play_action_card(player_uuid)
+        },
         interrupt_type_output_or: Some(GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: true,
         })),

@@ -317,8 +317,16 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
-                change_other_player_fortitude("How many times have I told you? Keep your hands off my wand!", 2).into(),
-                change_other_player_fortitude("How many times have I told you? Keep your hands off my wand!", 2).into(),
+                change_other_player_fortitude(
+                    "How many times have I told you? Keep your hands off my wand!",
+                    2,
+                )
+                .into(),
+                change_other_player_fortitude(
+                    "How many times have I told you? Keep your hands off my wand!",
+                    2,
+                )
+                .into(),
                 change_other_player_fortitude("I told you not to distract me!", 2).into(),
                 change_other_player_fortitude("Watch out! Don't step on Pooky!", 2).into(),
                 change_other_player_fortitude("Down Pooky!", 1).into(),
@@ -335,8 +343,16 @@ impl Character {
                 change_other_player_fortitude("My Goddess made me do it!", 2).into(),
                 change_other_player_fortitude("My Goddess made me do it!", 2).into(),
                 change_other_player_fortitude("I'm not that kind of priestess!", 2).into(),
-                change_other_player_fortitude("Oh no! I think that growth on your arm might be Mummy Rot!", 2).into(),
-                change_other_player_fortitude("Sorry, sometimes my healing spells just wear off.", 1).into(),
+                change_other_player_fortitude(
+                    "Oh no! I think that growth on your arm might be Mummy Rot!",
+                    2,
+                )
+                .into(),
+                change_other_player_fortitude(
+                    "Sorry, sometimes my healing spells just wear off.",
+                    1,
+                )
+                .into(),
             ],
             Self::Gerki => vec![
                 gambling_im_in_card().into(),
@@ -373,7 +389,10 @@ mod tests {
             game.select_character(&player1_uuid, Character::Deirdre),
             Ok(())
         );
-        assert_eq!(game.select_character(&player2_uuid, Character::Gerki), Ok(()));
+        assert_eq!(
+            game.select_character(&player2_uuid, Character::Gerki),
+            Ok(())
+        );
         assert_eq!(game.start(&player1_uuid), Ok(()));
 
         for _ in 1..10 {

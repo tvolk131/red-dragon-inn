@@ -1,35 +1,47 @@
 use super::error::Error;
-use super::PlayerUUID;
-use super::player_card::{PlayerCard, InterruptPlayerCard, DirectedPlayerCard};
-use std::sync::Arc;
+use super::player_card::{DirectedPlayerCard, InterruptPlayerCard, PlayerCard};
 use super::GameLogic;
+use super::PlayerUUID;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct GameInterrupts {
-    interrupt_stacks: Vec<GameInterruptStack>
+    interrupt_stacks: Vec<GameInterruptStack>,
 }
 
 impl GameInterrupts {
     pub fn new() -> Self {
         Self {
-            interrupt_stacks: Vec::new()
+            interrupt_stacks: Vec::new(),
         }
     }
 
-    pub fn push_new_stack(&mut self, game_interrupt_type: GameInterruptType, card: DirectedPlayerCard, card_owner_uuid: PlayerUUID, targeted_player_uuid: PlayerUUID) {
+    pub fn push_new_stack(
+        &mut self,
+        game_interrupt_type: GameInterruptType,
+        card: DirectedPlayerCard,
+        card_owner_uuid: PlayerUUID,
+        targeted_player_uuid: PlayerUUID,
+    ) {
         self.interrupt_stacks.push(GameInterruptStack {
             root_card: Arc::from(card),
             root_card_interrupt_type: game_interrupt_type,
             root_card_owner_uuid: card_owner_uuid,
             targeted_player_uuid,
-            interrupt_cards: Vec::new()
+            interrupt_cards: Vec::new(),
         });
     }
 
     /// Create multiple consecutive interrupt stacks each targeting a different player.
     /// This is used for cards where multiple players are affected individually, such as
     /// an `I Raise` card, which forces each individual user to ante.
-    pub fn push_new_stacks(&mut self, game_interrupt_type: GameInterruptType, card: DirectedPlayerCard, card_owner_uuid: &PlayerUUID, targeted_player_uuids: Vec<PlayerUUID>) {
+    pub fn push_new_stacks(
+        &mut self,
+        game_interrupt_type: GameInterruptType,
+        card: DirectedPlayerCard,
+        card_owner_uuid: &PlayerUUID,
+        targeted_player_uuids: Vec<PlayerUUID>,
+    ) {
         let card_arc = Arc::from(card);
 
         for targeted_player_uuid in targeted_player_uuids {
@@ -38,29 +50,35 @@ impl GameInterrupts {
                 root_card_interrupt_type: game_interrupt_type,
                 root_card_owner_uuid: card_owner_uuid.clone(),
                 targeted_player_uuid,
-                interrupt_cards: Vec::new()
+                interrupt_cards: Vec::new(),
             });
         }
     }
 
-    pub fn push_to_current_stack(&mut self, game_interrupt_type: GameInterruptType, card: InterruptPlayerCard, card_owner_uuid: PlayerUUID) -> Result<(), InterruptPlayerCard> {
+    pub fn push_to_current_stack(
+        &mut self,
+        game_interrupt_type: GameInterruptType,
+        card: InterruptPlayerCard,
+        card_owner_uuid: PlayerUUID,
+    ) -> Result<(), InterruptPlayerCard> {
         let current_stack = match self.interrupt_stacks.first_mut() {
             Some(current_stack) => current_stack,
-            None => return Err(card)
+            None => return Err(card),
         };
 
-        current_stack.interrupt_cards.push(
-            GameInterruptData {
-                card,
-                card_interrupt_type: game_interrupt_type,
-                card_owner_uuid
-            }
-        );
+        current_stack.interrupt_cards.push(GameInterruptData {
+            card,
+            card_interrupt_type: game_interrupt_type,
+            card_owner_uuid,
+        });
 
         Ok(())
     }
 
-    pub fn resolve_current_stack(&mut self, game_logic: &mut GameLogic) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
+    pub fn resolve_current_stack(
+        &mut self,
+        game_logic: &mut GameLogic,
+    ) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
         if self.interrupt_stacks.is_empty() {
             return Err(Error::new("No stacks to resolve"));
         }
@@ -71,11 +89,20 @@ impl GameInterrupts {
 
         // TODO - Finish implementing this method.
         while let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
-            game_interrupt_data.card.interrupt(&game_interrupt_data.card_owner_uuid, self);
-            spent_cards.push((game_interrupt_data.card_owner_uuid, game_interrupt_data.card.into()));
+            game_interrupt_data
+                .card
+                .interrupt(&game_interrupt_data.card_owner_uuid, self);
+            spent_cards.push((
+                game_interrupt_data.card_owner_uuid,
+                game_interrupt_data.card.into(),
+            ));
         }
 
-        current_stack.root_card.play(&current_stack.root_card_owner_uuid, &current_stack.targeted_player_uuid, game_logic);
+        current_stack.root_card.play(
+            &current_stack.root_card_owner_uuid,
+            &current_stack.targeted_player_uuid,
+            game_logic,
+        );
 
         if let Ok(card) = Arc::try_unwrap(current_stack.root_card) {
             spent_cards.push((current_stack.root_card_owner_uuid, card.into()));
@@ -89,7 +116,7 @@ impl GameInterrupts {
 
         Some(match current_stack.interrupt_cards.last() {
             Some(most_recent_interrupt_data) => most_recent_interrupt_data.card_interrupt_type,
-            None => current_stack.root_card_interrupt_type
+            None => current_stack.root_card_interrupt_type,
         })
     }
 
@@ -98,7 +125,7 @@ impl GameInterrupts {
 
         Some(match current_stack.interrupt_cards.last() {
             Some(most_recent_interrupt_data) => &most_recent_interrupt_data.card_owner_uuid,
-            None => &current_stack.root_card_owner_uuid
+            None => &current_stack.root_card_owner_uuid,
         })
     }
 
@@ -134,14 +161,14 @@ struct GameInterruptStack {
     root_card_interrupt_type: GameInterruptType,
     root_card_owner_uuid: PlayerUUID,
     targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
-    interrupt_cards: Vec<GameInterruptData>
+    interrupt_cards: Vec<GameInterruptData>,
 }
 
 #[derive(Clone)]
 struct GameInterruptData {
     card: InterruptPlayerCard,
     card_interrupt_type: GameInterruptType,
-    card_owner_uuid: PlayerUUID
+    card_owner_uuid: PlayerUUID,
 }
 
 #[derive(Clone, Copy)]

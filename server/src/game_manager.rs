@@ -19,7 +19,11 @@ impl GameManager {
         }
     }
 
-    pub fn add_player(&mut self, player_uuid: PlayerUUID, display_name: String) -> Result<(), Error> {
+    pub fn add_player(
+        &mut self,
+        player_uuid: PlayerUUID,
+        display_name: String,
+    ) -> Result<(), Error> {
         if self
             .player_uuids_to_display_names
             .contains_key(&player_uuid)
@@ -242,7 +246,9 @@ mod tests {
 
         let player_uuid = PlayerUUID::new();
 
-        game_manager.add_player(player_uuid.clone(), String::from("Tommy")).unwrap();
+        game_manager
+            .add_player(player_uuid.clone(), String::from("Tommy"))
+            .unwrap();
         assert_eq!(
             game_manager
                 .add_player(player_uuid, String::from("Tommy"))
@@ -262,7 +268,9 @@ mod tests {
             Error::new("Player does not exist")
         );
 
-        game_manager.add_player(player_uuid.clone(), String::from("Tommy")).unwrap();
+        game_manager
+            .add_player(player_uuid.clone(), String::from("Tommy"))
+            .unwrap();
         game_manager.remove_player(&player_uuid).unwrap();
 
         assert_eq!(
@@ -277,7 +285,9 @@ mod tests {
 
         let player_uuid = PlayerUUID::new();
 
-        game_manager.add_player(player_uuid.clone(), String::from("Tommy")).unwrap();
+        game_manager
+            .add_player(player_uuid.clone(), String::from("Tommy"))
+            .unwrap();
         game_manager
             .create_game(player_uuid.clone(), "Game 1".to_string())
             .unwrap();
@@ -297,7 +307,9 @@ mod tests {
 
         let player_uuid = PlayerUUID::new();
 
-        game_manager.add_player(player_uuid.clone(), String::from("Tommy")).unwrap();
+        game_manager
+            .add_player(player_uuid.clone(), String::from("Tommy"))
+            .unwrap();
         game_manager
             .create_game(player_uuid.clone(), "Game 1".to_string())
             .unwrap();
