@@ -16,6 +16,7 @@ pub struct GameLogic {
     turn_info: TurnInfo,
     gambling_round_or: Option<GamblingRound>,
     interrupts: GameInterrupts,
+    current_interrupt_turn_or: Option<PlayerUUID>
 }
 
 impl GameLogic {
@@ -46,6 +47,7 @@ impl GameLogic {
             turn_info: TurnInfo::new(first_player_uuid),
             gambling_round_or: None,
             interrupts: GameInterrupts::new(),
+            current_interrupt_turn_or: None
         })
     }
 
@@ -287,6 +289,7 @@ impl GameLogic {
                             Error::new("Cannot play this card at this time"),
                         ))
                     } else {
+                        self.increment_current_interrupt_player_turn();
                         Ok(None)
                     }
                 }
@@ -451,6 +454,47 @@ impl GameLogic {
         self.turn_info = TurnInfo::new(next_player_uuid.clone());
     }
 
+    // TODO - Extract duplicate logic between this method and `start_next_player_turn` into a helper method. They both do very similar things.
+    fn increment_current_interrupt_player_turn(&mut self) {
+        if let Some(current_interrupt_turn) = &self.current_interrupt_turn_or {
+            let current_player_index = self
+                .players
+                .iter()
+                .position(|(player_uuid, _)| player_uuid == current_interrupt_turn)
+                .unwrap();
+            let mut next_player_index = current_player_index + 1;
+            if next_player_index == self.players.len() {
+                next_player_index = 0;
+            }
+    
+            let entry = self.players.get(next_player_index).unwrap();
+            let mut next_player_uuid = &entry.0;
+            let mut next_player = &entry.1;
+    
+            while next_player.is_out_of_game() {
+                next_player_index += 1;
+                if next_player_index == self.players.len() {
+                    next_player_index = 0;
+                }
+    
+                let entry = self.players.get(next_player_index).unwrap();
+                next_player_uuid = &entry.0;
+                next_player = &entry.1;
+    
+                if next_player_index == current_player_index {
+                    // TODO - Break from loop and declare this player as the winner.
+                }
+            }
+
+            if Some(next_player_uuid) == self.interrupts.get_last_player_to_play_on_current_stack() {
+                self.interrupts.resolve_current_stack(self);
+                self.current_interrupt_turn_or = None;
+            } else {
+                self.current_interrupt_turn_or = Some(next_player_uuid.clone());
+            }
+        }
+    }
+
     fn get_starting_gold_amount_for_player_count(player_count: usize) -> i32 {
         if player_count <= 2 {
             8
@@ -475,6 +519,8 @@ fn process_root_player_card(root_player_card: RootPlayerCard, player_uuid: &Play
                         match root_player_card.get_interrupt_data_or() {
                             Some(interrupt_data) => {
                                 game_logic.interrupts.push_new_stack(interrupt_data.get_interrupt_style(), root_player_card, player_uuid.clone(), targeted_player_uuid.clone());
+                                game_logic.current_interrupt_turn_or = Some(player_uuid.clone());
+                                game_logic.increment_current_interrupt_player_turn();
                                 Ok(None)
                             },
                             None => {
@@ -515,6 +561,8 @@ fn process_root_player_card(root_player_card: RootPlayerCard, player_uuid: &Play
                     match root_player_card.get_interrupt_data_or() {
                         Some(interrupt_data) => {
                             game_logic.interrupts.push_new_stacks(interrupt_data.get_interrupt_style(), root_player_card, player_uuid, targeted_player_uuids);
+                            game_logic.current_interrupt_turn_or = Some(player_uuid.clone());
+                            game_logic.increment_current_interrupt_player_turn();
                             Ok(None)
                         },
                         None => {
@@ -552,6 +600,8 @@ fn process_root_player_card(root_player_card: RootPlayerCard, player_uuid: &Play
                     match root_player_card.get_interrupt_data_or() {
                         Some(interrupt_data) => {
                             game_logic.interrupts.push_new_stacks(interrupt_data.get_interrupt_style(), root_player_card, player_uuid, targeted_player_uuids);
+                            game_logic.current_interrupt_turn_or = Some(player_uuid.clone());
+                            game_logic.increment_current_interrupt_player_turn();
                             Ok(None)
                         },
                         None => {
