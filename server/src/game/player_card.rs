@@ -239,7 +239,7 @@ pub fn change_other_player_fortitude(
                   targeted_player_uuid: &PlayerUUID,
                   game_logic: &mut GameLogic| {
                 if let Some(targeted_player) =
-                    game_logic.get_player_by_uuid_mut(targeted_player_uuid)
+                    game_logic.get_player_manager_mut().get_player_by_uuid_mut(targeted_player_uuid)
                 {
                     targeted_player.change_fortitude(amount);
                 }

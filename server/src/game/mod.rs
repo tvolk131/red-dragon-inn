@@ -7,6 +7,7 @@ mod player;
 mod player_card;
 pub mod player_view;
 mod uuid;
+mod player_manager;
 
 pub use self::uuid::GameUUID;
 pub use self::uuid::PlayerUUID;
@@ -215,7 +216,7 @@ impl Game {
             },
             self_player_uuid: player_uuid,
             player_data: match &self.game_logic_or {
-                Some(game_logic) => game_logic.get_game_view_player_data(),
+                Some(game_logic) => game_logic.get_game_view_player_data_of_all_players(),
                 None => Vec::new(),
             },
             // TODO - Handle this `unwrap`.

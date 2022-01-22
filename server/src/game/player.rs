@@ -46,6 +46,7 @@ impl Player {
             alcohol_content: self.alcohol_content,
             fortitude: self.fortitude,
             gold: self.gold,
+            is_dead: self.is_out_of_game()
         }
     }
 
