@@ -180,7 +180,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
             }
         })),
         interrupt_play_fn: Arc::from(
-            |player_uuid: &PlayerUUID,
+            |_player_uuid: &PlayerUUID,
              targeted_player_uuid: &PlayerUUID,
              game_logic: &mut GameLogic| {
                 game_logic.gambling_ante_up(targeted_player_uuid);
