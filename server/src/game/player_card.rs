@@ -54,7 +54,7 @@ pub struct RootPlayerCard {
     display_name: String,
     target_style: TargetStyle,
     can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
-    pre_interrupt_play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) -> ShouldInterrupt + Send + Sync>,
+    pre_interrupt_play_fn_or: Option<Arc<dyn Fn(&PlayerUUID, &mut GameLogic) -> ShouldInterrupt + Send + Sync>>,
     interrupt_play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
     interrupt_data_or: Option<RootPlayerCardInterruptData>,
 }
@@ -81,7 +81,11 @@ impl RootPlayerCard {
         player_uuid: &PlayerUUID,
         game_logic: &mut GameLogic,
     ) -> ShouldInterrupt {
-        (self.pre_interrupt_play_fn)(player_uuid, game_logic)
+        if let Some(pre_interrupt_play_fn) = &self.pre_interrupt_play_fn_or {
+            (pre_interrupt_play_fn)(player_uuid, game_logic)
+        } else {
+            ShouldInterrupt::Yes
+        }
     }
 
     pub fn interrupt_play(
@@ -97,7 +101,7 @@ impl RootPlayerCard {
 #[derive(Clone)]
 pub struct RootPlayerCardInterruptData {
     interrupt_style: GameInterruptType,
-    post_interrupt_play_fn: Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>,
+    post_interrupt_play_fn_or: Option<Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>>,
 }
 
 impl RootPlayerCardInterruptData {
@@ -110,7 +114,9 @@ impl RootPlayerCardInterruptData {
         player_uuid: &PlayerUUID,
         game_logic: &mut GameLogic,
     ) {
-        (self.post_interrupt_play_fn)(player_uuid, game_logic)
+        if let Some(post_interrupt_play_fn) = &self.post_interrupt_play_fn_or {
+            (post_interrupt_play_fn)(player_uuid, game_logic)
+        }
     }
 }
 
@@ -164,7 +170,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
                 game_logic.can_play_action_card(player_uuid)
             }
         },
-        pre_interrupt_play_fn: Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
+        pre_interrupt_play_fn_or: Some(Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
             if game_logic.gambling_round_in_progress() {
                 game_logic.gambling_take_control_of_round(player_uuid.clone(), false);
                 ShouldInterrupt::No
@@ -172,7 +178,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
                 game_logic.start_gambling_round(player_uuid.clone());
                 ShouldInterrupt::Yes
             }
-        }),
+        })),
         interrupt_play_fn: Arc::from(
             |player_uuid: &PlayerUUID,
              targeted_player_uuid: &PlayerUUID,
@@ -182,9 +188,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_style: GameInterruptType::AboutToAnte,
-            post_interrupt_play_fn: Arc::from(
-                |player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {},
-            ),
+            post_interrupt_play_fn_or: None,
         }),
     }
 }
@@ -198,9 +202,7 @@ pub fn i_raise_card() -> RootPlayerCard {
                 && game_logic.is_gambling_turn(player_uuid)
                 && !game_logic.gambling_need_cheating_card_to_take_control()
         },
-        pre_interrupt_play_fn: Arc::from(
-            |player_uuid: &PlayerUUID, game_logic: &mut GameLogic| ShouldInterrupt::Yes,
-        ),
+        pre_interrupt_play_fn_or: None,
         interrupt_play_fn: Arc::from(
             |_player_uuid: &PlayerUUID,
              targeted_player_uuid: &PlayerUUID,
@@ -210,9 +212,7 @@ pub fn i_raise_card() -> RootPlayerCard {
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_style: GameInterruptType::AboutToAnte,
-            post_interrupt_play_fn: Arc::from(
-                |player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {},
-            ),
+            post_interrupt_play_fn_or: None,
         }),
     }
 }
@@ -227,9 +227,7 @@ pub fn change_other_player_fortitude(
         can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
             game_logic.can_play_action_card(player_uuid)
         },
-        pre_interrupt_play_fn: Arc::from(
-            |player_uuid: &PlayerUUID, game_logic: &mut GameLogic| ShouldInterrupt::Yes,
-        ),
+        pre_interrupt_play_fn_or: None,
         interrupt_play_fn: Arc::from(
             move |_player_uuid: &PlayerUUID,
                   targeted_player_uuid: &PlayerUUID,
@@ -245,9 +243,7 @@ pub fn change_other_player_fortitude(
             interrupt_style: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
                 affects_fortitude: true,
             }),
-            post_interrupt_play_fn: Arc::from(
-                |player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {},
-            ),
+            post_interrupt_play_fn_or: None,
         }),
     }
 }
