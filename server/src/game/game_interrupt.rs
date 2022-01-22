@@ -1,5 +1,5 @@
 use super::error::Error;
-use super::player_card::{RootPlayerCard, InterruptPlayerCard, PlayerCard};
+use super::player_card::{RootPlayerCard, InterruptPlayerCard, PlayerCard, ShouldCancelPreviousCard};
 use super::GameLogic;
 use super::PlayerUUID;
 use std::sync::Arc;
@@ -104,27 +104,71 @@ impl GameInterrupts {
 
         let mut spent_cards = Vec::new();
 
-        // TODO - Finish implementing this method.
+        let mut should_cancel_root_card = ShouldCancelPreviousCard::No;
+
         while let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
-            game_interrupt_data
+            match game_interrupt_data
                 .card
-                .interrupt(&game_interrupt_data.card_owner_uuid, self);
+                .interrupt(&game_interrupt_data.card_owner_uuid, self) {
+                    ShouldCancelPreviousCard::Negate => {
+                        if let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
+                            spent_cards.push((game_interrupt_data.card_owner_uuid, game_interrupt_data.card.into()));
+                        } else {
+                            should_cancel_root_card = ShouldCancelPreviousCard::Negate;
+                        }
+                    },
+                    ShouldCancelPreviousCard::Ignore => {
+                        if let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
+                            spent_cards.push((game_interrupt_data.card_owner_uuid, game_interrupt_data.card.into()));
+                        } else {
+                            should_cancel_root_card = ShouldCancelPreviousCard::Ignore;
+                        }
+                    },
+                    ShouldCancelPreviousCard::No => {}
+                };
             spent_cards.push((
                 game_interrupt_data.card_owner_uuid,
                 game_interrupt_data.card.into(),
             ));
         }
+        
+        match should_cancel_root_card {
+            ShouldCancelPreviousCard::Negate => {
+                // TODO - use `drain_filter` instead of while loop. At time of writing, it is only availabe in nightly release.
+                let mut i = 0;
+                while i < self.interrupt_stacks.len() {
+                    if Arc::ptr_eq(&self.interrupt_stacks.get(i).unwrap().root_card, &current_stack.root_card) {
+                        let stack = self.interrupt_stacks.remove(i);
+                        for (player_uuid, card) in stack.drain_all_cards() {
+                            spent_cards.push((player_uuid, card));
+                        }
+                    } else {
+                        i += 1;
+                    }
+                }
 
-        current_stack.root_card.interrupt_play(
-            &current_stack.root_card_owner_uuid,
-            &current_stack.targeted_player_uuid,
-            game_logic,
-        );
-
-        if let Ok(card) = Arc::try_unwrap(current_stack.root_card) {
-            // TODO - Handle this unwrap.
-            card.get_interrupt_data_or().unwrap().post_interrupt_play(&current_stack.root_card_owner_uuid, game_logic);
-            spent_cards.push((current_stack.root_card_owner_uuid, card.into()));
+                if let Ok(root_card) = Arc::try_unwrap(current_stack.root_card) {
+                    spent_cards.push((current_stack.root_card_owner_uuid, root_card.into()));
+                };
+            },
+            ShouldCancelPreviousCard::Ignore => {
+                if let Ok(root_card) = Arc::try_unwrap(current_stack.root_card) {
+                    spent_cards.push((current_stack.root_card_owner_uuid, root_card.into()));
+                };
+            },
+            ShouldCancelPreviousCard::No => {
+                current_stack.root_card.interrupt_play(
+                    &current_stack.root_card_owner_uuid,
+                    &current_stack.targeted_player_uuid,
+                    game_logic,
+                );
+        
+                if let Ok(root_card) = Arc::try_unwrap(current_stack.root_card) {
+                    // TODO - Handle this unwrap.
+                    root_card.get_interrupt_data_or().unwrap().post_interrupt_play(&current_stack.root_card_owner_uuid, game_logic);
+                    spent_cards.push((current_stack.root_card_owner_uuid, root_card.into()));
+                };
+            }
         };
 
         Ok(spent_cards)
@@ -181,6 +225,22 @@ struct GameInterruptStack {
     root_card_owner_uuid: PlayerUUID,
     targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
     interrupt_cards: Vec<GameInterruptData>,
+}
+
+impl GameInterruptStack {
+    fn drain_all_cards(mut self) -> Vec<(PlayerUUID, PlayerCard)> {
+        let mut cards = Vec::new();
+
+        while let Some(game_interrupt_data) = self.interrupt_cards.pop() {
+            cards.push((game_interrupt_data.card_owner_uuid, game_interrupt_data.card.into()));
+        }
+
+        if let Ok(root_card) = Arc::try_unwrap(self.root_card) {
+            cards.push((self.root_card_owner_uuid, root_card.into()));
+        };
+
+        cards
+    }
 }
 
 #[derive(Clone)]

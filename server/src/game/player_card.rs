@@ -98,6 +98,11 @@ impl RootPlayerCard {
     }
 }
 
+pub enum ShouldInterrupt {
+    Yes,
+    No,
+}
+
 #[derive(Clone)]
 pub struct RootPlayerCardInterruptData {
     interrupt_style: GameInterruptType,
@@ -132,7 +137,7 @@ pub struct InterruptPlayerCard {
     display_name: String,
     interrupt_type_input: GameInterruptType,
     interrupt_type_output: GameInterruptType,
-    interrupt_fn: Arc<dyn Fn(&PlayerUUID, &mut GameInterrupts) + Send + Sync>,
+    interrupt_fn: Arc<dyn Fn(&PlayerUUID, &GameInterrupts) -> ShouldCancelPreviousCard + Send + Sync>,
 }
 
 impl InterruptPlayerCard {
@@ -148,14 +153,15 @@ impl InterruptPlayerCard {
         self.interrupt_type_output
     }
 
-    pub fn interrupt(&self, player_uuid: &PlayerUUID, game_interrupts: &mut GameInterrupts) {
+    pub fn interrupt(&self, player_uuid: &PlayerUUID, game_interrupts: &mut GameInterrupts) -> ShouldCancelPreviousCard {
         (self.interrupt_fn)(player_uuid, game_interrupts)
     }
 }
 
-pub enum ShouldInterrupt {
-    Yes,
-    No,
+pub enum ShouldCancelPreviousCard {
+    Negate,
+    Ignore,
+    No
 }
 
 pub fn gambling_im_in_card() -> RootPlayerCard {
