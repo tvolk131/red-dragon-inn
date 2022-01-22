@@ -2,7 +2,7 @@ use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::game_interrupt::{GameInterruptType, GameInterrupts};
 use super::player::Player;
-use super::player_card::{PlayerCard, RootPlayerCard, TargetStyle};
+use super::player_card::{ShouldInterrupt, PlayerCard, RootPlayerCard, TargetStyle};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
@@ -73,7 +73,6 @@ impl GameLogic {
                 need_cheating_card_to_take_control: false,
             });
         }
-        self.gambling_ante_up();
     }
 
     pub fn gambling_take_control_of_round(
@@ -91,22 +90,20 @@ impl GameLogic {
         self.gambling_increment_player_turn();
     }
 
-    /// Forces all players that are still in the current gambling round to each
-    /// put one more gold in the gambling pot. Then passes the gambling turn to
-    /// the next player still in the gambling round.
-    pub fn gambling_ante_up(&mut self) {
-        let active_gambling_players = match &mut self.gambling_round_or {
-            Some(gambling_round) => {
-                gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32;
-                gambling_round.active_player_uuids.clone()
-            }
+    pub fn gambling_ante_up(&mut self, player_uuid: &PlayerUUID) {
+        if !self.is_gambling_turn(player_uuid) {
+            return
+        }
+
+        match &mut self.gambling_round_or {
+            Some(gambling_round) => gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32,
             None => return,
         };
-        for player_uuid in active_gambling_players.iter() {
-            self.get_player_by_uuid_mut(player_uuid)
-                .unwrap()
-                .change_gold(-1);
-        }
+
+        self.get_player_by_uuid_mut(player_uuid)
+            .unwrap()
+            .change_gold(-1);
+
         self.gambling_increment_player_turn();
     }
 
@@ -265,123 +262,7 @@ impl GameLogic {
         {
             match card {
                 PlayerCard::RootPlayerCard(root_player_card) => {
-                    match root_player_card {
-                        RootPlayerCard::SimplePlayerCard(simple_player_card) => {
-                            if other_player_uuid_or.is_some() {
-                                Err((
-                                    simple_player_card.into(),
-                                    Error::new("Cannot direct this card at another player"),
-                                ))
-                            } else {
-                                simple_player_card.play(player_uuid, self);
-                                Ok(Some(simple_player_card.into()))
-                            }
-                        }
-                        RootPlayerCard::DirectedPlayerCard(directed_player_card) => {
-                            match other_player_uuid_or {
-                                Some(other_player_uuid) => {
-                                    if directed_player_card.get_target_style()
-                                        != TargetStyle::SingleOtherPlayer
-                                    {
-                                        Err((
-                                            directed_player_card.into(),
-                                            Error::new("Cannot direct this card at another player"),
-                                        ))
-                                    } else if let Some(interrupt_type_output) =
-                                        directed_player_card.get_interrupt_type_output_or()
-                                    {
-                                        self.interrupts.push_new_stack(
-                                            interrupt_type_output,
-                                            directed_player_card,
-                                            player_uuid.clone(),
-                                            other_player_uuid.clone(),
-                                        );
-                                        Ok(None)
-                                    } else {
-                                        directed_player_card.play(
-                                            player_uuid,
-                                            other_player_uuid,
-                                            self,
-                                        );
-                                        Ok(Some(directed_player_card.into()))
-                                    }
-                                }
-                                None => match directed_player_card.get_target_style() {
-                                    TargetStyle::SingleOtherPlayer => Err((
-                                        directed_player_card.into(),
-                                        Error::new("Must direct this card at another player"),
-                                    )),
-                                    TargetStyle::AllOtherPlayers => {
-                                        let mut targeted_player_uuids =
-                                            rotate_player_vec_to_start_with_player(
-                                                self.players
-                                                    .iter()
-                                                    .map(|(player_uuid, _)| player_uuid)
-                                                    .cloned()
-                                                    .collect(),
-                                                player_uuid,
-                                            );
-                                        // Remove self from list.
-                                        // TODO - Add check here so that `remove` never panicks.
-                                        targeted_player_uuids.remove(0);
-
-                                        if let Some(interrupt_type_output) =
-                                            directed_player_card.get_interrupt_type_output_or()
-                                        {
-                                            self.interrupts.push_new_stacks(
-                                                interrupt_type_output,
-                                                directed_player_card,
-                                                player_uuid,
-                                                targeted_player_uuids,
-                                            );
-                                            Ok(None)
-                                        } else {
-                                            for targeted_player_uuid in targeted_player_uuids {
-                                                directed_player_card.play(
-                                                    player_uuid,
-                                                    &targeted_player_uuid,
-                                                    self,
-                                                )
-                                            }
-                                            Ok(Some(directed_player_card.into()))
-                                        }
-                                    }
-                                    TargetStyle::AllPlayersIncludingSelf => {
-                                        let targeted_player_uuids =
-                                            rotate_player_vec_to_start_with_player(
-                                                self.players
-                                                    .iter()
-                                                    .map(|(player_uuid, _)| player_uuid)
-                                                    .cloned()
-                                                    .collect(),
-                                                player_uuid,
-                                            );
-
-                                        if let Some(interrupt_type_output) =
-                                            directed_player_card.get_interrupt_type_output_or()
-                                        {
-                                            self.interrupts.push_new_stacks(
-                                                interrupt_type_output,
-                                                directed_player_card,
-                                                player_uuid,
-                                                targeted_player_uuids,
-                                            );
-                                            Ok(None)
-                                        } else {
-                                            for targeted_player_uuid in targeted_player_uuids {
-                                                directed_player_card.play(
-                                                    player_uuid,
-                                                    &targeted_player_uuid,
-                                                    self,
-                                                )
-                                            }
-                                            Ok(Some(directed_player_card.into()))
-                                        }
-                                    }
-                                },
-                            }
-                        }
-                    }
+                    process_root_player_card(root_player_card, player_uuid, other_player_uuid_or, self)
                 }
                 PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
                     if other_player_uuid_or.is_some() {
@@ -578,6 +459,112 @@ impl GameLogic {
         } else {
             10
         }
+    }
+}
+
+fn process_root_player_card(root_player_card: RootPlayerCard, player_uuid: &PlayerUUID, targeted_player_uuid_or: &Option<PlayerUUID>, game_logic: &mut GameLogic) -> Result<Option<PlayerCard>, (PlayerCard, Error)> {
+    if !root_player_card.can_play(player_uuid, game_logic) {
+        return Err((root_player_card.into(), Error::new("Cannot play card at this time")));
+    }
+
+    match root_player_card.get_target_style() {
+        TargetStyle::SingleOtherPlayer => {
+            if let Some(targeted_player_uuid) = targeted_player_uuid_or {
+                match root_player_card.pre_interrupt_play(player_uuid, game_logic) {
+                    ShouldInterrupt::Yes => {
+                        match root_player_card.get_interrupt_data_or() {
+                            Some(interrupt_data) => {
+                                game_logic.interrupts.push_new_stack(interrupt_data.get_interrupt_style(), root_player_card, player_uuid.clone(), targeted_player_uuid.clone());
+                                Ok(None)
+                            },
+                            None => {
+                                root_player_card.interrupt_play(player_uuid, targeted_player_uuid, game_logic);
+                                Ok(Some(root_player_card.into()))
+                            }
+                        }
+                    },
+                    ShouldInterrupt::No => Ok(Some(root_player_card.into()))
+                }
+            } else {
+                Err((root_player_card.into(), Error::new("Must direct this card at another player")))
+            }
+        },
+        TargetStyle::AllOtherPlayers => {
+            if targeted_player_uuid_or.is_some() {
+                return Err((
+                    root_player_card.into(),
+                    Error::new("Cannot direct this card at another player"),
+                ));
+            }
+
+            match root_player_card.pre_interrupt_play(player_uuid, game_logic) {
+                ShouldInterrupt::Yes => {
+                    let mut targeted_player_uuids =
+                        rotate_player_vec_to_start_with_player(
+                            game_logic.players
+                                .iter()
+                                .map(|(player_uuid, _)| player_uuid)
+                                .cloned()
+                                .collect(),
+                            player_uuid,
+                        );
+                    // Remove self from list.
+                    // TODO - Add check here so that `remove` never panicks.
+                    targeted_player_uuids.remove(0);
+
+                    match root_player_card.get_interrupt_data_or() {
+                        Some(interrupt_data) => {
+                            game_logic.interrupts.push_new_stacks(interrupt_data.get_interrupt_style(), root_player_card, player_uuid, targeted_player_uuids);
+                            Ok(None)
+                        },
+                        None => {
+                            for targeted_player_uuid in &targeted_player_uuids {
+                                root_player_card.interrupt_play(player_uuid, targeted_player_uuid, game_logic);
+                            }
+                            Ok(Some(root_player_card.into()))
+                        }
+                    }
+                },
+                ShouldInterrupt::No => Ok(Some(root_player_card.into()))
+            }
+        },
+        // TODO - This branch is almost identical to the one above. Let's reduce code duplication somehow.
+        TargetStyle::AllPlayersIncludingSelf => {
+            if targeted_player_uuid_or.is_some() {
+                return Err((
+                    root_player_card.into(),
+                    Error::new("Cannot direct this card at another player"),
+                ));
+            }
+
+            match root_player_card.pre_interrupt_play(player_uuid, game_logic) {
+                ShouldInterrupt::Yes => {
+                    let targeted_player_uuids =
+                        rotate_player_vec_to_start_with_player(
+                            game_logic.players
+                                .iter()
+                                .map(|(player_uuid, _)| player_uuid)
+                                .cloned()
+                                .collect(),
+                            player_uuid,
+                        );
+
+                    match root_player_card.get_interrupt_data_or() {
+                        Some(interrupt_data) => {
+                            game_logic.interrupts.push_new_stacks(interrupt_data.get_interrupt_style(), root_player_card, player_uuid, targeted_player_uuids);
+                            Ok(None)
+                        },
+                        None => {
+                            for targeted_player_uuid in &targeted_player_uuids {
+                                root_player_card.interrupt_play(player_uuid, targeted_player_uuid, game_logic);
+                            }
+                            Ok(Some(root_player_card.into()))
+                        }
+                    }
+                },
+                ShouldInterrupt::No => Ok(Some(root_player_card.into()))
+            }
+        },
     }
 }
 

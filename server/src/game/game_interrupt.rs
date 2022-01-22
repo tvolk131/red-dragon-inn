@@ -1,5 +1,5 @@
 use super::error::Error;
-use super::player_card::{DirectedPlayerCard, InterruptPlayerCard, PlayerCard};
+use super::player_card::{RootPlayerCard, InterruptPlayerCard, PlayerCard};
 use super::GameLogic;
 use super::PlayerUUID;
 use std::sync::Arc;
@@ -19,7 +19,7 @@ impl GameInterrupts {
     pub fn push_new_stack(
         &mut self,
         game_interrupt_type: GameInterruptType,
-        card: DirectedPlayerCard,
+        card: RootPlayerCard,
         card_owner_uuid: PlayerUUID,
         targeted_player_uuid: PlayerUUID,
     ) {
@@ -38,7 +38,7 @@ impl GameInterrupts {
     pub fn push_new_stacks(
         &mut self,
         game_interrupt_type: GameInterruptType,
-        card: DirectedPlayerCard,
+        card: RootPlayerCard,
         card_owner_uuid: &PlayerUUID,
         targeted_player_uuids: Vec<PlayerUUID>,
     ) {
@@ -98,13 +98,15 @@ impl GameInterrupts {
             ));
         }
 
-        current_stack.root_card.play(
+        current_stack.root_card.interrupt_play(
             &current_stack.root_card_owner_uuid,
             &current_stack.targeted_player_uuid,
             game_logic,
         );
 
         if let Ok(card) = Arc::try_unwrap(current_stack.root_card) {
+            // TODO - Handle this unwrap.
+            card.get_interrupt_data_or().unwrap().post_interrupt_play(&current_stack.root_card_owner_uuid, game_logic);
             spent_cards.push((current_stack.root_card_owner_uuid, card.into()));
         };
 
@@ -157,7 +159,7 @@ impl GameInterruptType {
 
 #[derive(Clone)]
 struct GameInterruptStack {
-    root_card: Arc<DirectedPlayerCard>,
+    root_card: Arc<RootPlayerCard>,
     root_card_interrupt_type: GameInterruptType,
     root_card_owner_uuid: PlayerUUID,
     targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
