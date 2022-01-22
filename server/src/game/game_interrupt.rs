@@ -55,12 +55,29 @@ impl GameInterrupts {
         }
     }
 
+    fn can_push_to_current_stack(&self, game_interrupt_type: GameInterruptType) -> bool {
+        match self.get_current_interrupt() {
+            Some(current_interrupt) => {
+                if !game_interrupt_type.variant_eq(current_interrupt) {
+                    return false;
+                }
+            },
+            None => return false
+        };
+
+        !self.interrupt_stacks.is_empty()
+    }
+
     pub fn push_to_current_stack(
         &mut self,
         game_interrupt_type: GameInterruptType,
         card: InterruptPlayerCard,
         card_owner_uuid: PlayerUUID,
     ) -> Result<(), InterruptPlayerCard> {
+        if !self.can_push_to_current_stack(game_interrupt_type) {
+            return Err(card);
+        }
+
         let current_stack = match self.interrupt_stacks.first_mut() {
             Some(current_stack) => current_stack,
             None => return Err(card),

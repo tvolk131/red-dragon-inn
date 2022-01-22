@@ -284,7 +284,7 @@ impl GameLogic {
                     {
                         Err((
                             interrupt_player_card.into(),
-                            Error::new("Cannot play an interrupt card at this time"),
+                            Error::new("Cannot play this card at this time"),
                         ))
                     } else {
                         Ok(None)
