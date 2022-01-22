@@ -29,7 +29,7 @@ impl PlayerManager {
     }
 
     pub fn clone_uuids_of_all_alive_players(&self) -> Vec<PlayerUUID> {
-        self.players.iter().filter(|(player_uuid, player)| !player.is_out_of_game()).map(|(player_uuid, _)| player_uuid).cloned().collect()
+        self.players.iter().filter(|(_, player)| !player.is_out_of_game()).map(|(player_uuid, _)| player_uuid).cloned().collect()
     }
 
     pub fn get_player_by_uuid(&self, player_uuid: &PlayerUUID) -> Option<&Player> {

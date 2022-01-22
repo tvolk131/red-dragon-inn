@@ -1,7 +1,6 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
 use super::game_interrupt::{GameInterruptType, GameInterrupts};
-use super::player::Player;
 use super::player_card::{ShouldInterrupt, PlayerCard, RootPlayerCard, TargetStyle};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
