@@ -1,6 +1,6 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, Drink};
-use super::game_interrupt::{GameInterruptType, GameInterrupts};
+use super::interrupt_manager::InterruptManager;
 use super::player_card::{ShouldInterrupt, PlayerCard, RootPlayerCard, TargetStyle};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
@@ -8,15 +8,15 @@ use super::{Character, Error};
 use super::player_manager::{PlayerManager, NextPlayerUUIDOption};
 use serde::Serialize;
 use std::collections::HashSet;
+use super::gambling_manager::GamblingManager;
 
 #[derive(Clone)]
 pub struct GameLogic {
     player_manager: PlayerManager,
+    gambling_manager: GamblingManager,
+    interrupt_manager: InterruptManager,
     drink_deck: AutoShufflingDeck<Box<dyn Drink>>,
     turn_info: TurnInfo,
-    gambling_round_or: Option<GamblingRound>,
-    interrupts: GameInterrupts,
-    current_interrupt_turn_or: Option<PlayerUUID>
 }
 
 impl GameLogic {
@@ -30,146 +30,19 @@ impl GameLogic {
 
         Ok(Self {
             player_manager: PlayerManager::new(players_with_characters),
+            gambling_manager: GamblingManager::new(),
+            interrupt_manager: InterruptManager::new(),
             drink_deck: AutoShufflingDeck::new(create_drink_deck()),
             turn_info: TurnInfo::new(first_player_uuid),
-            gambling_round_or: None,
-            interrupts: GameInterrupts::new(),
-            current_interrupt_turn_or: None
         })
     }
 
-    pub fn get_current_player_turn(&self) -> &PlayerUUID {
-        &self.turn_info.player_turn
+    pub fn get_gambling_manager(&self) -> &GamblingManager {
+        &self.gambling_manager
     }
 
-    pub fn can_play_action_card(&self, player_uuid: &PlayerUUID) -> bool {
-        self.get_current_player_turn() == player_uuid
-            && self.turn_info.turn_phase == TurnPhase::Action
-            && self.gambling_round_or.is_none()
-    }
-
-    pub fn get_player_manager_mut(&mut self) -> &mut PlayerManager {
-        &mut self.player_manager
-    }
-
-    pub fn gambling_round_in_progress(&self) -> bool {
-        self.gambling_round_or.is_some()
-    }
-
-    pub fn start_gambling_round(&mut self, player_uuid: PlayerUUID) {
-        if self.gambling_round_or.is_none() {
-            self.gambling_round_or = Some(GamblingRound {
-                active_player_uuids: self.player_manager.clone_uuids_of_all_alive_players(),
-                current_player_turn: player_uuid.clone(),
-                winning_player: player_uuid,
-                pot_amount: 0,
-                need_cheating_card_to_take_control: false,
-            });
-        }
-    }
-
-    pub fn gambling_take_control_of_round(
-        &mut self,
-        player_uuid: PlayerUUID,
-        need_cheating_card_to_take_control: bool,
-    ) {
-        let gambling_round = match &mut self.gambling_round_or {
-            Some(gambling_round) => gambling_round,
-            None => return,
-        };
-
-        gambling_round.winning_player = player_uuid;
-        gambling_round.need_cheating_card_to_take_control = need_cheating_card_to_take_control;
-        self.gambling_increment_player_turn();
-    }
-
-    pub fn gambling_ante_up(&mut self, player_uuid: &PlayerUUID) {
-        if !self.is_gambling_turn(player_uuid) {
-            return
-        }
-
-        match &mut self.gambling_round_or {
-            Some(gambling_round) => gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32,
-            None => return,
-        };
-
-        self.player_manager.get_player_by_uuid_mut(player_uuid)
-            .unwrap()
-            .change_gold(-1);
-
-        self.gambling_increment_player_turn();
-    }
-
-    pub fn gambling_pass(&mut self) {
-        self.gambling_increment_player_turn();
-
-        let (winner_or, pot_amount) = {
-            let gambling_round = match &self.gambling_round_or {
-                Some(gambling_round) => gambling_round,
-                None => return,
-            };
-
-            let winner_or = if self.is_gambling_turn(&gambling_round.winning_player) {
-                Some(gambling_round.winning_player.clone())
-            } else {
-                None
-            };
-
-            (winner_or, gambling_round.pot_amount)
-        };
-
-        if let Some(winner) = winner_or {
-            self.player_manager.get_player_by_uuid_mut(&winner)
-                .unwrap()
-                .change_gold(pot_amount);
-            self.gambling_round_or = None;
-            self.turn_info.turn_phase = TurnPhase::OrderDrinks
-        }
-    }
-
-    pub fn gambling_need_cheating_card_to_take_control(&self) -> bool {
-        match &self.gambling_round_or {
-            Some(gambling_round) => gambling_round.need_cheating_card_to_take_control,
-            None => false,
-        }
-    }
-
-    fn gambling_increment_player_turn(&mut self) {
-        let gambling_round = match &mut self.gambling_round_or {
-            Some(gambling_round) => gambling_round,
-            None => return,
-        };
-
-        let current_player_gambling_round_index_or = gambling_round
-            .active_player_uuids
-            .iter()
-            .position(|player_uuid| player_uuid == &gambling_round.current_player_turn);
-
-        let next_player_gambling_round_index = match current_player_gambling_round_index_or {
-            Some(current_player_gambling_round_index) => {
-                if current_player_gambling_round_index
-                    < gambling_round.active_player_uuids.len() - 1
-                {
-                    current_player_gambling_round_index + 1
-                } else {
-                    0
-                }
-            }
-            None => 0,
-        };
-
-        gambling_round.current_player_turn = gambling_round
-            .active_player_uuids
-            .get(next_player_gambling_round_index)
-            .unwrap()
-            .clone();
-    }
-
-    pub fn is_gambling_turn(&self, player_uuid: &PlayerUUID) -> bool {
-        match &self.gambling_round_or {
-            Some(gambling_round) => &gambling_round.current_player_turn == player_uuid,
-            None => false,
-        }
+    pub fn get_turn_info(&self) -> &TurnInfo {
+        &self.turn_info
     }
 
     pub fn get_game_view_player_data_of_all_players(&self) -> Vec<GameViewPlayerData> {
@@ -178,17 +51,9 @@ impl GameLogic {
 
     pub fn get_game_view_player_hand(&self, player_uuid: &PlayerUUID) -> Vec<GameViewPlayerCard> {
         match self.player_manager.get_player_by_uuid(player_uuid) {
-            Some(player) => player.get_game_view_hand(player_uuid, self),
+            Some(player) => player.get_game_view_hand(player_uuid, &self.gambling_manager, &self.interrupt_manager, &self.turn_info),
             None => Vec::new(),
         }
-    }
-
-    pub fn get_current_interrupt(&self) -> Option<GameInterruptType> {
-        self.interrupts.get_current_interrupt()
-    }
-
-    pub fn is_action_phase(&self) -> bool {
-        self.turn_info.turn_phase == TurnPhase::Action
     }
 
     pub fn get_turn_phase(&self) -> TurnPhase {
@@ -230,11 +95,14 @@ impl GameLogic {
         // This is a bit complex, but the type of `return_val` was carefully chosen. If `Ok` is returned, then the wrapped card should be discarded if it exists.
         // If an error is returned, the card should always be returned to the player's hand.
         let return_val: Result<Option<PlayerCard>, (PlayerCard, Error)> = if card
-            .can_play(player_uuid, self)
+            .can_play(player_uuid, &self.gambling_manager, &self.interrupt_manager, &self.turn_info)
         {
             match card {
                 PlayerCard::RootPlayerCard(root_player_card) => {
-                    process_root_player_card(root_player_card, player_uuid, other_player_uuid_or, self)
+                    match process_root_player_card(root_player_card, player_uuid, other_player_uuid_or, &mut self.player_manager, &mut self.gambling_manager, &mut self.interrupt_manager, &self.turn_info) {
+                        Ok(card_or) => Ok(card_or.map(|card| card.into())),
+                        Err((card, err)) => Err((card.into(), err))
+                    }
                 }
                 PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
                     if other_player_uuid_or.is_some() {
@@ -242,25 +110,11 @@ impl GameLogic {
                             interrupt_player_card.into(),
                             Error::new("Cannot direct this card at another player"),
                         ))
-                    } else if self.interrupts.is_empty() {
-                        Err((
-                            interrupt_player_card.into(),
-                            Error::new("Cannot play an interrupt card at this time"),
-                        ))
-                    } else if let Err(interrupt_player_card) =
-                        self.interrupts.push_to_current_stack(
-                            interrupt_player_card.get_interrupt_type_output(),
-                            interrupt_player_card,
-                            player_uuid.clone(),
-                        )
-                    {
-                        Err((
-                            interrupt_player_card.into(),
-                            Error::new("Cannot play this card at this time"),
-                        ))
                     } else {
-                        self.increment_current_interrupt_player_turn();
-                        Ok(None)
+                        match self.interrupt_manager.play_interrupt_card(interrupt_player_card, player_uuid.clone()) {
+                            Ok(_) => Ok(None),
+                            Err((card, error)) => Err((card.into(), error))
+                        }
                     }
                 }
             }
@@ -291,7 +145,7 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         mut card_indices: Vec<usize>,
     ) -> Result<(), Error> {
-        if self.get_current_player_turn() != player_uuid
+        if self.get_turn_info().get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw
         {
             return Err(Error::new("Cannot discard cards at this time"));
@@ -343,7 +197,7 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Result<(), Error> {
-        if self.get_current_player_turn() != player_uuid
+        if self.get_turn_info().get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::OrderDrinks
         {
             return Err(Error::new("Cannot order drinks at this time"));
@@ -367,6 +221,20 @@ impl GameLogic {
             self.perform_drink_phase(player_uuid)?;
         }
         Ok(())
+    }
+
+    pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
+        if self.get_turn_info().can_play_action_card(player_uuid, &self.gambling_manager) {
+            self.skip_action_phase()?;
+            return Ok(());
+        }
+
+        if self.get_gambling_manager().is_turn(player_uuid) {
+            self.gambling_manager.pass(&mut self.player_manager, &mut self.turn_info);
+            return Ok(());
+        }
+
+        Err(Error::new("Cannot pass at this time"))
     }
 
     fn perform_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
@@ -398,138 +266,95 @@ impl GameLogic {
             }
         };
     }
-
-    fn increment_current_interrupt_player_turn(&mut self) {
-        if let Some(current_interrupt_turn) = &self.current_interrupt_turn_or {
-            match self.player_manager.get_next_alive_player_uuid(current_interrupt_turn) {
-                NextPlayerUUIDOption::Some(next_player_uuid) => {
-                    // If, after incrementing the player turn, the interrupt turn has
-                    // looped back around to the last player who played a card, then
-                    // that ends the interrupt stack since that player was uninterrupted.
-                    if Some(next_player_uuid) == self.interrupts.get_last_player_to_play_on_current_stack() {
-                        self.interrupts.resolve_current_stack(self);
-                        self.current_interrupt_turn_or = None;
-                    } else {
-                        self.current_interrupt_turn_or = Some(next_player_uuid.clone());
-                    }
-                },
-                _ => {} // TODO - Return an error here.
-            };
-        }
-    }
 }
 
-fn process_root_player_card(root_player_card: RootPlayerCard, player_uuid: &PlayerUUID, targeted_player_uuid_or: &Option<PlayerUUID>, game_logic: &mut GameLogic) -> Result<Option<PlayerCard>, (PlayerCard, Error)> {
-    if !root_player_card.can_play(player_uuid, game_logic) {
-        return Err((root_player_card.into(), Error::new("Cannot play card at this time")));
+fn process_root_player_card(root_player_card: RootPlayerCard, player_uuid: &PlayerUUID, targeted_player_uuid_or: &Option<PlayerUUID>, player_manager: &mut PlayerManager, gambling_manager: &mut GamblingManager, interrupt_manager: &mut InterruptManager, turn_info: &TurnInfo) -> Result<Option<RootPlayerCard>, (RootPlayerCard, Error)> {
+    if !root_player_card.can_play(player_uuid, gambling_manager, turn_info) {
+        return Err((root_player_card, Error::new("Cannot play card at this time")));
     }
 
     match root_player_card.get_target_style() {
         TargetStyle::SingleOtherPlayer => {
             if let Some(targeted_player_uuid) = targeted_player_uuid_or {
-                match root_player_card.pre_interrupt_play(player_uuid, game_logic) {
+                match root_player_card.pre_interrupt_play(player_uuid, player_manager, gambling_manager) {
                     ShouldInterrupt::Yes => {
-                        match root_player_card.get_interrupt_data_or() {
-                            Some(interrupt_data) => {
-                                game_logic.interrupts.push_new_stack(interrupt_data.get_interrupt_style(), root_player_card, player_uuid.clone(), targeted_player_uuid.clone());
-                                game_logic.current_interrupt_turn_or = Some(player_uuid.clone());
-                                game_logic.increment_current_interrupt_player_turn();
-                                Ok(None)
-                            },
-                            None => {
-                                root_player_card.interrupt_play(player_uuid, targeted_player_uuid, game_logic);
-                                Ok(Some(root_player_card.into()))
-                            }
+                        if root_player_card.get_interrupt_data_or().is_some() {
+                            interrupt_manager.start_single_player_interrupt(root_player_card, player_uuid.clone(), targeted_player_uuid.clone(), player_manager, gambling_manager)?;
+                            Ok(None)
+                        } else {
+                            root_player_card.interrupt_play(player_uuid, targeted_player_uuid, player_manager, gambling_manager);
+                            Ok(Some(root_player_card))
                         }
                     },
-                    ShouldInterrupt::No => Ok(Some(root_player_card.into()))
+                    ShouldInterrupt::No => Ok(Some(root_player_card))
                 }
             } else {
-                Err((root_player_card.into(), Error::new("Must direct this card at another player")))
+                Err((root_player_card, Error::new("Must direct this card at another player")))
             }
         },
         TargetStyle::AllOtherPlayers => {
             if targeted_player_uuid_or.is_some() {
                 return Err((
-                    root_player_card.into(),
+                    root_player_card,
                     Error::new("Cannot direct this card at another player"),
                 ));
             }
 
-            match root_player_card.pre_interrupt_play(player_uuid, game_logic) {
+            match root_player_card.pre_interrupt_play(player_uuid, player_manager, gambling_manager) {
                 ShouldInterrupt::Yes => {
                     let mut targeted_player_uuids =
                         rotate_player_vec_to_start_with_player(
-                            game_logic.player_manager.clone_uuids_of_all_alive_players(),
+                            player_manager.clone_uuids_of_all_alive_players(),
                             player_uuid,
                         );
                     // Remove self from list.
                     // TODO - Add check here so that `remove` never panicks.
                     targeted_player_uuids.remove(0);
 
-                    match root_player_card.get_interrupt_data_or() {
-                        Some(interrupt_data) => {
-                            game_logic.interrupts.push_new_stacks(interrupt_data.get_interrupt_style(), root_player_card, player_uuid, targeted_player_uuids);
-                            game_logic.current_interrupt_turn_or = Some(player_uuid.clone());
-                            game_logic.increment_current_interrupt_player_turn();
-                            Ok(None)
-                        },
-                        None => {
-                            for targeted_player_uuid in &targeted_player_uuids {
-                                root_player_card.interrupt_play(player_uuid, targeted_player_uuid, game_logic);
-                            }
-                            Ok(Some(root_player_card.into()))
+                    if root_player_card.get_interrupt_data_or().is_some() {
+                        interrupt_manager.start_multi_player_interrupt(root_player_card, player_uuid, targeted_player_uuids, player_manager, gambling_manager)?;
+                        Ok(None)
+                    } else {
+                        for targeted_player_uuid in &targeted_player_uuids {
+                            root_player_card.interrupt_play(player_uuid, targeted_player_uuid, player_manager, gambling_manager);
                         }
+                        Ok(Some(root_player_card))
                     }
                 },
-                ShouldInterrupt::No => Ok(Some(root_player_card.into()))
+                ShouldInterrupt::No => Ok(Some(root_player_card))
             }
         },
         // TODO - This branch is almost identical to the one above. Let's reduce code duplication somehow.
         TargetStyle::AllPlayersIncludingSelf => {
             if targeted_player_uuid_or.is_some() {
                 return Err((
-                    root_player_card.into(),
+                    root_player_card,
                     Error::new("Cannot direct this card at another player"),
                 ));
             }
 
-            match root_player_card.pre_interrupt_play(player_uuid, game_logic) {
+            match root_player_card.pre_interrupt_play(player_uuid, player_manager, gambling_manager) {
                 ShouldInterrupt::Yes => {
                     let targeted_player_uuids =
                         rotate_player_vec_to_start_with_player(
-                            game_logic.player_manager.clone_uuids_of_all_alive_players(),
+                            player_manager.clone_uuids_of_all_alive_players(),
                             player_uuid,
                         );
 
-                    match root_player_card.get_interrupt_data_or() {
-                        Some(interrupt_data) => {
-                            game_logic.interrupts.push_new_stacks(interrupt_data.get_interrupt_style(), root_player_card, player_uuid, targeted_player_uuids);
-                            game_logic.current_interrupt_turn_or = Some(player_uuid.clone());
-                            game_logic.increment_current_interrupt_player_turn();
-                            Ok(None)
-                        },
-                        None => {
-                            for targeted_player_uuid in &targeted_player_uuids {
-                                root_player_card.interrupt_play(player_uuid, targeted_player_uuid, game_logic);
-                            }
-                            Ok(Some(root_player_card.into()))
+                    if root_player_card.get_interrupt_data_or().is_some() {
+                        interrupt_manager.start_multi_player_interrupt(root_player_card, player_uuid, targeted_player_uuids, player_manager, gambling_manager)?;
+                        Ok(None)
+                    } else {
+                        for targeted_player_uuid in &targeted_player_uuids {
+                            root_player_card.interrupt_play(player_uuid, targeted_player_uuid, player_manager, gambling_manager);
                         }
+                        Ok(Some(root_player_card))
                     }
                 },
-                ShouldInterrupt::No => Ok(Some(root_player_card.into()))
+                ShouldInterrupt::No => Ok(Some(root_player_card))
             }
         },
     }
-}
-
-#[derive(Clone)]
-struct GamblingRound {
-    active_player_uuids: Vec<PlayerUUID>,
-    current_player_turn: PlayerUUID,
-    winning_player: PlayerUUID,
-    pot_amount: i32,
-    need_cheating_card_to_take_control: bool,
 }
 
 #[derive(Clone)]
@@ -546,6 +371,20 @@ impl TurnInfo {
             turn_phase: TurnPhase::DiscardAndDraw,
             drinks_to_order: 1,
         }
+    }
+
+    pub fn set_order_drinks_phase(&mut self) {
+        self.turn_phase = TurnPhase::OrderDrinks
+    }
+
+    pub fn get_current_player_turn(&self) -> &PlayerUUID {
+        &self.player_turn
+    }
+
+    pub fn can_play_action_card(&self, player_uuid: &PlayerUUID, gambling_manager: &GamblingManager) -> bool {
+        self.get_current_player_turn() == player_uuid
+            && self.turn_phase == TurnPhase::Action
+            && !gambling_manager.round_in_progress()
     }
 }
 

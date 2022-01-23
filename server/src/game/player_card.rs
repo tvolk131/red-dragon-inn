@@ -1,7 +1,9 @@
-use super::game_interrupt::{GameInterruptType, GameInterrupts, PlayerCardInfo};
+use super::interrupt_manager::{GameInterruptType, InterruptManager, PlayerCardInfo};
 use super::uuid::PlayerUUID;
-use super::GameLogic;
 use std::sync::Arc;
+use super::player_manager::PlayerManager;
+use super::gambling_manager::GamblingManager;
+use super::game_logic::TurnInfo;
 
 #[derive(Clone)]
 pub enum PlayerCard {
@@ -19,13 +21,13 @@ impl PlayerCard {
         }
     }
 
-    pub fn can_play(&self, player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool {
+    pub fn can_play(&self, player_uuid: &PlayerUUID, gambling_manager: &GamblingManager, interrupt_manager: &InterruptManager, turn_info: &TurnInfo) -> bool {
         match &self {
             Self::RootPlayerCard(root_player_card) => {
-                root_player_card.can_play(player_uuid, game_logic)
+                root_player_card.can_play(player_uuid, gambling_manager, turn_info)
             }
             Self::InterruptPlayerCard(interrupt_player_card) => {
-                let current_interrupt = match game_logic.get_current_interrupt() {
+                let current_interrupt = match interrupt_manager.get_current_interrupt() {
                     Some(current_interrupt) => current_interrupt,
                     None => return false,
                 };
@@ -53,9 +55,9 @@ impl From<InterruptPlayerCard> for PlayerCard {
 pub struct RootPlayerCard {
     display_name: String,
     target_style: TargetStyle,
-    can_play_fn: fn(player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool,
-    pre_interrupt_play_fn_or: Option<Arc<dyn Fn(&PlayerUUID, &mut GameLogic) -> ShouldInterrupt + Send + Sync>>,
-    interrupt_play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut GameLogic) + Send + Sync>,
+    can_play_fn: fn(player_uuid: &PlayerUUID, gambling_manager: &GamblingManager, turn_info: &TurnInfo) -> bool,
+    pre_interrupt_play_fn_or: Option<Arc<dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager) -> ShouldInterrupt + Send + Sync>>,
+    interrupt_play_fn: Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut PlayerManager, &mut GamblingManager) + Send + Sync>,
     interrupt_data_or: Option<RootPlayerCardInterruptData>,
 }
 
@@ -68,8 +70,8 @@ impl RootPlayerCard {
         self.target_style
     }
 
-    pub fn can_play(&self, player_uuid: &PlayerUUID, game_logic: &GameLogic) -> bool {
-        (self.can_play_fn)(player_uuid, game_logic)
+    pub fn can_play(&self, player_uuid: &PlayerUUID, gambling_manager: &GamblingManager, turn_info: &TurnInfo) -> bool {
+        (self.can_play_fn)(player_uuid, gambling_manager, turn_info)
     }
 
     pub fn get_interrupt_data_or(&self) -> Option<&RootPlayerCardInterruptData> {
@@ -79,10 +81,11 @@ impl RootPlayerCard {
     pub fn pre_interrupt_play(
         &self,
         player_uuid: &PlayerUUID,
-        game_logic: &mut GameLogic,
+        player_manager: &mut PlayerManager,
+        gambling_manager: &mut GamblingManager
     ) -> ShouldInterrupt {
         if let Some(pre_interrupt_play_fn) = &self.pre_interrupt_play_fn_or {
-            (pre_interrupt_play_fn)(player_uuid, game_logic)
+            (pre_interrupt_play_fn)(player_uuid, player_manager, gambling_manager)
         } else {
             ShouldInterrupt::Yes
         }
@@ -92,9 +95,10 @@ impl RootPlayerCard {
         &self,
         player_uuid: &PlayerUUID,
         targeted_player_uuid: &PlayerUUID,
-        game_logic: &mut GameLogic,
+        player_manager: &mut PlayerManager,
+        gambling_manager: &mut GamblingManager
     ) {
-        (self.interrupt_play_fn)(player_uuid, targeted_player_uuid, game_logic)
+        (self.interrupt_play_fn)(player_uuid, targeted_player_uuid, player_manager, gambling_manager)
     }
 }
 
@@ -106,7 +110,7 @@ pub enum ShouldInterrupt {
 #[derive(Clone)]
 pub struct RootPlayerCardInterruptData {
     interrupt_style: GameInterruptType,
-    post_interrupt_play_fn_or: Option<Arc<dyn Fn(&PlayerUUID, &mut GameLogic) + Send + Sync>>,
+    post_interrupt_play_fn_or: Option<Arc<dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager) + Send + Sync>>,
 }
 
 impl RootPlayerCardInterruptData {
@@ -117,10 +121,11 @@ impl RootPlayerCardInterruptData {
     pub fn post_interrupt_play(
         &self,
         player_uuid: &PlayerUUID,
-        game_logic: &mut GameLogic,
+        player_manager: &mut PlayerManager,
+        gambling_manager: &mut GamblingManager
     ) {
         if let Some(post_interrupt_play_fn) = &self.post_interrupt_play_fn_or {
-            (post_interrupt_play_fn)(player_uuid, game_logic)
+            (post_interrupt_play_fn)(player_uuid, player_manager, gambling_manager)
         }
     }
 }
@@ -137,7 +142,7 @@ pub struct InterruptPlayerCard {
     display_name: String,
     interrupt_type_input: GameInterruptType,
     interrupt_type_output: GameInterruptType,
-    interrupt_fn: Arc<dyn Fn(&PlayerUUID, &GameInterrupts) -> ShouldCancelPreviousCard + Send + Sync>,
+    interrupt_fn: Arc<dyn Fn(&PlayerUUID, &InterruptManager) -> ShouldCancelPreviousCard + Send + Sync>,
 }
 
 impl InterruptPlayerCard {
@@ -153,7 +158,7 @@ impl InterruptPlayerCard {
         self.interrupt_type_output
     }
 
-    pub fn interrupt(&self, player_uuid: &PlayerUUID, game_interrupts: &mut GameInterrupts) -> ShouldCancelPreviousCard {
+    pub fn interrupt(&self, player_uuid: &PlayerUUID, game_interrupts: &mut InterruptManager) -> ShouldCancelPreviousCard {
         (self.interrupt_fn)(player_uuid, game_interrupts)
     }
 }
@@ -168,28 +173,26 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Gambling? I'm in!"),
         target_style: TargetStyle::AllPlayersIncludingSelf,
-        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
-            if game_logic.gambling_round_in_progress() {
-                game_logic.is_gambling_turn(player_uuid)
-                    && !game_logic.gambling_need_cheating_card_to_take_control()
+        can_play_fn: |player_uuid: &PlayerUUID, gambling_manager: &GamblingManager, turn_info: &TurnInfo| -> bool {
+            if gambling_manager.round_in_progress() {
+                gambling_manager.is_turn(player_uuid)
+                    && !gambling_manager.need_cheating_card_to_take_next_control()
             } else {
-                game_logic.can_play_action_card(player_uuid)
+                turn_info.can_play_action_card(player_uuid, gambling_manager)
             }
         },
-        pre_interrupt_play_fn_or: Some(Arc::from(|player_uuid: &PlayerUUID, game_logic: &mut GameLogic| {
-            if game_logic.gambling_round_in_progress() {
-                game_logic.gambling_take_control_of_round(player_uuid.clone(), false);
+        pre_interrupt_play_fn_or: Some(Arc::from(|player_uuid: &PlayerUUID, player_manager: &mut PlayerManager, gambling_manager: &mut GamblingManager| {
+            if gambling_manager.round_in_progress() {
+                gambling_manager.take_control_of_round(player_uuid.clone(), false);
                 ShouldInterrupt::No
             } else {
-                game_logic.start_gambling_round(player_uuid.clone());
+                gambling_manager.start_round(player_uuid.clone(), player_manager);
                 ShouldInterrupt::Yes
             }
         })),
         interrupt_play_fn: Arc::from(
-            |_player_uuid: &PlayerUUID,
-             targeted_player_uuid: &PlayerUUID,
-             game_logic: &mut GameLogic| {
-                game_logic.gambling_ante_up(targeted_player_uuid);
+            |_player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, player_manager: &mut PlayerManager, gambling_manager: &mut GamblingManager| {
+                gambling_manager.ante_up(targeted_player_uuid, player_manager);
             },
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
@@ -203,17 +206,15 @@ pub fn i_raise_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("I raise!"),
         target_style: TargetStyle::AllPlayersIncludingSelf,
-        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
-            game_logic.gambling_round_in_progress()
-                && game_logic.is_gambling_turn(player_uuid)
-                && !game_logic.gambling_need_cheating_card_to_take_control()
+        can_play_fn: |player_uuid: &PlayerUUID, gambling_manager: &GamblingManager, _turn_info: &TurnInfo| -> bool {
+            gambling_manager.round_in_progress()
+                && gambling_manager.is_turn(player_uuid)
+                && !gambling_manager.need_cheating_card_to_take_next_control()
         },
         pre_interrupt_play_fn_or: None,
         interrupt_play_fn: Arc::from(
-            |_player_uuid: &PlayerUUID,
-             targeted_player_uuid: &PlayerUUID,
-             game_logic: &mut GameLogic| {
-                game_logic.gambling_ante_up(targeted_player_uuid)
+            |_player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, player_manager: &mut PlayerManager, gambling_manager: &mut GamblingManager| {
+                gambling_manager.ante_up(targeted_player_uuid, player_manager)
             },
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
@@ -230,16 +231,14 @@ pub fn change_other_player_fortitude(
     RootPlayerCard {
         display_name: display_name.to_string(),
         target_style: TargetStyle::SingleOtherPlayer,
-        can_play_fn: |player_uuid: &PlayerUUID, game_logic: &GameLogic| -> bool {
-            game_logic.can_play_action_card(player_uuid)
+        can_play_fn: |player_uuid: &PlayerUUID, gambling_manager: &GamblingManager, turn_info: &TurnInfo| -> bool {
+            turn_info.can_play_action_card(player_uuid, gambling_manager)
         },
         pre_interrupt_play_fn_or: None,
         interrupt_play_fn: Arc::from(
-            move |_player_uuid: &PlayerUUID,
-                  targeted_player_uuid: &PlayerUUID,
-                  game_logic: &mut GameLogic| {
+            move |_player_uuid: &PlayerUUID, targeted_player_uuid: &PlayerUUID, player_manager: &mut PlayerManager, _gambling_manager: &mut GamblingManager| {
                 if let Some(targeted_player) =
-                    game_logic.get_player_manager_mut().get_player_by_uuid_mut(targeted_player_uuid)
+                    player_manager.get_player_by_uuid_mut(targeted_player_uuid)
                 {
                     targeted_player.change_fortitude(amount);
                 }

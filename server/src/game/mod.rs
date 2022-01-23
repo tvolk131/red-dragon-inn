@@ -1,13 +1,14 @@
 mod deck;
 mod drink;
 mod error;
-mod game_interrupt;
+mod interrupt_manager;
 mod game_logic;
 mod player;
 mod player_card;
 pub mod player_view;
 mod uuid;
 mod player_manager;
+mod gambling_manager;
 
 pub use self::uuid::GameUUID;
 pub use self::uuid::PlayerUUID;
@@ -130,7 +131,7 @@ impl Game {
         other_player_uuid_or: &Option<PlayerUUID>,
         card_index: usize,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_mut_game_logic() {
+        let game_logic = match self.get_game_logic_mut() {
             Ok(game_logic) => game_logic,
             Err(err) => return Err(err),
         };
@@ -148,7 +149,7 @@ impl Game {
         player_uuid: &PlayerUUID,
         card_indices: Vec<usize>,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_mut_game_logic() {
+        let game_logic = match self.get_game_logic_mut() {
             Ok(game_logic) => game_logic,
             Err(err) => return Err(err),
         };
@@ -165,7 +166,7 @@ impl Game {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_mut_game_logic() {
+        let game_logic = match self.get_game_logic_mut() {
             Ok(game_logic) => game_logic,
             Err(err) => return Err(err),
         };
@@ -173,21 +174,7 @@ impl Game {
     }
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
-        match &mut self.get_mut_game_logic() {
-            Ok(game_logic) => {
-                if game_logic.can_play_action_card(player_uuid) {
-                    game_logic.skip_action_phase()?;
-                    return Ok(());
-                }
-
-                if game_logic.is_gambling_turn(player_uuid) {
-                    game_logic.gambling_pass();
-                    return Ok(());
-                }
-            }
-            Err(_) => {}
-        };
-        Err(Error::new("Unable to pass at this time"))
+        self.get_game_logic_mut()?.pass(player_uuid)
     }
 
     fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
@@ -204,7 +191,7 @@ impl Game {
             current_turn_player_uuid: self
                 .game_logic_or
                 .as_ref()
-                .map(|game_logic| game_logic.get_current_player_turn().clone()),
+                .map(|game_logic| game_logic.get_turn_info().get_current_player_turn().clone()),
             current_turn_phase: self
                 .game_logic_or
                 .as_ref()
@@ -244,7 +231,7 @@ impl Game {
         }
     }
 
-    fn get_mut_game_logic(&mut self) -> Result<&mut GameLogic, Error> {
+    fn get_game_logic_mut(&mut self) -> Result<&mut GameLogic, Error> {
         match &mut self.game_logic_or {
             Some(game_logic) => Ok(game_logic),
             None => Err(Error::new("Game is not currently running")),

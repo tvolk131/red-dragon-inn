@@ -4,7 +4,9 @@ use super::player_card::PlayerCard;
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
-use super::GameLogic;
+use super::gambling_manager::GamblingManager;
+use super::interrupt_manager::InterruptManager;
+use super::game_logic::TurnInfo;
 use std::borrow::Borrow;
 
 #[derive(Clone)]
@@ -53,13 +55,15 @@ impl Player {
     pub fn get_game_view_hand(
         &self,
         player_uuid: &PlayerUUID,
-        game: &GameLogic,
+        gambling_manager: &GamblingManager,
+        interrupt_manager: &InterruptManager,
+        turn_info: &TurnInfo
     ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()
             .map(|card| GameViewPlayerCard {
                 card_name: card.get_display_name().to_string(),
-                is_playable: card.can_play(player_uuid, game),
+                is_playable: card.can_play(player_uuid, gambling_manager, interrupt_manager, turn_info),
             })
             .collect()
     }
