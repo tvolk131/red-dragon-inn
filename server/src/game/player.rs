@@ -1,12 +1,12 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::Drink;
+use super::gambling_manager::GamblingManager;
+use super::game_logic::TurnInfo;
+use super::interrupt_manager::InterruptManager;
 use super::player_card::PlayerCard;
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
-use super::gambling_manager::GamblingManager;
-use super::interrupt_manager::InterruptManager;
-use super::game_logic::TurnInfo;
 use std::borrow::Borrow;
 
 #[derive(Clone)]
@@ -48,7 +48,7 @@ impl Player {
             alcohol_content: self.alcohol_content,
             fortitude: self.fortitude,
             gold: self.gold,
-            is_dead: self.is_out_of_game()
+            is_dead: self.is_out_of_game(),
         }
     }
 
@@ -57,13 +57,18 @@ impl Player {
         player_uuid: &PlayerUUID,
         gambling_manager: &GamblingManager,
         interrupt_manager: &InterruptManager,
-        turn_info: &TurnInfo
+        turn_info: &TurnInfo,
     ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()
             .map(|card| GameViewPlayerCard {
                 card_name: card.get_display_name().to_string(),
-                is_playable: card.can_play(player_uuid, gambling_manager, interrupt_manager, turn_info),
+                is_playable: card.can_play(
+                    player_uuid,
+                    gambling_manager,
+                    interrupt_manager,
+                    turn_info,
+                ),
             })
             .collect()
     }

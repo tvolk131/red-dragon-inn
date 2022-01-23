@@ -1,16 +1,18 @@
-use super::uuid::PlayerUUID;
-use super::player_manager::PlayerManager;
 use super::game_logic::TurnInfo;
+use super::player_manager::PlayerManager;
+use super::uuid::PlayerUUID;
 use std::default::Default;
 
 #[derive(Clone)]
 pub struct GamblingManager {
-    gambling_round_or: Option<GamblingRound>
+    gambling_round_or: Option<GamblingRound>,
 }
 
 impl GamblingManager {
     pub fn new() -> Self {
-        Self { gambling_round_or: None }
+        Self {
+            gambling_round_or: None,
+        }
     }
 
     pub fn round_in_progress(&self) -> bool {
@@ -40,21 +42,25 @@ impl GamblingManager {
         };
 
         gambling_round.winning_player = player_uuid;
-        gambling_round.need_cheating_card_to_take_next_control = need_cheating_card_to_take_next_control;
+        gambling_round.need_cheating_card_to_take_next_control =
+            need_cheating_card_to_take_next_control;
         self.increment_player_turn();
     }
 
     pub fn ante_up(&mut self, player_uuid: &PlayerUUID, player_manager: &mut PlayerManager) {
         if !self.is_turn(player_uuid) {
-            return
+            return;
         }
 
         match &mut self.gambling_round_or {
-            Some(gambling_round) => gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32,
+            Some(gambling_round) => {
+                gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32
+            }
             None => return,
         };
 
-        player_manager.get_player_by_uuid_mut(player_uuid)
+        player_manager
+            .get_player_by_uuid_mut(player_uuid)
             .unwrap()
             .change_gold(-1);
 
@@ -80,7 +86,8 @@ impl GamblingManager {
         };
 
         if let Some(winner) = winner_or {
-            player_manager.get_player_by_uuid_mut(&winner)
+            player_manager
+                .get_player_by_uuid_mut(&winner)
                 .unwrap()
                 .change_gold(pot_amount);
             self.gambling_round_or = None;

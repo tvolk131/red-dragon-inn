@@ -20,7 +20,7 @@ pub struct GameViewPlayerData {
     pub alcohol_content: i32,
     pub fortitude: i32,
     pub gold: i32,
-    pub is_dead: bool
+    pub is_dead: bool,
 }
 
 #[derive(Serialize)]

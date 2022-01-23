@@ -1,11 +1,11 @@
 use super::player::Player;
+use super::player_view::GameViewPlayerData;
 use super::uuid::PlayerUUID;
 use super::Character;
-use super::player_view::GameViewPlayerData;
 
 #[derive(Clone)]
 pub struct PlayerManager {
-    players: Vec<(PlayerUUID, Player)>
+    players: Vec<(PlayerUUID, Player)>,
 }
 
 impl PlayerManager {
@@ -14,22 +14,27 @@ impl PlayerManager {
 
         PlayerManager {
             players: players_with_characters
-            .into_iter()
-            .map(|(player_uuid, character)| {
-                (
-                    player_uuid,
-                    Player::create_from_character(
-                        character,
-                        Self::get_starting_gold_amount_for_player_count(player_count),
-                    ),
-                )
-            })
-            .collect()
+                .into_iter()
+                .map(|(player_uuid, character)| {
+                    (
+                        player_uuid,
+                        Player::create_from_character(
+                            character,
+                            Self::get_starting_gold_amount_for_player_count(player_count),
+                        ),
+                    )
+                })
+                .collect(),
         }
     }
 
     pub fn clone_uuids_of_all_alive_players(&self) -> Vec<PlayerUUID> {
-        self.players.iter().filter(|(_, player)| !player.is_out_of_game()).map(|(player_uuid, _)| player_uuid).cloned().collect()
+        self.players
+            .iter()
+            .filter(|(_, player)| !player.is_out_of_game())
+            .map(|(player_uuid, _)| player_uuid)
+            .cloned()
+            .collect()
     }
 
     pub fn get_player_by_uuid(&self, player_uuid: &PlayerUUID) -> Option<&Player> {
@@ -57,14 +62,18 @@ impl PlayerManager {
         }
     }
 
-    pub fn get_next_alive_player_uuid<'a>(&'a self, player_uuid: &PlayerUUID) -> NextPlayerUUIDOption<'a> {
+    pub fn get_next_alive_player_uuid<'a>(
+        &'a self,
+        player_uuid: &PlayerUUID,
+    ) -> NextPlayerUUIDOption<'a> {
         let current_player_index = match self
             .players
             .iter()
-            .position(|(uuid, _)| uuid == player_uuid) {
-                Some(current_player_index) => current_player_index,
-                None => return NextPlayerUUIDOption::PlayerNotFound
-            };
+            .position(|(uuid, _)| uuid == player_uuid)
+        {
+            Some(current_player_index) => current_player_index,
+            None => return NextPlayerUUIDOption::PlayerNotFound,
+        };
         let mut next_player_index = current_player_index + 1;
         if next_player_index == self.players.len() {
             next_player_index = 0;
@@ -106,5 +115,5 @@ impl PlayerManager {
 pub enum NextPlayerUUIDOption<'a> {
     Some(&'a PlayerUUID),
     PlayerNotFound,
-    OnlyPlayerLeft
+    OnlyPlayerLeft,
 }

@@ -1,14 +1,14 @@
 mod deck;
 mod drink;
 mod error;
-mod interrupt_manager;
+mod gambling_manager;
 mod game_logic;
+mod interrupt_manager;
 mod player;
 mod player_card;
+mod player_manager;
 pub mod player_view;
 mod uuid;
-mod player_manager;
-mod gambling_manager;
 
 pub use self::uuid::GameUUID;
 pub use self::uuid::PlayerUUID;
