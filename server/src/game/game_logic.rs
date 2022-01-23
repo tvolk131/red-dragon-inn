@@ -85,51 +85,7 @@ impl GameLogic {
             None => return Err(Error::new("Card does not exist")),
         };
 
-        // This is a bit complex, but the type of `return_val` was carefully chosen. If `Ok` is returned, then the wrapped card should be discarded if it exists.
-        // If an error is returned, the card should always be returned to the player's hand.
-        let return_val: Result<Option<PlayerCard>, (PlayerCard, Error)> = if card.can_play(
-            player_uuid,
-            &self.gambling_manager,
-            &self.interrupt_manager,
-            &self.turn_info,
-        ) {
-            match card {
-                PlayerCard::RootPlayerCard(root_player_card) => {
-                    match process_root_player_card(
-                        root_player_card,
-                        player_uuid,
-                        other_player_uuid_or,
-                        &mut self.player_manager,
-                        &mut self.gambling_manager,
-                        &mut self.interrupt_manager,
-                        &self.turn_info,
-                    ) {
-                        Ok(card_or) => Ok(card_or.map(|card| card.into())),
-                        Err((card, err)) => Err((card.into(), err)),
-                    }
-                }
-                PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
-                    if other_player_uuid_or.is_some() {
-                        Err((
-                            interrupt_player_card.into(),
-                            Error::new("Cannot direct this card at another player"),
-                        ))
-                    } else {
-                        match self
-                            .interrupt_manager
-                            .play_interrupt_card(interrupt_player_card, player_uuid.clone())
-                        {
-                            Ok(_) => Ok(None),
-                            Err((card, error)) => Err((card.into(), error)),
-                        }
-                    }
-                }
-            }
-        } else {
-            Err((card, Error::new("Card cannot be played at this time")))
-        };
-
-        match return_val {
+        match self.process_card(card, player_uuid, other_player_uuid_or) {
             Ok(card_or) => {
                 if let Some(card) = card_or {
                     self.player_manager
@@ -256,6 +212,53 @@ impl GameLogic {
         }
 
         Err(Error::new("Cannot pass at this time"))
+    }
+
+    /// The return type for this method is a bit complex, but was carefully chosen.
+    /// If `Ok` is returned, then the wrapped card should be discarded if it exists.
+    /// If an error is returned, the card should be returned to the player's hand.
+    fn process_card(&mut self, card: PlayerCard, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>) -> Result<Option<PlayerCard>, (PlayerCard, Error)> {
+        if card.can_play(
+            player_uuid,
+            &self.gambling_manager,
+            &self.interrupt_manager,
+            &self.turn_info,
+        ) {
+            match card {
+                PlayerCard::RootPlayerCard(root_player_card) => {
+                    match process_root_player_card(
+                        root_player_card,
+                        player_uuid,
+                        other_player_uuid_or,
+                        &mut self.player_manager,
+                        &mut self.gambling_manager,
+                        &mut self.interrupt_manager,
+                        &self.turn_info,
+                    ) {
+                        Ok(card_or) => Ok(card_or.map(|card| card.into())),
+                        Err((card, err)) => Err((card.into(), err)),
+                    }
+                }
+                PlayerCard::InterruptPlayerCard(interrupt_player_card) => {
+                    if other_player_uuid_or.is_some() {
+                        Err((
+                            interrupt_player_card.into(),
+                            Error::new("Cannot direct this card at another player"),
+                        ))
+                    } else {
+                        match self
+                            .interrupt_manager
+                            .play_interrupt_card(interrupt_player_card, player_uuid.clone())
+                        {
+                            Ok(_) => Ok(None),
+                            Err((card, error)) => Err((card.into(), error)),
+                        }
+                    }
+                }
+            }
+        } else {
+            Err((card, Error::new("Card cannot be played at this time")))
+        }
     }
 
     fn skip_action_phase(&mut self) -> Result<(), Error> {
@@ -522,17 +525,26 @@ mod tests {
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
-        game_logic.gambling_manager.start_round(player1_uuid.clone(), &game_logic.player_manager);
+        // Start gambling round.
+        assert!(game_logic.process_card(gambling_im_in_card().into(), &player1_uuid, &None).is_ok());
 
+        // Both players choose not to play an interrupt card.
+        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player1_uuid));
         game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
+        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player2_uuid));
+        game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
+        assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
 
+        // 1 gold should be subtracted from each player.
         assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 7);
         assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 7);
         assert_eq!(game_logic.gambling_manager.round_in_progress(), true);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
+        // Player 2 does not take control of the gambling round, making player 1 the winner.
         game_logic.gambling_manager.pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
 
+        // Gambling pot should be given to the winner.
         assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 9);
         assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 7);
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
