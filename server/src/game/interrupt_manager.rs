@@ -96,11 +96,22 @@ impl InterruptManager {
         card: InterruptPlayerCard,
         player_uuid: PlayerUUID,
     ) -> Result<(), (InterruptPlayerCard, Error)> {
+        if !self.is_turn_to_interrupt(&player_uuid) {
+            return Err((card, Error::new("It is not your turn to play an interrupt card")));
+        }
         self.push_to_current_stack(card, player_uuid)
     }
 
     pub fn interrupt_in_progress(&self) -> bool {
         !self.interrupt_stacks.is_empty()
+    }
+
+    pub fn is_turn_to_interrupt(&self, player_uuid: &PlayerUUID) -> bool {
+        Some(player_uuid) == self.current_interrupt_turn_or.as_ref()
+    }
+
+    pub fn pass(&mut self, player_manager: &mut PlayerManager, gambling_manager: &mut GamblingManager) -> Result<(), Error> {
+        self.increment_player_turn(player_manager, gambling_manager)
     }
 
     fn increment_player_turn(

@@ -236,17 +236,22 @@ impl GameLogic {
     }
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
-        if self
-            .get_turn_info()
-            .can_play_action_card(player_uuid, &self.gambling_manager)
-        {
-            self.skip_action_phase()?;
+        if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
+            self.interrupt_manager.pass(&mut self.player_manager, &mut self.gambling_manager)?;
             return Ok(());
         }
 
         if self.gambling_manager.is_turn(player_uuid) {
             self.gambling_manager
                 .pass(&mut self.player_manager, &mut self.turn_info);
+            return Ok(());
+        }
+
+        if self
+            .get_turn_info()
+            .can_play_action_card(player_uuid, &self.gambling_manager)
+        {
+            self.skip_action_phase()?;
             return Ok(());
         }
 
@@ -495,6 +500,7 @@ fn rotate_player_vec_to_start_with_player(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::player_card::{gambling_im_in_card};
 
     #[test]
     fn can_handle_simple_gambling_round() {
@@ -503,7 +509,7 @@ mod tests {
 
         let mut game_logic = GameLogic::new(vec![
             (player1_uuid.clone(), Character::Deirdre),
-            (player2_uuid, Character::Gerki),
+            (player2_uuid.clone(), Character::Gerki),
         ])
         .unwrap();
         game_logic
@@ -511,23 +517,25 @@ mod tests {
             .unwrap();
 
         // Sanity check.
-        assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 8);
-        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 8);
-        assert!(game_logic.gambling_round_or.is_none());
+        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 8);
+        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 8);
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
-        game_logic.start_gambling_round(player1_uuid);
+        game_logic.gambling_manager.start_round(player1_uuid.clone(), &game_logic.player_manager);
 
-        assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 7);
-        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
-        assert!(game_logic.gambling_round_or.is_some());
+        game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
+
+        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 7);
+        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 7);
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), true);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
-        game_logic.gambling_pass();
+        game_logic.gambling_manager.pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
 
-        assert!(game_logic.gambling_round_or.is_none());
-        assert_eq!(game_logic.players.first().unwrap().1.get_gold(), 9);
-        assert_eq!(game_logic.players.last().unwrap().1.get_gold(), 7);
+        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 9);
+        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 7);
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
     }
 
