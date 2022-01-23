@@ -37,10 +37,6 @@ impl GameLogic {
         })
     }
 
-    pub fn get_gambling_manager(&self) -> &GamblingManager {
-        &self.gambling_manager
-    }
-
     pub fn get_turn_info(&self) -> &TurnInfo {
         &self.turn_info
     }
@@ -64,15 +60,6 @@ impl GameLogic {
 
     pub fn get_turn_phase(&self) -> TurnPhase {
         self.turn_info.turn_phase
-    }
-
-    pub fn skip_action_phase(&mut self) -> Result<(), Error> {
-        if self.turn_info.turn_phase == TurnPhase::Action {
-            self.turn_info.turn_phase = TurnPhase::OrderDrinks;
-            Ok(())
-        } else {
-            Err(Error::new("It is not the player's action phase"))
-        }
     }
 
     pub fn play_card(
@@ -257,13 +244,22 @@ impl GameLogic {
             return Ok(());
         }
 
-        if self.get_gambling_manager().is_turn(player_uuid) {
+        if self.gambling_manager.is_turn(player_uuid) {
             self.gambling_manager
                 .pass(&mut self.player_manager, &mut self.turn_info);
             return Ok(());
         }
 
         Err(Error::new("Cannot pass at this time"))
+    }
+
+    fn skip_action_phase(&mut self) -> Result<(), Error> {
+        if self.turn_info.turn_phase == TurnPhase::Action {
+            self.turn_info.turn_phase = TurnPhase::OrderDrinks;
+            Ok(())
+        } else {
+            Err(Error::new("It is not the player's action phase"))
+        }
     }
 
     fn perform_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
