@@ -344,6 +344,8 @@ impl Character {
                     1,
                 )
                 .into(),
+                ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
+                ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
             ],
             Self::Gerki => vec![
                 gambling_im_in_card().into(),
@@ -357,7 +359,10 @@ impl Character {
                 change_other_player_fortitude_card("Uh oh! I forgot to disarm one of the traps!", 3).into(),
                 change_other_player_fortitude_card("Have you seen my poison? I left it in a mug right here...", 3).into(),
                 change_other_player_fortitude_card("That's not healing salve! It's contact poison!", 2).into(),
+                change_other_player_fortitude_card("That's not healing salve! It's contact poison!", 2).into(),
                 change_other_player_fortitude_card("How did this get stuck in your back?", 2).into(),
+                change_other_player_fortitude_card("How did this get stuck in your back?", 2).into(),
+                ignore_root_card_affecting_fortitude("Hide in shadows").into(),
             ],
         }
     }
