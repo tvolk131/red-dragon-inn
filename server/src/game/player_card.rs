@@ -161,6 +161,7 @@ impl RootPlayerCardInterruptData {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum TargetStyle {
+    Nobody,
     SingleOtherPlayer,
     AllOtherPlayers,
     AllPlayersIncludingSelf,
@@ -323,5 +324,39 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
              _interrupt_manager: &InterruptManager|
              -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Ignore },
         ),
+    }
+}
+
+pub fn gain_fortitude_anytime_card(
+    display_name: impl ToString,
+    amount: i32,
+) -> RootPlayerCard {
+    RootPlayerCard {
+        display_name: display_name.to_string(),
+        target_style: TargetStyle::Nobody,
+        can_play_fn: |_player_uuid: &PlayerUUID,
+                      _gambling_manager: &GamblingManager,
+                      _turn_info: &TurnInfo|
+         -> bool {
+             true
+        },
+        pre_interrupt_play_fn_or: Some(Arc::from(
+            move |player_uuid: &PlayerUUID,
+                  player_manager: &mut PlayerManager,
+                  _gambling_manager: &mut GamblingManager| {
+                      if let Some(player) = player_manager.get_player_by_uuid_mut(player_uuid) {
+                          player.change_fortitude(amount)
+                      }
+                      ShouldInterrupt::No
+            },
+        )),
+        interrupt_play_fn: Arc::from(
+            |_player_uuid: &PlayerUUID,
+                  _targeted_player_uuid: &PlayerUUID,
+                  _player_manager: &mut PlayerManager,
+                  _gambling_manager: &mut GamblingManager| {
+            },
+        ),
+        interrupt_data_or: None,
     }
 }

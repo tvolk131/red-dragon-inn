@@ -124,6 +124,11 @@ impl Player {
 
     pub fn change_alcohol_content(&mut self, amount: i32) {
         self.alcohol_content += amount;
+        if self.alcohol_content > 20 {
+            self.alcohol_content = 20;
+        } else if self.alcohol_content < 0 {
+            self.alcohol_content = 0;
+        }
     }
 
     pub fn get_fortitude(&self) -> i32 {

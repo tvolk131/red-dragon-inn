@@ -331,6 +331,29 @@ fn process_root_player_card(
     }
 
     match root_player_card.get_target_style() {
+        TargetStyle::Nobody => {
+            if targeted_player_uuid_or.is_some() {
+                return Err((
+                    root_player_card,
+                    Error::new("Cannot direct this card at another player"),
+                ));
+            }
+
+            match root_player_card.pre_interrupt_play(
+                player_uuid,
+                player_manager,
+                gambling_manager,
+            ) {
+                ShouldInterrupt::Yes => {
+                    if root_player_card.get_interrupt_data_or().is_some() {
+                       panic!("Root player card cannot be interruptable while also not targeting anybody!");
+                    } else {
+                        Ok(Some(root_player_card))
+                    }
+                }
+                ShouldInterrupt::No => Ok(Some(root_player_card)),
+            }
+        }
         TargetStyle::SingleOtherPlayer => {
             if let Some(targeted_player_uuid) = targeted_player_uuid_or {
                 match root_player_card.pre_interrupt_play(

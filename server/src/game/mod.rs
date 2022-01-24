@@ -17,7 +17,7 @@ pub use error::Error;
 use game_logic::GameLogic;
 use player_card::{
     change_other_player_fortitude_card, gambling_im_in_card, i_raise_card,
-    ignore_root_card_affecting_fortitude, PlayerCard,
+    ignore_root_card_affecting_fortitude, gain_fortitude_anytime_card, PlayerCard,
 };
 use player_view::{GameView, ListedGameView};
 use std::collections::HashMap;
@@ -302,6 +302,7 @@ impl Character {
                     .into(),
                 ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!")
                     .into(),
+                gain_fortitude_anytime_card("I'm a quick healer.", 2).into(),
             ],
             Self::Zot => vec![
                 gambling_im_in_card().into(),
@@ -314,17 +315,17 @@ impl Character {
                 i_raise_card().into(),
                 change_other_player_fortitude_card(
                     "How many times have I told you? Keep your hands off my wand!",
-                    2,
+                    -2,
                 )
                 .into(),
                 change_other_player_fortitude_card(
                     "How many times have I told you? Keep your hands off my wand!",
-                    2,
+                    -2,
                 )
                 .into(),
-                change_other_player_fortitude_card("I told you not to distract me!", 2).into(),
-                change_other_player_fortitude_card("Watch out! Don't step on Pooky!", 2).into(),
-                change_other_player_fortitude_card("Down Pooky!", 1).into(),
+                change_other_player_fortitude_card("I told you not to distract me!", -2).into(),
+                change_other_player_fortitude_card("Watch out! Don't step on Pooky!", -2).into(),
+                change_other_player_fortitude_card("Down Pooky!", -1).into(),
                 ignore_root_card_affecting_fortitude("Now you see me... Now you don't!").into(),
             ],
             Self::Deirdre => vec![
@@ -336,21 +337,23 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
-                change_other_player_fortitude_card("My Goddess made me do it!", 2).into(),
-                change_other_player_fortitude_card("My Goddess made me do it!", 2).into(),
-                change_other_player_fortitude_card("I'm not that kind of priestess!", 2).into(),
+                change_other_player_fortitude_card("My Goddess made me do it!", -2).into(),
+                change_other_player_fortitude_card("My Goddess made me do it!", -2).into(),
+                change_other_player_fortitude_card("I'm not that kind of priestess!", -2).into(),
                 change_other_player_fortitude_card(
                     "Oh no! I think that growth on your arm might be Mummy Rot!",
-                    2,
+                    -2,
                 )
                 .into(),
                 change_other_player_fortitude_card(
                     "Sorry, sometimes my healing spells just wear off.",
-                    1,
+                    -1,
                 )
                 .into(),
                 ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
                 ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
+                gain_fortitude_anytime_card("My Goddess heals me.", 2).into(),
+                gain_fortitude_anytime_card("My Goddess heals me.", 2).into(),
             ],
             Self::Gerki => vec![
                 gambling_im_in_card().into(),
@@ -363,27 +366,27 @@ impl Character {
                 i_raise_card().into(),
                 change_other_player_fortitude_card(
                     "Uh oh! I forgot to disarm one of the traps!",
-                    3,
+                    -3,
                 )
                 .into(),
                 change_other_player_fortitude_card(
                     "Have you seen my poison? I left it in a mug right here...",
-                    3,
+                    -3,
                 )
                 .into(),
                 change_other_player_fortitude_card(
                     "That's not healing salve! It's contact poison!",
-                    2,
+                    -2,
                 )
                 .into(),
                 change_other_player_fortitude_card(
                     "That's not healing salve! It's contact poison!",
-                    2,
+                    -2,
                 )
                 .into(),
-                change_other_player_fortitude_card("How did this get stuck in your back?", 2)
+                change_other_player_fortitude_card("How did this get stuck in your back?", -2)
                     .into(),
-                change_other_player_fortitude_card("How did this get stuck in your back?", 2)
+                change_other_player_fortitude_card("How did this get stuck in your back?", -2)
                     .into(),
                 ignore_root_card_affecting_fortitude("Hide in shadows").into(),
             ],
