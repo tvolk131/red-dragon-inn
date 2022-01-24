@@ -16,8 +16,9 @@ pub use error::Error;
 
 use game_logic::GameLogic;
 use player_card::{
-    change_other_player_fortitude_card, gambling_im_in_card, i_raise_card,
-    ignore_root_card_affecting_fortitude, gain_fortitude_anytime_card, PlayerCard,
+    change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_im_in_card,
+    i_raise_card, ignore_root_card_affecting_fortitude,
+    wench_bring_some_drinks_for_my_friends_card, PlayerCard,
 };
 use player_view::{GameView, ListedGameView};
 use std::collections::HashMap;
@@ -303,6 +304,8 @@ impl Character {
                 ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!")
                     .into(),
                 gain_fortitude_anytime_card("I'm a quick healer.", 2).into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
             ],
             Self::Zot => vec![
                 gambling_im_in_card().into(),
@@ -327,6 +330,8 @@ impl Character {
                 change_other_player_fortitude_card("Watch out! Don't step on Pooky!", -2).into(),
                 change_other_player_fortitude_card("Down Pooky!", -1).into(),
                 ignore_root_card_affecting_fortitude("Now you see me... Now you don't!").into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
             ],
             Self::Deirdre => vec![
                 gambling_im_in_card().into(),
@@ -354,6 +359,8 @@ impl Character {
                 ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
                 gain_fortitude_anytime_card("My Goddess heals me.", 2).into(),
                 gain_fortitude_anytime_card("My Goddess heals me.", 2).into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
             ],
             Self::Gerki => vec![
                 gambling_im_in_card().into(),
@@ -389,6 +396,8 @@ impl Character {
                 change_other_player_fortitude_card("How did this get stuck in your back?", -2)
                     .into(),
                 ignore_root_card_affecting_fortitude("Hide in shadows").into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
             ],
         }
     }

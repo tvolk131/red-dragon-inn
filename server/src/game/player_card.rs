@@ -68,7 +68,12 @@ pub struct RootPlayerCard {
     ) -> bool,
     pre_interrupt_play_fn_or: Option<
         Arc<
-            dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager) -> ShouldInterrupt
+            dyn Fn(
+                    &PlayerUUID,
+                    &mut PlayerManager,
+                    &mut GamblingManager,
+                    &mut TurnInfo,
+                ) -> ShouldInterrupt
                 + Send
                 + Sync,
         >,
@@ -106,9 +111,10 @@ impl RootPlayerCard {
         player_uuid: &PlayerUUID,
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
+        turn_info: &mut TurnInfo,
     ) -> ShouldInterrupt {
         if let Some(pre_interrupt_play_fn) = &self.pre_interrupt_play_fn_or {
-            (pre_interrupt_play_fn)(player_uuid, player_manager, gambling_manager)
+            (pre_interrupt_play_fn)(player_uuid, player_manager, gambling_manager, turn_info)
         } else {
             ShouldInterrupt::Yes
         }
@@ -161,7 +167,7 @@ impl RootPlayerCardInterruptData {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum TargetStyle {
-    Nobody,
+    SelfPlayer,
     SingleOtherPlayer,
     AllOtherPlayers,
     AllPlayersIncludingSelf,
@@ -222,7 +228,8 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
         pre_interrupt_play_fn_or: Some(Arc::from(
             |player_uuid: &PlayerUUID,
              player_manager: &mut PlayerManager,
-             gambling_manager: &mut GamblingManager| {
+             gambling_manager: &mut GamblingManager,
+             _turn_info: &mut TurnInfo| {
                 if gambling_manager.round_in_progress() {
                     gambling_manager.take_control_of_round(player_uuid.clone(), false);
                     ShouldInterrupt::No
@@ -327,36 +334,65 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
     }
 }
 
-pub fn gain_fortitude_anytime_card(
-    display_name: impl ToString,
-    amount: i32,
-) -> RootPlayerCard {
+pub fn gain_fortitude_anytime_card(display_name: impl ToString, amount: i32) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
-        target_style: TargetStyle::Nobody,
+        target_style: TargetStyle::SelfPlayer,
         can_play_fn: |_player_uuid: &PlayerUUID,
                       _gambling_manager: &GamblingManager,
                       _turn_info: &TurnInfo|
-         -> bool {
-             true
-        },
+         -> bool { true },
         pre_interrupt_play_fn_or: Some(Arc::from(
             move |player_uuid: &PlayerUUID,
                   player_manager: &mut PlayerManager,
-                  _gambling_manager: &mut GamblingManager| {
-                      if let Some(player) = player_manager.get_player_by_uuid_mut(player_uuid) {
-                          player.change_fortitude(amount)
-                      }
-                      ShouldInterrupt::No
+                  _gambling_manager: &mut GamblingManager,
+                  _turn_info: &mut TurnInfo| {
+                if let Some(player) = player_manager.get_player_by_uuid_mut(player_uuid) {
+                    player.change_fortitude(amount)
+                }
+                ShouldInterrupt::No
             },
         )),
         interrupt_play_fn: Arc::from(
             |_player_uuid: &PlayerUUID,
-                  _targeted_player_uuid: &PlayerUUID,
-                  _player_manager: &mut PlayerManager,
-                  _gambling_manager: &mut GamblingManager| {
-            },
+             _targeted_player_uuid: &PlayerUUID,
+             _player_manager: &mut PlayerManager,
+             _gambling_manager: &mut GamblingManager| {},
         ),
         interrupt_data_or: None,
+    }
+}
+
+pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
+    RootPlayerCard {
+        display_name: String::from("Wench, bring some drinks for my friends!"),
+        target_style: TargetStyle::SelfPlayer,
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      _gambling_manager: &GamblingManager,
+                      turn_info: &TurnInfo|
+         -> bool {
+            turn_info.get_current_player_turn() == player_uuid && turn_info.is_order_drink_phase()
+        },
+        pre_interrupt_play_fn_or: Some(Arc::from(
+            move |_player_uuid: &PlayerUUID,
+                  _player_manager: &mut PlayerManager,
+                  _gambling_manager: &mut GamblingManager,
+                  turn_info: &mut TurnInfo| {
+                turn_info.add_drinks_to_order(2);
+                ShouldInterrupt::No
+            },
+        )),
+        interrupt_play_fn: Arc::from(
+            |_player_uuid: &PlayerUUID,
+             _targeted_player_uuid: &PlayerUUID,
+             _player_manager: &mut PlayerManager,
+             _gambling_manager: &mut GamblingManager| {},
+        ),
+        interrupt_data_or: Some(RootPlayerCardInterruptData {
+            interrupt_style: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+                affects_fortitude: false,
+            }),
+            post_interrupt_play_fn_or: None,
+        }),
     }
 }

@@ -239,7 +239,7 @@ impl GameLogic {
                         &mut self.player_manager,
                         &mut self.gambling_manager,
                         &mut self.interrupt_manager,
-                        &self.turn_info,
+                        &mut self.turn_info,
                     ) {
                         Ok(card_or) => Ok(card_or.map(|card| card.into())),
                         Err((card, err)) => Err((card.into(), err)),
@@ -321,7 +321,7 @@ fn process_root_player_card(
     player_manager: &mut PlayerManager,
     gambling_manager: &mut GamblingManager,
     interrupt_manager: &mut InterruptManager,
-    turn_info: &TurnInfo,
+    turn_info: &mut TurnInfo,
 ) -> Result<Option<RootPlayerCard>, (RootPlayerCard, Error)> {
     if !root_player_card.can_play(player_uuid, gambling_manager, turn_info) {
         return Err((
@@ -331,7 +331,7 @@ fn process_root_player_card(
     }
 
     match root_player_card.get_target_style() {
-        TargetStyle::Nobody => {
+        TargetStyle::SelfPlayer => {
             if targeted_player_uuid_or.is_some() {
                 return Err((
                     root_player_card,
@@ -343,11 +343,25 @@ fn process_root_player_card(
                 player_uuid,
                 player_manager,
                 gambling_manager,
+                turn_info,
             ) {
                 ShouldInterrupt::Yes => {
                     if root_player_card.get_interrupt_data_or().is_some() {
-                       panic!("Root player card cannot be interruptable while also not targeting anybody!");
+                        interrupt_manager.start_single_player_interrupt(
+                            root_player_card,
+                            player_uuid.clone(),
+                            player_uuid.clone(),
+                            player_manager,
+                            gambling_manager,
+                        )?;
+                        Ok(None)
                     } else {
+                        root_player_card.interrupt_play(
+                            player_uuid,
+                            player_uuid,
+                            player_manager,
+                            gambling_manager,
+                        );
                         Ok(Some(root_player_card))
                     }
                 }
@@ -360,6 +374,7 @@ fn process_root_player_card(
                     player_uuid,
                     player_manager,
                     gambling_manager,
+                    turn_info,
                 ) {
                     ShouldInterrupt::Yes => {
                         if root_player_card.get_interrupt_data_or().is_some() {
@@ -398,8 +413,12 @@ fn process_root_player_card(
                 ));
             }
 
-            match root_player_card.pre_interrupt_play(player_uuid, player_manager, gambling_manager)
-            {
+            match root_player_card.pre_interrupt_play(
+                player_uuid,
+                player_manager,
+                gambling_manager,
+                turn_info,
+            ) {
                 ShouldInterrupt::Yes => {
                     let mut targeted_player_uuids = rotate_player_vec_to_start_with_player(
                         player_manager.clone_uuids_of_all_alive_players(),
@@ -442,8 +461,12 @@ fn process_root_player_card(
                 ));
             }
 
-            match root_player_card.pre_interrupt_play(player_uuid, player_manager, gambling_manager)
-            {
+            match root_player_card.pre_interrupt_play(
+                player_uuid,
+                player_manager,
+                gambling_manager,
+                turn_info,
+            ) {
                 ShouldInterrupt::Yes => {
                     let targeted_player_uuids = rotate_player_vec_to_start_with_player(
                         player_manager.clone_uuids_of_all_alive_players(),
@@ -495,6 +518,14 @@ impl TurnInfo {
 
     pub fn set_order_drinks_phase(&mut self) {
         self.turn_phase = TurnPhase::OrderDrinks
+    }
+
+    pub fn is_order_drink_phase(&self) -> bool {
+        self.turn_phase == TurnPhase::OrderDrinks
+    }
+
+    pub fn add_drinks_to_order(&mut self, amount: i32) {
+        self.drinks_to_order += amount;
     }
 
     pub fn get_current_player_turn(&self) -> &PlayerUUID {
