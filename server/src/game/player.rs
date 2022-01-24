@@ -126,8 +126,17 @@ impl Player {
         self.alcohol_content += amount;
     }
 
+    pub fn get_fortitude(&self) -> i32 {
+        self.fortitude
+    }
+
     pub fn change_fortitude(&mut self, amount: i32) {
         self.fortitude += amount;
+        if self.fortitude > 20 {
+            self.fortitude = 20;
+        } else if self.fortitude < 0 {
+            self.fortitude = 0;
+        }
     }
 
     pub fn get_gold(&self) -> i32 {
