@@ -274,7 +274,7 @@ pub fn i_raise_card() -> RootPlayerCard {
     }
 }
 
-pub fn change_other_player_fortitude(display_name: impl ToString, amount: i32) -> RootPlayerCard {
+pub fn change_other_player_fortitude_card(display_name: impl ToString, amount: i32) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
         target_style: TargetStyle::SingleOtherPlayer,

@@ -15,7 +15,7 @@ pub use self::uuid::PlayerUUID;
 pub use error::Error;
 
 use game_logic::GameLogic;
-use player_card::{change_other_player_fortitude, gambling_im_in_card, i_raise_card, PlayerCard};
+use player_card::{change_other_player_fortitude_card, gambling_im_in_card, i_raise_card, PlayerCard};
 use player_view::{GameView, ListedGameView};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -305,19 +305,19 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
-                change_other_player_fortitude(
+                change_other_player_fortitude_card(
                     "How many times have I told you? Keep your hands off my wand!",
                     2,
                 )
                 .into(),
-                change_other_player_fortitude(
+                change_other_player_fortitude_card(
                     "How many times have I told you? Keep your hands off my wand!",
                     2,
                 )
                 .into(),
-                change_other_player_fortitude("I told you not to distract me!", 2).into(),
-                change_other_player_fortitude("Watch out! Don't step on Pooky!", 2).into(),
-                change_other_player_fortitude("Down Pooky!", 1).into(),
+                change_other_player_fortitude_card("I told you not to distract me!", 2).into(),
+                change_other_player_fortitude_card("Watch out! Don't step on Pooky!", 2).into(),
+                change_other_player_fortitude_card("Down Pooky!", 1).into(),
             ],
             Self::Deirdre => vec![
                 gambling_im_in_card().into(),
@@ -328,15 +328,15 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
-                change_other_player_fortitude("My Goddess made me do it!", 2).into(),
-                change_other_player_fortitude("My Goddess made me do it!", 2).into(),
-                change_other_player_fortitude("I'm not that kind of priestess!", 2).into(),
-                change_other_player_fortitude(
+                change_other_player_fortitude_card("My Goddess made me do it!", 2).into(),
+                change_other_player_fortitude_card("My Goddess made me do it!", 2).into(),
+                change_other_player_fortitude_card("I'm not that kind of priestess!", 2).into(),
+                change_other_player_fortitude_card(
                     "Oh no! I think that growth on your arm might be Mummy Rot!",
                     2,
                 )
                 .into(),
-                change_other_player_fortitude(
+                change_other_player_fortitude_card(
                     "Sorry, sometimes my healing spells just wear off.",
                     1,
                 )
