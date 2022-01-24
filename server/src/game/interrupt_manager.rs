@@ -99,14 +99,18 @@ impl InterruptManager {
         gambling_manager: &mut GamblingManager,
     ) -> Result<(), (InterruptPlayerCard, Error)> {
         if !self.is_turn_to_interrupt(&player_uuid) {
-            return Err((card, Error::new("It is not your turn to play an interrupt card")));
+            return Err((
+                card,
+                Error::new("It is not your turn to play an interrupt card"),
+            ));
         }
         match self.push_to_current_stack(card, player_uuid) {
             Ok(_) => {
-                self.increment_player_turn(player_manager, gambling_manager).unwrap();
+                self.increment_player_turn(player_manager, gambling_manager)
+                    .unwrap();
                 Ok(())
-            },
-            Err(err) => Err(err)
+            }
+            Err(err) => Err(err),
         }
     }
 
@@ -118,7 +122,11 @@ impl InterruptManager {
         Some(player_uuid) == self.current_interrupt_turn_or.as_ref()
     }
 
-    pub fn pass(&mut self, player_manager: &mut PlayerManager, gambling_manager: &mut GamblingManager) -> Result<(), Error> {
+    pub fn pass(
+        &mut self,
+        player_manager: &mut PlayerManager,
+        gambling_manager: &mut GamblingManager,
+    ) -> Result<(), Error> {
         self.increment_player_turn(player_manager, gambling_manager)
     }
 
@@ -137,9 +145,10 @@ impl InterruptManager {
                         self.resolve_current_stack(player_manager, gambling_manager)?;
                         match self.interrupt_stacks.first() {
                             Some(first_interrupt_stack) => {
-                                self.current_interrupt_turn_or = Some(first_interrupt_stack.root_card_owner_uuid.clone());
+                                self.current_interrupt_turn_or =
+                                    Some(first_interrupt_stack.root_card_owner_uuid.clone());
                                 self.increment_player_turn(player_manager, gambling_manager)?;
-                            },
+                            }
                             None => {
                                 self.current_interrupt_turn_or = None;
                             }

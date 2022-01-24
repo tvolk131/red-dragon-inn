@@ -193,7 +193,8 @@ impl GameLogic {
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
-            self.interrupt_manager.pass(&mut self.player_manager, &mut self.gambling_manager)?;
+            self.interrupt_manager
+                .pass(&mut self.player_manager, &mut self.gambling_manager)?;
             return Ok(());
         }
 
@@ -217,7 +218,12 @@ impl GameLogic {
     /// The return type for this method is a bit complex, but was carefully chosen.
     /// If `Ok` is returned, then the wrapped card should be discarded if it exists.
     /// If an error is returned, the card should be returned to the player's hand.
-    fn process_card(&mut self, card: PlayerCard, player_uuid: &PlayerUUID, other_player_uuid_or: &Option<PlayerUUID>) -> Result<Option<PlayerCard>, (PlayerCard, Error)> {
+    fn process_card(
+        &mut self,
+        card: PlayerCard,
+        player_uuid: &PlayerUUID,
+        other_player_uuid_or: &Option<PlayerUUID>,
+    ) -> Result<Option<PlayerCard>, (PlayerCard, Error)> {
         if card.can_play(
             player_uuid,
             &self.gambling_manager,
@@ -246,10 +252,12 @@ impl GameLogic {
                             Error::new("Cannot direct this card at another player"),
                         ))
                     } else {
-                        match self
-                            .interrupt_manager
-                            .play_interrupt_card(interrupt_player_card, player_uuid.clone(), &mut self.player_manager, &mut self.gambling_manager)
-                        {
+                        match self.interrupt_manager.play_interrupt_card(
+                            interrupt_player_card,
+                            player_uuid.clone(),
+                            &mut self.player_manager,
+                            &mut self.gambling_manager,
+                        ) {
                             Ok(_) => Ok(None),
                             Err((card, error)) => Err((card.into(), error)),
                         }
@@ -502,8 +510,11 @@ fn rotate_player_vec_to_start_with_player(
 
 #[cfg(test)]
 mod tests {
+    use super::super::player_card::{
+        change_other_player_fortitude_card, gambling_im_in_card,
+        ignore_root_card_affecting_fortitude,
+    };
     use super::*;
-    use super::super::player_card::{gambling_im_in_card, change_other_player_fortitude_card, ignore_root_card_affecting_fortitude};
 
     #[test]
     fn can_handle_simple_gambling_round() {
@@ -520,33 +531,95 @@ mod tests {
             .unwrap();
 
         // Sanity check.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 8);
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 8);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Start gambling round.
-        assert!(game_logic.process_card(gambling_im_in_card().into(), &player1_uuid, &None).is_ok());
+        assert!(game_logic
+            .process_card(gambling_im_in_card().into(), &player1_uuid, &None)
+            .is_ok());
 
         // Both players choose not to play an interrupt card.
-        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player1_uuid));
-        game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
-        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player1_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+            )
+            .unwrap();
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player2_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+            )
+            .unwrap();
         assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
 
         // 1 gold should be subtracted from each player.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 7);
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 7);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            7
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            7
+        );
         assert_eq!(game_logic.gambling_manager.round_in_progress(), true);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Player 2 does not take control of the gambling round, making player 1 the winner.
-        game_logic.gambling_manager.pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
+        game_logic
+            .gambling_manager
+            .pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
 
         // Gambling pot should be given to the winner.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 9);
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 7);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            9
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            7
+        );
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
     }
@@ -566,23 +639,65 @@ mod tests {
             .unwrap();
 
         // Sanity check.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 8);
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 8);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
-        assert!(game_logic.process_card(change_other_player_fortitude_card("Punch in the face", -2).into(), &player1_uuid, &Some(player2_uuid.clone())).is_ok());
+        assert!(game_logic
+            .process_card(
+                change_other_player_fortitude_card("Punch in the face", -2).into(),
+                &player1_uuid,
+                &Some(player2_uuid.clone())
+            )
+            .is_ok());
 
         // Sanity check.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_fortitude(), 20);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_fortitude(),
+            20
+        );
 
         // Player 2 choose not to play an interrupt card.
-        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player2_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+            )
+            .unwrap();
         assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
 
         // Fortitude should be reduced.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_fortitude(), 18);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_fortitude(),
+            18
+        );
     }
 
     #[test]
@@ -600,26 +715,76 @@ mod tests {
             .unwrap();
 
         // Sanity check.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player1_uuid).unwrap().get_gold(), 8);
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_gold(), 8);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
-        assert!(game_logic.process_card(change_other_player_fortitude_card("Punch in the face", -2).into(), &player1_uuid, &Some(player2_uuid.clone())).is_ok());
+        assert!(game_logic
+            .process_card(
+                change_other_player_fortitude_card("Punch in the face", -2).into(),
+                &player1_uuid,
+                &Some(player2_uuid.clone())
+            )
+            .is_ok());
 
         // Sanity check.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_fortitude(), 20);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_fortitude(),
+            20
+        );
 
         // Player 2 plays an interrupt card.
-        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        assert!(game_logic.process_card(ignore_root_card_affecting_fortitude("Block punch").into(), &player2_uuid, &None).is_ok());
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player2_uuid));
+        assert!(game_logic
+            .process_card(
+                ignore_root_card_affecting_fortitude("Block punch").into(),
+                &player2_uuid,
+                &None
+            )
+            .is_ok());
         // Player 1 chooses not to play a countering interrupt card.
-        assert!(game_logic.interrupt_manager.is_turn_to_interrupt(&player1_uuid));
-        game_logic.interrupt_manager.pass(&mut game_logic.player_manager, &mut game_logic.gambling_manager).unwrap();
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player1_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+            )
+            .unwrap();
         assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
 
         // Fortitude should not be reduced.
-        assert_eq!(game_logic.player_manager.get_player_by_uuid(&player2_uuid).unwrap().get_fortitude(), 20);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_fortitude(),
+            20
+        );
     }
 
     #[test]
