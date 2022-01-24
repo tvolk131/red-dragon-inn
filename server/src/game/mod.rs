@@ -15,7 +15,7 @@ pub use self::uuid::PlayerUUID;
 pub use error::Error;
 
 use game_logic::GameLogic;
-use player_card::{change_other_player_fortitude_card, gambling_im_in_card, i_raise_card, PlayerCard};
+use player_card::{change_other_player_fortitude_card, gambling_im_in_card, i_raise_card, ignore_root_card_affecting_fortitude, PlayerCard};
 use player_view::{GameView, ListedGameView};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -295,6 +295,8 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
+                ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!").into(),
+                ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!").into(),
             ],
             Self::Zot => vec![
                 gambling_im_in_card().into(),
@@ -318,6 +320,7 @@ impl Character {
                 change_other_player_fortitude_card("I told you not to distract me!", 2).into(),
                 change_other_player_fortitude_card("Watch out! Don't step on Pooky!", 2).into(),
                 change_other_player_fortitude_card("Down Pooky!", 1).into(),
+                ignore_root_card_affecting_fortitude("Now you see me... Now you don't!").into(),
             ],
             Self::Deirdre => vec![
                 gambling_im_in_card().into(),
@@ -351,6 +354,10 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
+                change_other_player_fortitude_card("Uh oh! I forgot to disarm one of the traps!", 3).into(),
+                change_other_player_fortitude_card("Have you seen my poison? I left it in a mug right here...", 3).into(),
+                change_other_player_fortitude_card("That's not healing salve! It's contact poison!", 2).into(),
+                change_other_player_fortitude_card("How did this get stuck in your back?", 2).into(),
             ],
         }
     }
