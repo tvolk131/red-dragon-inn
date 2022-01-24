@@ -95,11 +95,19 @@ impl InterruptManager {
         &mut self,
         card: InterruptPlayerCard,
         player_uuid: PlayerUUID,
+        player_manager: &mut PlayerManager,
+        gambling_manager: &mut GamblingManager,
     ) -> Result<(), (InterruptPlayerCard, Error)> {
         if !self.is_turn_to_interrupt(&player_uuid) {
             return Err((card, Error::new("It is not your turn to play an interrupt card")));
         }
-        self.push_to_current_stack(card, player_uuid)
+        match self.push_to_current_stack(card, player_uuid) {
+            Ok(_) => {
+                self.increment_player_turn(player_manager, gambling_manager).unwrap();
+                Ok(())
+            },
+            Err(err) => Err(err)
+        }
     }
 
     pub fn interrupt_in_progress(&self) -> bool {
@@ -127,8 +135,15 @@ impl InterruptManager {
                     // that ends the interrupt stack since that player was uninterrupted.
                     if Some(next_player_uuid) == self.get_last_player_to_play_on_current_stack() {
                         self.resolve_current_stack(player_manager, gambling_manager)?;
-                        // TODO - If there are more stacks, we want to set this to the appropriate player rather than `None`.
-                        self.current_interrupt_turn_or = None;
+                        match self.interrupt_stacks.first() {
+                            Some(first_interrupt_stack) => {
+                                self.current_interrupt_turn_or = Some(first_interrupt_stack.root_card_owner_uuid.clone());
+                                self.increment_player_turn(player_manager, gambling_manager)?;
+                            },
+                            None => {
+                                self.current_interrupt_turn_or = None;
+                            }
+                        }
                     } else {
                         self.current_interrupt_turn_or = Some(next_player_uuid.clone());
                     }

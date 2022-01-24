@@ -298,10 +298,21 @@ pub fn change_other_player_fortitude_card(display_name: impl ToString, amount: i
             },
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
-            interrupt_style: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            interrupt_style: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo {
                 affects_fortitude: true,
             }),
             post_interrupt_play_fn_or: None,
+        }),
+    }
+}
+
+pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> InterruptPlayerCard {
+    InterruptPlayerCard {
+        display_name: display_name.to_string(),
+        interrupt_type_input: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo { affects_fortitude: true }),
+        interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo { affects_fortitude: false }),
+        interrupt_fn: Arc::from(|_player_uuid: &PlayerUUID, _interrupt_manager: &InterruptManager| -> ShouldCancelPreviousCard {
+            ShouldCancelPreviousCard::Ignore
         }),
     }
 }
