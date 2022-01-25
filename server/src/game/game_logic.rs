@@ -574,7 +574,7 @@ fn rotate_player_vec_to_start_with_player(
 mod tests {
     use super::super::player_card::{
         change_other_player_fortitude_card, gambling_im_in_card,
-        ignore_root_card_affecting_fortitude,
+        ignore_root_card_affecting_fortitude, i_raise_card
     };
     use super::*;
 
@@ -676,6 +676,73 @@ mod tests {
         );
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
+    }
+
+    #[test]
+    fn cannot_play_gambling_cards_during_game_interrupts() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        // Sanity check.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Start gambling round.
+        assert!(game_logic
+            .process_card(gambling_im_in_card().into(), &player1_uuid, &None)
+            .is_ok());
+
+        // Other player can choose to interrupt their ante (but doesn't yet).
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player2_uuid));
+
+        // Neither player can play other gambling cards.
+        assert!(!i_raise_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(!i_raise_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(!gambling_im_in_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(!gambling_im_in_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+
+        // Player 2 passes and antes.
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
+            )
+            .unwrap();
+
+        // Player 2 can now play a gambling card.
+        assert!(!i_raise_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(i_raise_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(!gambling_im_in_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(gambling_im_in_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
     }
 
     #[test]

@@ -104,7 +104,11 @@ impl RootPlayerCard {
         interrupt_manager: &InterruptManager,
         turn_info: &TurnInfo,
     ) -> bool {
-        (self.can_play_fn)(player_uuid, gambling_manager, interrupt_manager, turn_info)
+        if interrupt_manager.interrupt_in_progress() {
+            false
+        } else {
+            (self.can_play_fn)(player_uuid, gambling_manager, interrupt_manager, turn_info)
+        }
     }
 
     pub fn get_interrupt_data_or(&self) -> Option<&RootPlayerCardInterruptData> {
