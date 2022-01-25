@@ -16,8 +16,8 @@ pub use error::Error;
 
 use game_logic::GameLogic;
 use player_card::{
-    change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_im_in_card,
-    i_raise_card, ignore_root_card_affecting_fortitude,
+    change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
+    gambling_im_in_card, i_raise_card, ignore_root_card_affecting_fortitude,
     oh_i_guess_the_wench_thought_that_was_her_tip_card,
     wench_bring_some_drinks_for_my_friends_card, PlayerCard,
 };
@@ -350,6 +350,9 @@ impl Character {
                 wench_bring_some_drinks_for_my_friends_card().into(),
                 wench_bring_some_drinks_for_my_friends_card().into(),
                 oh_i_guess_the_wench_thought_that_was_her_tip_card().into(),
+                gambling_cheat_card("Pooky! Stop looking at everyone's cards!").into(),
+                gambling_cheat_card("Look over there! It's the Lich King!").into(),
+                gambling_cheat_card("This time, we'll use my dice.").into(),
             ],
             Self::Deirdre => vec![
                 gambling_im_in_card().into(),
@@ -418,6 +421,9 @@ impl Character {
                 wench_bring_some_drinks_for_my_friends_card().into(),
                 wench_bring_some_drinks_for_my_friends_card().into(),
                 oh_i_guess_the_wench_thought_that_was_her_tip_card().into(),
+                gambling_cheat_card("I'm winning... Honestly!").into(),
+                gambling_cheat_card("Oops... I dropped my cards...").into(),
+                gambling_cheat_card("Five of a kind! Does this mean I win?").into(),
             ],
         }
     }

@@ -306,6 +306,34 @@ pub fn i_raise_card() -> RootPlayerCard {
     }
 }
 
+pub fn gambling_cheat_card(display_name: impl ToString) -> RootPlayerCard {
+    RootPlayerCard {
+        display_name: display_name.to_string(),
+        target_style: TargetStyle::SelfPlayer,
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      gambling_manager: &GamblingManager,
+                      _interrupt_manager: &InterruptManager,
+                      _turn_info: &TurnInfo|
+         -> bool { gambling_manager.is_turn(player_uuid) },
+        pre_interrupt_play_fn_or: Some(Arc::from(
+            move |player_uuid: &PlayerUUID,
+                  _player_manager: &mut PlayerManager,
+                  gambling_manager: &mut GamblingManager,
+                  _turn_info: &mut TurnInfo| {
+                gambling_manager.take_control_of_round(player_uuid.clone(), false);
+                ShouldInterrupt::No
+            },
+        )),
+        interrupt_play_fn: Arc::from(
+            |_player_uuid: &PlayerUUID,
+             _targeted_player_uuid: &PlayerUUID,
+             _player_manager: &mut PlayerManager,
+             _gambling_manager: &mut GamblingManager| {},
+        ),
+        interrupt_data_or: None,
+    }
+}
+
 pub fn change_other_player_fortitude_card(
     display_name: impl ToString,
     amount: i32,

@@ -573,8 +573,8 @@ fn rotate_player_vec_to_start_with_player(
 #[cfg(test)]
 mod tests {
     use super::super::player_card::{
-        change_other_player_fortitude_card, gambling_im_in_card,
-        ignore_root_card_affecting_fortitude, i_raise_card
+        change_other_player_fortitude_card, gambling_im_in_card, i_raise_card,
+        ignore_root_card_affecting_fortitude,
     };
     use super::*;
 
@@ -723,10 +723,30 @@ mod tests {
             .is_turn_to_interrupt(&player2_uuid));
 
         // Neither player can play other gambling cards.
-        assert!(!i_raise_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
-        assert!(!i_raise_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
-        assert!(!gambling_im_in_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
-        assert!(!gambling_im_in_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(!i_raise_card().can_play(
+            &player1_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(!i_raise_card().can_play(
+            &player2_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(!gambling_im_in_card().can_play(
+            &player1_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(!gambling_im_in_card().can_play(
+            &player2_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
 
         // Player 2 passes and antes.
         game_logic
@@ -739,10 +759,30 @@ mod tests {
             .unwrap();
 
         // Player 2 can now play a gambling card.
-        assert!(!i_raise_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
-        assert!(i_raise_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
-        assert!(!gambling_im_in_card().can_play(&player1_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
-        assert!(gambling_im_in_card().can_play(&player2_uuid, &game_logic.gambling_manager, &game_logic.interrupt_manager, &game_logic.turn_info));
+        assert!(!i_raise_card().can_play(
+            &player1_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(i_raise_card().can_play(
+            &player2_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(!gambling_im_in_card().can_play(
+            &player1_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(gambling_im_in_card().can_play(
+            &player2_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
     }
 
     #[test]
