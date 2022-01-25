@@ -300,6 +300,21 @@ impl Character {
                 gambling_im_in_card().into(),
                 i_raise_card().into(),
                 i_raise_card().into(),
+                change_other_player_fortitude_card(
+                    "So then I got the ogre in a headlock like this!",
+                    -3,
+                )
+                .into(),
+                change_other_player_fortitude_card("Hey! No more chain mail bikini jokes!", -2)
+                    .into(),
+                change_other_player_fortitude_card("Hey! No more chain mail bikini jokes!", -2)
+                    .into(),
+                change_other_player_fortitude_card("Who says I'm not a lady?", -2).into(),
+                change_other_player_fortitude_card("It'll hurt more if you do it like this!", -1)
+                    .into(),
+                change_other_player_fortitude_card("It'll hurt more if you do it like this!", -1)
+                    .into(),
+                change_other_player_fortitude_card("You wanna arm wrestle?", -1).into(),
                 ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!")
                     .into(),
                 ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!")

@@ -263,7 +263,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
 pub fn i_raise_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("I raise!"),
-        target_style: TargetStyle::AllPlayersIncludingSelf,
+        target_style: TargetStyle::AllPlayersIncludingSelf, // TODO - This should not be all players. Instead, it should be all players in the gambling round.
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
                       _interrupt_manager: &InterruptManager,
