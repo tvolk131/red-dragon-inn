@@ -19,15 +19,16 @@ impl GamblingManager {
         self.gambling_round_or.is_some()
     }
 
-    pub fn start_round(&mut self, player_uuid: PlayerUUID, player_manager: &PlayerManager) {
+    pub fn start_round(&mut self, player_uuid: PlayerUUID, player_manager: &mut PlayerManager) {
         if self.gambling_round_or.is_none() {
             self.gambling_round_or = Some(GamblingRound {
                 active_player_uuids: player_manager.clone_uuids_of_all_alive_players(),
                 current_player_turn: player_uuid.clone(),
-                winning_player: player_uuid,
+                winning_player: player_uuid.clone(),
                 pot_amount: 0,
                 need_cheating_card_to_take_next_control: false,
             });
+            self.ante_up(&player_uuid, player_manager);
         }
     }
 
@@ -53,9 +54,7 @@ impl GamblingManager {
         }
 
         match &mut self.gambling_round_or {
-            Some(gambling_round) => {
-                gambling_round.pot_amount += gambling_round.active_player_uuids.len() as i32
-            }
+            Some(gambling_round) => gambling_round.pot_amount += 1,
             None => return,
         };
 

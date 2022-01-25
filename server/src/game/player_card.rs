@@ -149,8 +149,13 @@ pub enum ShouldInterrupt {
 #[derive(Clone)]
 pub struct RootPlayerCardInterruptData {
     interrupt_style: GameInterruptType,
-    post_interrupt_play_fn_or:
-        Option<Arc<dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager) + Send + Sync>>,
+    post_interrupt_play_fn_or: Option<
+        Arc<
+            dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager, &mut TurnInfo)
+                + Send
+                + Sync,
+        >,
+    >,
 }
 
 impl RootPlayerCardInterruptData {
@@ -163,9 +168,10 @@ impl RootPlayerCardInterruptData {
         player_uuid: &PlayerUUID,
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
+        turn_info: &mut TurnInfo,
     ) {
         if let Some(post_interrupt_play_fn) = &self.post_interrupt_play_fn_or {
-            (post_interrupt_play_fn)(player_uuid, player_manager, gambling_manager)
+            (post_interrupt_play_fn)(player_uuid, player_manager, gambling_manager, turn_info)
         }
     }
 }
@@ -218,7 +224,7 @@ pub enum ShouldCancelPreviousCard {
 pub fn gambling_im_in_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Gambling? I'm in!"),
-        target_style: TargetStyle::AllPlayersIncludingSelf,
+        target_style: TargetStyle::AllOtherPlayers,
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
                       _interrupt_manager: &InterruptManager,
@@ -255,7 +261,14 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_style: GameInterruptType::AboutToAnte,
-            post_interrupt_play_fn_or: None,
+            post_interrupt_play_fn_or: Some(Arc::from(
+                |_player_uuid: &PlayerUUID,
+                 player_manager: &mut PlayerManager,
+                 gambling_manager: &mut GamblingManager,
+                 turn_info: &mut TurnInfo| {
+                    gambling_manager.pass(player_manager, turn_info);
+                },
+            )),
         }),
     }
 }

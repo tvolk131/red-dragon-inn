@@ -193,8 +193,11 @@ impl GameLogic {
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
-            self.interrupt_manager
-                .pass(&mut self.player_manager, &mut self.gambling_manager)?;
+            self.interrupt_manager.pass(
+                &mut self.player_manager,
+                &mut self.gambling_manager,
+                &mut self.turn_info,
+            )?;
             return Ok(());
         }
 
@@ -257,6 +260,7 @@ impl GameLogic {
                             player_uuid.clone(),
                             &mut self.player_manager,
                             &mut self.gambling_manager,
+                            &mut self.turn_info,
                         ) {
                             Ok(_) => Ok(None),
                             Err((card, error)) => Err((card.into(), error)),
@@ -353,6 +357,7 @@ fn process_root_player_card(
                             player_uuid.clone(),
                             player_manager,
                             gambling_manager,
+                            turn_info,
                         )?;
                         Ok(None)
                     } else {
@@ -384,6 +389,7 @@ fn process_root_player_card(
                                 targeted_player_uuid.clone(),
                                 player_manager,
                                 gambling_manager,
+                                turn_info,
                             )?;
                             Ok(None)
                         } else {
@@ -435,6 +441,7 @@ fn process_root_player_card(
                             targeted_player_uuids,
                             player_manager,
                             gambling_manager,
+                            turn_info,
                         )?;
                         Ok(None)
                     } else {
@@ -480,6 +487,7 @@ fn process_root_player_card(
                             targeted_player_uuids,
                             player_manager,
                             gambling_manager,
+                            turn_info,
                         )?;
                         Ok(None)
                     } else {
@@ -609,17 +617,7 @@ mod tests {
             .process_card(gambling_im_in_card().into(), &player1_uuid, &None)
             .is_ok());
 
-        // Both players choose not to play an interrupt card.
-        assert!(game_logic
-            .interrupt_manager
-            .is_turn_to_interrupt(&player1_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-            )
-            .unwrap();
+        // Other player chooses not to play an interrupt card.
         assert!(game_logic
             .interrupt_manager
             .is_turn_to_interrupt(&player2_uuid));
@@ -628,6 +626,7 @@ mod tests {
             .pass(
                 &mut game_logic.player_manager,
                 &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
             )
             .unwrap();
         assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
@@ -653,6 +652,7 @@ mod tests {
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Player 2 does not take control of the gambling round, making player 1 the winner.
+        assert!(game_logic.gambling_manager.is_turn(&player2_uuid));
         game_logic
             .gambling_manager
             .pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
@@ -739,6 +739,7 @@ mod tests {
             .pass(
                 &mut game_logic.player_manager,
                 &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
             )
             .unwrap();
         assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
@@ -826,6 +827,7 @@ mod tests {
             .pass(
                 &mut game_logic.player_manager,
                 &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
             )
             .unwrap();
         assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
