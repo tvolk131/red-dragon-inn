@@ -90,8 +90,7 @@ impl GamblingManager {
                 .get_player_by_uuid_mut(&winner)
                 .unwrap()
                 .change_gold(pot_amount);
-            self.gambling_round_or = None;
-            turn_info.set_order_drinks_phase();
+            self.end_round_and_discard_gold(turn_info);
         }
     }
 
@@ -100,6 +99,11 @@ impl GamblingManager {
             Some(gambling_round) => gambling_round.need_cheating_card_to_take_next_control,
             None => false,
         }
+    }
+
+    pub fn end_round_and_discard_gold(&mut self, turn_info: &mut TurnInfo) {
+        self.gambling_round_or = None;
+        turn_info.set_order_drinks_phase();
     }
 
     fn increment_player_turn(&mut self) {

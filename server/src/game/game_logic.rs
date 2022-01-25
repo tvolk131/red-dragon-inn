@@ -323,7 +323,7 @@ fn process_root_player_card(
     interrupt_manager: &mut InterruptManager,
     turn_info: &mut TurnInfo,
 ) -> Result<Option<RootPlayerCard>, (RootPlayerCard, Error)> {
-    if !root_player_card.can_play(player_uuid, gambling_manager, turn_info) {
+    if !root_player_card.can_play(player_uuid, gambling_manager, interrupt_manager, turn_info) {
         return Err((
             root_player_card,
             Error::new("Cannot play card at this time"),
