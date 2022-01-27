@@ -1,9 +1,12 @@
 mod deck;
 mod drink;
 mod error;
+mod gambling_manager;
 mod game_logic;
+mod interrupt_manager;
 mod player;
 mod player_card;
+mod player_manager;
 pub mod player_view;
 mod uuid;
 
@@ -12,7 +15,12 @@ pub use self::uuid::PlayerUUID;
 pub use error::Error;
 
 use game_logic::GameLogic;
-use player_card::{change_other_player_fortitude, gambling_im_in_card, i_raise_card, PlayerCard};
+use player_card::{
+    change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
+    gambling_im_in_card, i_raise_card, ignore_root_card_affecting_fortitude,
+    oh_i_guess_the_wench_thought_that_was_her_tip_card,
+    wench_bring_some_drinks_for_my_friends_card, PlayerCard,
+};
 use player_view::{GameView, ListedGameView};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -128,7 +136,7 @@ impl Game {
         other_player_uuid_or: &Option<PlayerUUID>,
         card_index: usize,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_mut_game_logic() {
+        let game_logic = match self.get_game_logic_mut() {
             Ok(game_logic) => game_logic,
             Err(err) => return Err(err),
         };
@@ -146,7 +154,7 @@ impl Game {
         player_uuid: &PlayerUUID,
         card_indices: Vec<usize>,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_mut_game_logic() {
+        let game_logic = match self.get_game_logic_mut() {
             Ok(game_logic) => game_logic,
             Err(err) => return Err(err),
         };
@@ -163,7 +171,7 @@ impl Game {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_mut_game_logic() {
+        let game_logic = match self.get_game_logic_mut() {
             Ok(game_logic) => game_logic,
             Err(err) => return Err(err),
         };
@@ -171,21 +179,7 @@ impl Game {
     }
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
-        match &mut self.get_mut_game_logic() {
-            Ok(game_logic) => {
-                if game_logic.can_play_action_card(player_uuid) {
-                    game_logic.skip_action_phase()?;
-                    return Ok(());
-                }
-
-                if game_logic.is_gambling_turn(player_uuid) {
-                    game_logic.gambling_pass();
-                    return Ok(());
-                }
-            }
-            Err(_) => {}
-        };
-        Err(Error::new("Unable to pass at this time"))
+        self.get_game_logic_mut()?.pass(player_uuid)
     }
 
     fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
@@ -202,7 +196,7 @@ impl Game {
             current_turn_player_uuid: self
                 .game_logic_or
                 .as_ref()
-                .map(|game_logic| game_logic.get_current_player_turn().clone()),
+                .map(|game_logic| game_logic.get_turn_info().get_current_player_turn().clone()),
             current_turn_phase: self
                 .game_logic_or
                 .as_ref()
@@ -214,7 +208,7 @@ impl Game {
             },
             self_player_uuid: player_uuid,
             player_data: match &self.game_logic_or {
-                Some(game_logic) => game_logic.get_game_view_player_data(),
+                Some(game_logic) => game_logic.get_game_view_player_data_of_all_players(),
                 None => Vec::new(),
             },
             // TODO - Handle this `unwrap`.
@@ -242,7 +236,7 @@ impl Game {
         }
     }
 
-    fn get_mut_game_logic(&mut self) -> Result<&mut GameLogic, Error> {
+    fn get_game_logic_mut(&mut self) -> Result<&mut GameLogic, Error> {
         match &mut self.game_logic_or {
             Some(game_logic) => Ok(game_logic),
             None => Err(Error::new("Game is not currently running")),
@@ -298,81 +292,138 @@ impl Character {
     pub fn create_deck(&self) -> Vec<PlayerCard> {
         match self {
             Self::Fiona => vec![
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                i_raise_card().into(),
+                i_raise_card().into(),
+                change_other_player_fortitude_card(
+                    "So then I got the ogre in a headlock like this!",
+                    -3,
+                )
+                .into(),
+                change_other_player_fortitude_card("Hey! No more chain mail bikini jokes!", -2)
+                    .into(),
+                change_other_player_fortitude_card("Hey! No more chain mail bikini jokes!", -2)
+                    .into(),
+                change_other_player_fortitude_card("Who says I'm not a lady?", -2).into(),
+                change_other_player_fortitude_card("It'll hurt more if you do it like this!", -1)
+                    .into(),
+                change_other_player_fortitude_card("It'll hurt more if you do it like this!", -1)
+                    .into(),
+                change_other_player_fortitude_card("You wanna arm wrestle?", -1).into(),
+                ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!")
+                    .into(),
+                ignore_root_card_affecting_fortitude("Luckily for me, I was wearing my armor!")
+                    .into(),
+                gain_fortitude_anytime_card("I'm a quick healer.", 2).into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                oh_i_guess_the_wench_thought_that_was_her_tip_card().into(),
             ],
             Self::Zot => vec![
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                i_raise_card().into(),
+                i_raise_card().into(),
+                change_other_player_fortitude_card(
                     "How many times have I told you? Keep your hands off my wand!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
+                    -2,
+                )
+                .into(),
+                change_other_player_fortitude_card(
                     "How many times have I told you? Keep your hands off my wand!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
-                    "I told you not to distract me!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
-                    "Watch out! Don't step on Pooky!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude("Down Pooky!", 1)),
+                    -2,
+                )
+                .into(),
+                change_other_player_fortitude_card("I told you not to distract me!", -2).into(),
+                change_other_player_fortitude_card("Watch out! Don't step on Pooky!", -2).into(),
+                change_other_player_fortitude_card("Down Pooky!", -1).into(),
+                ignore_root_card_affecting_fortitude("Now you see me... Now you don't!").into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                oh_i_guess_the_wench_thought_that_was_her_tip_card().into(),
+                gambling_cheat_card("Pooky! Stop looking at everyone's cards!").into(),
+                gambling_cheat_card("Look over there! It's the Lich King!").into(),
+                gambling_cheat_card("This time, we'll use my dice.").into(),
             ],
             Self::Deirdre => vec![
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
-                    "My Goddess made me do it!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
-                    "My Goddess made me do it!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
-                    "I'm not that kind of priestess!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                i_raise_card().into(),
+                i_raise_card().into(),
+                change_other_player_fortitude_card("My Goddess made me do it!", -2).into(),
+                change_other_player_fortitude_card("My Goddess made me do it!", -2).into(),
+                change_other_player_fortitude_card("I'm not that kind of priestess!", -2).into(),
+                change_other_player_fortitude_card(
                     "Oh no! I think that growth on your arm might be Mummy Rot!",
-                    2,
-                )),
-                PlayerCard::DirectedPlayerCard(change_other_player_fortitude(
+                    -2,
+                )
+                .into(),
+                change_other_player_fortitude_card(
                     "Sorry, sometimes my healing spells just wear off.",
-                    1,
-                )),
+                    -1,
+                )
+                .into(),
+                ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
+                ignore_root_card_affecting_fortitude("My Goddess protects me!").into(),
+                gain_fortitude_anytime_card("My Goddess heals me.", 2).into(),
+                gain_fortitude_anytime_card("My Goddess heals me.", 2).into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                oh_i_guess_the_wench_thought_that_was_her_tip_card().into(),
             ],
             Self::Gerki => vec![
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(gambling_im_in_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
-                PlayerCard::SimplePlayerCard(i_raise_card()),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                gambling_im_in_card().into(),
+                i_raise_card().into(),
+                i_raise_card().into(),
+                change_other_player_fortitude_card(
+                    "Uh oh! I forgot to disarm one of the traps!",
+                    -3,
+                )
+                .into(),
+                change_other_player_fortitude_card(
+                    "Have you seen my poison? I left it in a mug right here...",
+                    -3,
+                )
+                .into(),
+                change_other_player_fortitude_card(
+                    "That's not healing salve! It's contact poison!",
+                    -2,
+                )
+                .into(),
+                change_other_player_fortitude_card(
+                    "That's not healing salve! It's contact poison!",
+                    -2,
+                )
+                .into(),
+                change_other_player_fortitude_card("How did this get stuck in your back?", -2)
+                    .into(),
+                change_other_player_fortitude_card("How did this get stuck in your back?", -2)
+                    .into(),
+                ignore_root_card_affecting_fortitude("Hide in shadows").into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                oh_i_guess_the_wench_thought_that_was_her_tip_card().into(),
+                gambling_cheat_card("I'm winning... Honestly!").into(),
+                gambling_cheat_card("Oops... I dropped my cards...").into(),
+                gambling_cheat_card("Five of a kind! Does this mean I win?").into(),
             ],
         }
     }
@@ -399,7 +450,10 @@ mod tests {
             game.select_character(&player1_uuid, Character::Deirdre),
             Ok(())
         );
-        assert_eq!(game.select_character(&player2_uuid, Character::Gerki), Ok(()));
+        assert_eq!(
+            game.select_character(&player2_uuid, Character::Gerki),
+            Ok(())
+        );
         assert_eq!(game.start(&player1_uuid), Ok(()));
 
         for _ in 1..10 {

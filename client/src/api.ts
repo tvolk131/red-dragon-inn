@@ -13,6 +13,7 @@ interface GameViewPlayerData {
   alcoholContent: number;
   fortitude: number;
   gold: number;
+  isDead: boolean;
 }
 
 export interface GameView {

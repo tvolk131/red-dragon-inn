@@ -1,10 +1,12 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::Drink;
+use super::gambling_manager::GamblingManager;
+use super::game_logic::TurnInfo;
+use super::interrupt_manager::InterruptManager;
 use super::player_card::PlayerCard;
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
-use super::GameLogic;
 use std::borrow::Borrow;
 
 #[derive(Clone)]
@@ -46,19 +48,27 @@ impl Player {
             alcohol_content: self.alcohol_content,
             fortitude: self.fortitude,
             gold: self.gold,
+            is_dead: self.is_out_of_game(),
         }
     }
 
     pub fn get_game_view_hand(
         &self,
         player_uuid: &PlayerUUID,
-        game: &GameLogic,
+        gambling_manager: &GamblingManager,
+        interrupt_manager: &InterruptManager,
+        turn_info: &TurnInfo,
     ) -> Vec<GameViewPlayerCard> {
         self.hand
             .iter()
             .map(|card| GameViewPlayerCard {
                 card_name: card.get_display_name().to_string(),
-                is_playable: card.can_play(player_uuid, game),
+                is_playable: card.can_play(
+                    player_uuid,
+                    gambling_manager,
+                    interrupt_manager,
+                    turn_info,
+                ),
             })
             .collect()
     }
@@ -114,10 +124,24 @@ impl Player {
 
     pub fn change_alcohol_content(&mut self, amount: i32) {
         self.alcohol_content += amount;
+        if self.alcohol_content > 20 {
+            self.alcohol_content = 20;
+        } else if self.alcohol_content < 0 {
+            self.alcohol_content = 0;
+        }
+    }
+
+    pub fn get_fortitude(&self) -> i32 {
+        self.fortitude
     }
 
     pub fn change_fortitude(&mut self, amount: i32) {
         self.fortitude += amount;
+        if self.fortitude > 20 {
+            self.fortitude = 20;
+        } else if self.fortitude < 0 {
+            self.fortitude = 0;
+        }
     }
 
     pub fn get_gold(&self) -> i32 {
