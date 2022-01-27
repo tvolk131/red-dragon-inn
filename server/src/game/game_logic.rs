@@ -573,8 +573,8 @@ fn rotate_player_vec_to_start_with_player(
 #[cfg(test)]
 mod tests {
     use super::super::player_card::{
-        change_other_player_fortitude_card, gambling_im_in_card, i_raise_card,
-        ignore_root_card_affecting_fortitude,
+        change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_im_in_card,
+        i_raise_card, ignore_root_card_affecting_fortitude,
     };
     use super::*;
 
@@ -896,6 +896,13 @@ mod tests {
         assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
+        // Reduce player 2's fortitude to ensure that it is properly restored.
+        game_logic
+            .player_manager
+            .get_player_by_uuid_mut(&player2_uuid)
+            .unwrap()
+            .change_fortitude(-2);
+
         assert!(game_logic
             .process_card(
                 change_other_player_fortitude_card("Punch in the face", -2).into(),
@@ -904,15 +911,45 @@ mod tests {
             )
             .is_ok());
 
-        // Sanity check.
-        assert_eq!(
-            game_logic
-                .player_manager
-                .get_player_by_uuid(&player2_uuid)
-                .unwrap()
-                .get_fortitude(),
-            20
-        );
+        assert!(gain_fortitude_anytime_card("Heal", 1).can_play(
+            &player1_uuid,
+            &game_logic.gambling_manager,
+            &game_logic.interrupt_manager,
+            &game_logic.turn_info
+        ));
+        assert!(game_logic
+            .process_card(
+                gain_fortitude_anytime_card("Heal", 1).into(),
+                &player1_uuid,
+                &None
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn can_gain_fortitude_during_game_interrupt() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        assert!(game_logic
+            .process_card(
+                change_other_player_fortitude_card("Punch in the face", -2).into(),
+                &player1_uuid,
+                &Some(player2_uuid.clone())
+            )
+            .is_ok());
 
         // Player 2 plays an interrupt card.
         assert!(game_logic

@@ -63,6 +63,7 @@ impl From<InterruptPlayerCard> for PlayerCard {
 #[derive(Clone)]
 pub struct RootPlayerCard {
     display_name: String,
+    card_type: RootPlayerCardType,
     target_style: TargetStyle,
     can_play_fn: fn(
         player_uuid: &PlayerUUID,
@@ -104,7 +105,10 @@ impl RootPlayerCard {
         interrupt_manager: &InterruptManager,
         turn_info: &TurnInfo,
     ) -> bool {
-        if interrupt_manager.interrupt_in_progress() {
+        if (self.card_type != RootPlayerCardType::Anytime
+            && self.card_type != RootPlayerCardType::Sometimes)
+            && interrupt_manager.interrupt_in_progress()
+        {
             false
         } else {
             (self.can_play_fn)(player_uuid, gambling_manager, interrupt_manager, turn_info)
@@ -143,6 +147,16 @@ impl RootPlayerCard {
             gambling_manager,
         )
     }
+}
+
+#[derive(Clone, PartialEq)]
+pub enum RootPlayerCardType {
+    Action,
+    ActionGambling,
+    Anytime,
+    Gambling,
+    Cheating,
+    Sometimes,
 }
 
 pub enum ShouldInterrupt {
@@ -228,6 +242,7 @@ pub enum ShouldCancelPreviousCard {
 pub fn gambling_im_in_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Gambling? I'm in!"),
+        card_type: RootPlayerCardType::ActionGambling,
         target_style: TargetStyle::AllOtherPlayers,
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
@@ -280,6 +295,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
 pub fn i_raise_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("I raise!"),
+        card_type: RootPlayerCardType::Gambling,
         target_style: TargetStyle::AllPlayersIncludingSelf, // TODO - This should not be all players. Instead, it should be all players in the gambling round.
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
@@ -309,6 +325,7 @@ pub fn i_raise_card() -> RootPlayerCard {
 pub fn gambling_cheat_card(display_name: impl ToString) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        card_type: RootPlayerCardType::Cheating,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
@@ -340,6 +357,7 @@ pub fn change_other_player_fortitude_card(
 ) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        card_type: RootPlayerCardType::Action,
         target_style: TargetStyle::SingleOtherPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
@@ -390,6 +408,7 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
 pub fn gain_fortitude_anytime_card(display_name: impl ToString, amount: i32) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        card_type: RootPlayerCardType::Anytime,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |_player_uuid: &PlayerUUID,
                       _gambling_manager: &GamblingManager,
@@ -420,6 +439,7 @@ pub fn gain_fortitude_anytime_card(display_name: impl ToString, amount: i32) -> 
 pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Wench, bring some drinks for my friends!"),
+        card_type: RootPlayerCardType::Sometimes,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
                       _gambling_manager: &GamblingManager,
@@ -455,6 +475,7 @@ pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
 pub fn oh_i_guess_the_wench_thought_that_was_her_tip_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Oh, I guess the Wench thought that was her tip..."),
+        card_type: RootPlayerCardType::Sometimes,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |_player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
