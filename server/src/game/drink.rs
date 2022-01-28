@@ -1,95 +1,207 @@
 use super::player::Player;
 
-pub trait Drink: Send + Sync + DrinkClone {
-    fn process(&self, player: &mut Player);
+#[derive(Clone)]
+pub enum DrinkCard {
+    Drink(Drink),
+    DrinkEvent(DrinkEvent),
 }
 
-pub trait DrinkClone {
-    fn clone_box(&self) -> Box<dyn Drink>;
-}
-
-impl Clone for Box<dyn Drink> {
-    fn clone(&self) -> Box<dyn Drink> {
-        self.clone_box()
+impl From<Drink> for DrinkCard {
+    fn from(drink: Drink) -> DrinkCard {
+        DrinkCard::Drink(drink)
     }
 }
 
-pub fn create_drink_deck() -> Vec<Box<dyn Drink>> {
-    vec![
-        Box::from(DarkAle {}),
-        Box::from(DarkAle {}),
-        Box::from(DarkAle {}),
-        // with_chaser(dark_ale()),
-        Box::from(DirtyDishwater {}),
-        Box::from(DragonBreathAle {}),
-        Box::from(DragonBreathAle {}),
-        Box::from(DragonBreathAle {}),
-        // drinking_contest(),
-        // drinking_contest(),
-        Box::from(ElvenWine {}),
-        Box::from(ElvenWine {}),
-        // with_chaser(elven_wine()),
-        Box::from(HolyWater {}),
-        Box::from(LightAle {}),
-        Box::from(LightAle {}),
-        Box::from(LightAle {}),
-        // with_chaser(light_ale()),
-        // with_chaser(light_ale()),
-        Box::from(OrcishRotgut {}),
-        // round_on_the_house(),
-        // round_on_the_house(),
-        // troll_swill(),
-        Box::from(Water {}),
-        // were_cutting_you_off(),
-        Box::from(Wine {}),
-        Box::from(Wine {}),
-        Box::from(Wine {}),
-        // with_chaser(wine()),
-        // wizards_brew()
-    ]
+impl From<DrinkEvent> for DrinkCard {
+    fn from(drink_event: DrinkEvent) -> DrinkCard {
+        DrinkCard::DrinkEvent(drink_event)
+    }
 }
 
-impl<T> DrinkClone for T
-where
-    T: 'static + Drink + Clone,
-{
-    fn clone_box(&self) -> Box<dyn Drink> {
-        Box::new(self.clone())
+#[derive(Clone)]
+pub struct Drink {
+    display_name: String,
+    process_fn: fn(player: &mut Player),
+    has_chaser: bool,
+}
+
+impl Drink {
+    pub fn process(&self, player: &mut Player) {
+        (self.process_fn)(player)
     }
+
+    pub fn has_chaser(&self) -> bool {
+        self.has_chaser
+    }
+}
+
+#[derive(Clone)]
+pub enum DrinkEvent {
+    DrinkingContest,
+    RoundOnTheHouse,
+}
+
+pub struct DrinkWithPossibleChasers {
+    drinks: Vec<Drink>,
+    ignored_card_or: Option<DrinkCard>,
+}
+
+impl DrinkWithPossibleChasers {
+    pub fn new(drinks: Vec<Drink>, ignored_card_or: Option<DrinkCard>) -> Self {
+        Self {
+            drinks,
+            ignored_card_or,
+        }
+    }
+
+    pub fn get_drinks(&self) -> &Vec<Drink> {
+        &self.drinks
+    }
+
+    pub fn take_all_discardable_drink_cards(self) -> Vec<DrinkCard> {
+        let mut discardable_drink_cards = Vec::new();
+        for drink in self.drinks {
+            discardable_drink_cards.push(drink.into());
+        }
+        if let Some(ignored_card) = self.ignored_card_or {
+            discardable_drink_cards.push(ignored_card);
+        }
+        discardable_drink_cards
+    }
+}
+
+pub enum RevealedDrink {
+    DrinkWithPossibleChasers(DrinkWithPossibleChasers),
+    DrinkEvent(DrinkEvent),
 }
 
 macro_rules! simple_drink {
-    ($struct_name:ident, $alcohol_content_mod:expr, $fortitude_mod: expr) => {
-        #[derive(Clone)]
-        pub struct $struct_name {}
-
-        impl Drink for $struct_name {
-            fn process(&self, player: &mut Player) {
+    ($display_name:expr, $alcohol_content_mod:expr, $fortitude_mod:expr, $has_chaser:expr) => {
+        Drink {
+            display_name: $display_name.to_string(),
+            process_fn: |player: &mut Player| {
                 player.change_alcohol_content($alcohol_content_mod);
                 player.change_fortitude($fortitude_mod);
+            },
+            has_chaser: $has_chaser,
+        }
+    };
+}
+
+fn orcish_rotgut() -> Drink {
+    Drink {
+        display_name: "Orcish Rotgut".to_string(),
+        process_fn: |player: &mut Player| {
+            if player.is_orc() {
+                player.change_alcohol_content(2);
+            } else {
+                player.change_fortitude(-2);
+            }
+        },
+        has_chaser: false,
+    }
+}
+
+fn troll_swill() -> Drink {
+    Drink {
+        display_name: "Troll Swill".to_string(),
+        process_fn: |player: &mut Player| {
+            if player.is_troll() {
+                player.change_alcohol_content(2);
+            } else {
+                player.change_alcohol_content(1);
+                player.change_fortitude(-1);
+            }
+        },
+        has_chaser: false,
+    }
+}
+
+pub fn create_drink_deck() -> Vec<DrinkCard> {
+    vec![
+        simple_drink!("Dark Ale", 1, 0, false).into(),
+        simple_drink!("Dark Ale", 1, 0, false).into(),
+        simple_drink!("Dark Ale", 1, 0, false).into(),
+        simple_drink!("Dark Ale with a Chaser", 1, 0, true).into(),
+        simple_drink!("Dirty Dishwater", 0, -1, false).into(),
+        simple_drink!("Dragon Breath Ale", 4, 0, false).into(),
+        simple_drink!("Dragon Breath Ale", 4, 0, false).into(),
+        simple_drink!("Dragon Breath Ale", 4, 0, false).into(),
+        simple_drink!("Elven Wine", 3, 0, false).into(),
+        simple_drink!("Elven Wine", 3, 0, false).into(),
+        simple_drink!("Elven Wine with a Chaser", 3, 0, true).into(),
+        simple_drink!("Holy Water", 0, 2, false).into(),
+        simple_drink!("Light Ale", 1, 0, false).into(),
+        simple_drink!("Light Ale", 1, 0, false).into(),
+        simple_drink!("Light Ale", 1, 0, false).into(),
+        simple_drink!("Light Ale with a Chaser", 1, 0, true).into(),
+        simple_drink!("Light Ale with a Chaser", 1, 0, true).into(),
+        simple_drink!("Wine", 2, 0, false).into(),
+        simple_drink!("Wine", 2, 0, false).into(),
+        simple_drink!("Wine", 2, 0, false).into(),
+        simple_drink!("Wine with a Chaser", 2, 0, true).into(),
+        simple_drink!("Wizard's Brew", 2, 2, false).into(),
+        orcish_rotgut().into(),
+        troll_swill().into(),
+        simple_drink!("Water", 0, 0, false).into(),
+        simple_drink!("We're Cutting You Off!", -1, 0, false).into(),
+        DrinkCard::DrinkEvent(DrinkEvent::DrinkingContest),
+        DrinkCard::DrinkEvent(DrinkEvent::DrinkingContest),
+        DrinkCard::DrinkEvent(DrinkEvent::RoundOnTheHouse),
+        DrinkCard::DrinkEvent(DrinkEvent::RoundOnTheHouse),
+    ]
+}
+
+macro_rules! impl_get_revealed_drink {
+    ($struct_name:ty, $get_next_card:expr) => {
+        impl $struct_name {
+            pub fn get_revealed_drink(&mut self) -> Option<RevealedDrink> {
+                Some(match $get_next_card(self)? {
+                    DrinkCard::Drink(drink) => {
+                        if !drink.has_chaser() {
+                            RevealedDrink::DrinkWithPossibleChasers(DrinkWithPossibleChasers::new(
+                                vec![drink],
+                                None,
+                            ))
+                        } else {
+                            match self.push_drink_to_vec_or(vec![drink]) {
+                                Ok(drinks) => RevealedDrink::DrinkWithPossibleChasers(
+                                    DrinkWithPossibleChasers::new(drinks, None),
+                                ),
+                                Err((drinks, discarded_drink_card)) => {
+                                    RevealedDrink::DrinkWithPossibleChasers(
+                                        DrinkWithPossibleChasers::new(
+                                            drinks,
+                                            Some(discarded_drink_card),
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    DrinkCard::DrinkEvent(drink_event) => RevealedDrink::DrinkEvent(drink_event),
+                })
+            }
+
+            fn push_drink_to_vec_or(
+                &mut self,
+                mut drinks: Vec<Drink>,
+            ) -> Result<Vec<Drink>, (Vec<Drink>, DrinkCard)> {
+                match $get_next_card(self) {
+                    Some(next_drink_card) => match next_drink_card {
+                        DrinkCard::Drink(drink) => {
+                            drinks.push(drink);
+                            self.push_drink_to_vec_or(drinks)
+                        }
+                        DrinkCard::DrinkEvent(drink_event) => {
+                            Err((drinks, DrinkCard::DrinkEvent(drink_event)))
+                        }
+                    },
+                    None => Ok(drinks),
+                }
             }
         }
     };
 }
 
-simple_drink!(ElvenWine, 3, 0);
-simple_drink!(Wine, 2, 0);
-simple_drink!(DirtyDishwater, 0, -1);
-simple_drink!(LightAle, 1, 0);
-simple_drink!(DarkAle, 1, 0);
-simple_drink!(DragonBreathAle, 4, 0);
-simple_drink!(Water, -1, 0);
-simple_drink!(HolyWater, 0, 2);
-
-#[derive(Clone)]
-pub struct OrcishRotgut {}
-
-impl Drink for OrcishRotgut {
-    fn process(&self, player: &mut Player) {
-        if player.is_orc() {
-            player.change_alcohol_content(2);
-        } else {
-            player.change_fortitude(-2);
-        }
-    }
-}
+pub(crate) use impl_get_revealed_drink;

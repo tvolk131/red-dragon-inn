@@ -432,6 +432,11 @@ impl Character {
         // Currently none of the implemented characters are orcs. This may change later.
         false
     }
+
+    pub fn is_troll(&self) -> bool {
+        // Currently none of the implemented characters are trolls. This may change later.
+        false
+    }
 }
 
 #[cfg(test)]
@@ -456,7 +461,7 @@ mod tests {
         );
         assert_eq!(game.start(&player1_uuid), Ok(()));
 
-        for _ in 1..10 {
+        for _ in 1..5 {
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
                 Ok(())

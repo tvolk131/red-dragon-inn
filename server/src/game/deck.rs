@@ -1,3 +1,6 @@
+use super::drink::{
+    impl_get_revealed_drink, Drink, DrinkCard, DrinkWithPossibleChasers, RevealedDrink,
+};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
@@ -39,3 +42,8 @@ impl<T> AutoShufflingDeck<T> {
         self.discard_pile.len()
     }
 }
+
+impl_get_revealed_drink!(
+    AutoShufflingDeck<DrinkCard>,
+    |deck: &mut AutoShufflingDeck<DrinkCard>| deck.draw_card()
+);

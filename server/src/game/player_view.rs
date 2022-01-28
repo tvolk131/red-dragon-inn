@@ -16,7 +16,7 @@ pub struct GameViewPlayerData {
     pub player_uuid: PlayerUUID,
     pub draw_pile_size: usize,
     pub discard_pile_size: usize,
-    pub drink_deck_size: usize,
+    pub drink_me_pile_size: usize,
     pub alcohol_content: i32,
     pub fortitude: i32,
     pub gold: i32,

@@ -1,5 +1,5 @@
 use super::deck::AutoShufflingDeck;
-use super::drink::{create_drink_deck, Drink};
+use super::drink::{create_drink_deck, DrinkCard};
 use super::gambling_manager::GamblingManager;
 use super::interrupt_manager::InterruptManager;
 use super::player_card::{PlayerCard, RootPlayerCard, ShouldInterrupt, TargetStyle};
@@ -15,7 +15,7 @@ pub struct GameLogic {
     player_manager: PlayerManager,
     gambling_manager: GamblingManager,
     interrupt_manager: InterruptManager,
-    drink_deck: AutoShufflingDeck<Box<dyn Drink>>,
+    drink_deck: AutoShufflingDeck<DrinkCard>,
     turn_info: TurnInfo,
 }
 
@@ -293,8 +293,8 @@ impl GameLogic {
             }
         };
 
-        if let Some(drink) = player.drink_from_drink_pile() {
-            self.drink_deck.discard_card(drink);
+        for drink_card in player.drink_from_drink_pile() {
+            self.drink_deck.discard_card(drink_card);
         }
         self.start_next_player_turn();
         Ok(())

@@ -9,7 +9,7 @@ interface GameViewPlayerData {
   playerUuid: string;
   drawPileSize: number;
   discardPileSize: number;
-  drinkDeckSize: number;
+  drinkMePileSize: number;
   alcoholContent: number;
   fortitude: number;
   gold: number;

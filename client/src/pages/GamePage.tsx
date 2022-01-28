@@ -88,7 +88,7 @@ export const GamePage = (props: GamePageProps) => {
                 Discard Pile Size: {playerData.discardPileSize}
               </Typography>
               <Typography>
-                Drink Deck Size: {playerData.drinkDeckSize}
+                Drink Me Pile Size: {playerData.drinkMePileSize}
               </Typography>
               <Typography>
                 Alcohol Content: {playerData.alcoholContent}

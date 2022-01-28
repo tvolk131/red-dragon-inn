@@ -1,5 +1,7 @@
 use super::deck::AutoShufflingDeck;
-use super::drink::Drink;
+use super::drink::{
+    impl_get_revealed_drink, Drink, DrinkCard, DrinkWithPossibleChasers, RevealedDrink,
+};
 use super::gambling_manager::GamblingManager;
 use super::game_logic::TurnInfo;
 use super::interrupt_manager::InterruptManager;
@@ -7,7 +9,6 @@ use super::player_card::PlayerCard;
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
-use std::borrow::Borrow;
 
 #[derive(Clone)]
 pub struct Player {
@@ -16,24 +17,33 @@ pub struct Player {
     gold: i32,
     hand: Vec<PlayerCard>,
     deck: AutoShufflingDeck<PlayerCard>,
-    drinks: Vec<Box<dyn Drink>>,
+    drink_me_pile: DrinkMePile,
     is_orc: bool,
+    is_troll: bool,
 }
 
 impl Player {
     pub fn create_from_character(character: Character, gold: i32) -> Self {
-        Self::new(gold, character.create_deck(), character.is_orc())
+        Self::new(
+            gold,
+            character.create_deck(),
+            character.is_orc(),
+            character.is_troll(),
+        )
     }
 
-    fn new(gold: i32, deck: Vec<PlayerCard>, is_orc: bool) -> Self {
+    fn new(gold: i32, deck: Vec<PlayerCard>, is_orc: bool, is_troll: bool) -> Self {
         let mut player = Self {
             alcohol_content: 0,
             fortitude: 20,
             gold,
             hand: Vec::new(),
             deck: AutoShufflingDeck::new(deck),
-            drinks: Vec::new(),
+            drink_me_pile: DrinkMePile {
+                drink_cards: Vec::new(),
+            },
             is_orc,
+            is_troll,
         };
         player.draw_to_full();
         player
@@ -44,7 +54,7 @@ impl Player {
             player_uuid,
             draw_pile_size: self.deck.draw_pile_size(),
             discard_pile_size: self.deck.discard_pile_size(),
-            drink_deck_size: self.drinks.len(),
+            drink_me_pile_size: self.drink_me_pile.drink_cards.len(),
             alcohol_content: self.alcohol_content,
             fortitude: self.fortitude,
             gold: self.gold,
@@ -105,21 +115,36 @@ impl Player {
         self.is_orc
     }
 
-    pub fn add_drink_to_drink_pile(&mut self, drink: Box<dyn Drink>) {
-        self.drinks.push(drink);
+    pub fn is_troll(&self) -> bool {
+        self.is_troll
     }
 
-    pub fn drink_from_drink_pile(&mut self) -> Option<Box<dyn Drink>> {
-        if let Some(drink) = self.drinks.pop() {
-            self.drink(drink.borrow());
-            Some(drink)
-        } else {
-            None
+    pub fn add_drink_to_drink_pile(&mut self, drink: DrinkCard) {
+        self.drink_me_pile.drink_cards.push(drink);
+    }
+
+    pub fn drink_from_drink_pile(&mut self) -> Vec<DrinkCard> {
+        let revealed_drink = match self.drink_me_pile.get_revealed_drink() {
+            Some(revealed_drink) => revealed_drink,
+            None => {
+                // TODO - Sober up.
+                return Vec::new();
+            }
+        };
+
+        match revealed_drink {
+            RevealedDrink::DrinkWithPossibleChasers(drink_with_possible_chasers) => {
+                drink_with_possible_chasers
+                    .get_drinks()
+                    .iter()
+                    .for_each(|drink| drink.process(self));
+                drink_with_possible_chasers.take_all_discardable_drink_cards()
+            }
+            RevealedDrink::DrinkEvent(drink_event) => {
+                // TODO - Process drink event. It currently doesn't do anything.
+                vec![drink_event.into()]
+            }
         }
-    }
-
-    pub fn drink(&mut self, drink: &dyn Drink) {
-        drink.process(self);
     }
 
     pub fn change_alcohol_content(&mut self, amount: i32) {
@@ -149,7 +174,10 @@ impl Player {
     }
 
     pub fn change_gold(&mut self, amount: i32) {
-        self.gold += amount
+        self.gold += amount;
+        if self.gold < 0 {
+            self.gold = 0;
+        }
     }
 
     pub fn is_out_of_game(&self) -> bool {
@@ -164,3 +192,10 @@ impl Player {
         self.alcohol_content >= self.fortitude
     }
 }
+
+#[derive(Clone)]
+struct DrinkMePile {
+    drink_cards: Vec<DrinkCard>,
+}
+
+impl_get_revealed_drink!(DrinkMePile, |deck: &mut DrinkMePile| deck.drink_cards.pop());
