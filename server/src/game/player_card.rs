@@ -302,8 +302,7 @@ pub fn i_raise_card() -> RootPlayerCard {
                       _interrupt_manager: &InterruptManager,
                       _turn_info: &TurnInfo|
          -> bool {
-            gambling_manager.round_in_progress()
-                && gambling_manager.is_turn(player_uuid)
+            gambling_manager.is_turn(player_uuid)
                 && !gambling_manager.need_cheating_card_to_take_next_control()
         },
         pre_interrupt_play_fn_or: None,
@@ -319,6 +318,38 @@ pub fn i_raise_card() -> RootPlayerCard {
             interrupt_style: GameInterruptType::AboutToAnte,
             post_interrupt_play_fn_or: None,
         }),
+    }
+}
+
+pub fn winning_hand_card() -> RootPlayerCard {
+    RootPlayerCard {
+        display_name: String::from("Winning Hand!"),
+        card_type: RootPlayerCardType::Cheating,
+        target_style: TargetStyle::SelfPlayer,
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      gambling_manager: &GamblingManager,
+                      _interrupt_manager: &InterruptManager,
+                      _turn_info: &TurnInfo|
+         -> bool {
+            gambling_manager.is_turn(player_uuid)
+                && !gambling_manager.need_cheating_card_to_take_next_control()
+        },
+        pre_interrupt_play_fn_or: Some(Arc::from(
+            move |player_uuid: &PlayerUUID,
+                  _player_manager: &mut PlayerManager,
+                  gambling_manager: &mut GamblingManager,
+                  _turn_info: &mut TurnInfo| {
+                gambling_manager.take_control_of_round(player_uuid.clone(), true);
+                ShouldInterrupt::No
+            },
+        )),
+        interrupt_play_fn: Arc::from(
+            |_player_uuid: &PlayerUUID,
+             _targeted_player_uuid: &PlayerUUID,
+             _player_manager: &mut PlayerManager,
+             _gambling_manager: &mut GamblingManager| {},
+        ),
+        interrupt_data_or: None,
     }
 }
 
