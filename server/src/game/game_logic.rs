@@ -191,6 +191,10 @@ impl GameLogic {
         Ok(())
     }
 
+    pub fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
+        self.clone().pass(player_uuid).is_ok()
+    }
+
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
             self.interrupt_manager.pass(

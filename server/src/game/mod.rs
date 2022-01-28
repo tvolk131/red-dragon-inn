@@ -174,12 +174,16 @@ impl Game {
         game_logic.order_drink(player_uuid, other_player_uuid)
     }
 
-    pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
-        self.get_game_logic_mut()?.pass(player_uuid)
+    fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
+        if let Some(game_logic) = &self.game_logic_or {
+            game_logic.player_can_pass(player_uuid)
+        } else {
+            false
+        }
     }
 
-    fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
-        self.clone().pass(player_uuid).is_ok()
+    pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
+        self.get_game_logic_mut()?.pass(player_uuid)
     }
 
     pub fn get_game_view(
