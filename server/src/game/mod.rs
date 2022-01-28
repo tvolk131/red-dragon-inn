@@ -43,6 +43,7 @@ impl Game {
     }
 
     pub fn join(&mut self, player_uuid: PlayerUUID) -> Result<(), Error> {
+        // TODO - Can't join game when it is already running. Perhaps allow for joining as spectator?
         if self.player_is_in_game(&player_uuid) {
             Err(Error::new("Player is already in this game"))
         } else {
@@ -52,16 +53,11 @@ impl Game {
     }
 
     pub fn leave(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
+        // TODO - Stop the game if a player leaves while it is running.
         if !self.player_is_in_game(player_uuid) {
             Err(Error::new("Player is not in this game"))
         } else {
-            // TODO - Find out why the clone on this line is necessary.
-            self.players = self
-                .players
-                .clone()
-                .into_iter()
-                .filter(|(uuid, _)| uuid != player_uuid)
-                .collect();
+            self.players.retain(|(uuid, _)| uuid != player_uuid);
             Ok(())
         }
     }
