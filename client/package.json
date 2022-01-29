@@ -18,15 +18,16 @@
     "@mui/material": "5.3.1",
     "@mui/styles": "5.3.0",
     "axios": "0.25.0",
-    "jest": "27.4.7",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-router": "6.2.1",
     "react-router-dom": "6.2.1"
   },
   "devDependencies": {
+    "@types/jest": "27.4.0",
     "@types/react-dom": "17.0.11",
     "fork-ts-checker-webpack-plugin": "6.5.0",
+    "jest": "27.4.7",
     "ts-lint": "4.5.1",
     "ts-loader": "9.2.6",
     "ts-node": "10.4.0",
