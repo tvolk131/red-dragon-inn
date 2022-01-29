@@ -1047,12 +1047,7 @@ mod tests {
 
         assert_eq!(
             rotate_player_vec_to_start_with_player(player_uuids, &PlayerUUID::new()),
-            vec![
-                player1_uuid,
-                player2_uuid,
-                player3_uuid,
-                player4_uuid,
-            ]
+            vec![player1_uuid, player2_uuid, player3_uuid, player4_uuid,]
         );
     }
 }
