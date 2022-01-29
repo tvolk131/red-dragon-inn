@@ -1,8 +1,8 @@
+import {Button, Card, CardActions, CardContent, Checkbox, Typography} from '@mui/material';
 import * as React from 'react';
-import {useState, useEffect} from 'react';
-import {Button, Card, CardActions, CardContent, Typography, Checkbox} from '@mui/material';
-import {GameView, pass, playCard, selectCharacter, startGame, discardCards, orderDrink} from '../api';
+import {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router';
+import {discardCards, GameView, orderDrink, pass, playCard, selectCharacter, startGame} from '../api';
 
 enum Character {
   Fiona,
@@ -13,16 +13,19 @@ enum Character {
 
 const characterToString = (character: Character): string => {
   switch (character) {
-    case Character.Fiona: return 'Fiona'
-    case Character.Zot: return 'Zot'
-    case Character.Deirdre: return 'Deirdre'
-    case Character.Gerki: return 'Gerki'
+    case Character.Fiona: return 'Fiona';
+    case Character.Zot: return 'Zot';
+    case Character.Deirdre: return 'Deirdre';
+    case Character.Gerki: return 'Gerki';
+    default: return 'Unknown Character';
   }
-}
+};
 
 const getCanDiscardCards = (gameView?: GameView): boolean => {
-  return !!gameView && gameView.currentTurnPlayerUuid == gameView.selfPlayerUuid && gameView.currentTurnPhase == 'DiscardAndDraw';
-}
+  return !!gameView
+        && gameView.currentTurnPlayerUuid === gameView.selfPlayerUuid
+        && gameView.currentTurnPhase === 'DiscardAndDraw';
+};
 
 interface GamePageProps {
   gameView?: GameView;
@@ -34,7 +37,9 @@ export const GamePage = (props: GamePageProps) => {
 
   const navigate = useNavigate();
 
-  const canOrderDrinks = props.gameView && props.gameView.currentTurnPlayerUuid == props.gameView.selfPlayerUuid && props.gameView.currentTurnPhase == 'OrderDrinks';
+  const canOrderDrinks = props.gameView
+                      && props.gameView.currentTurnPlayerUuid === props.gameView.selfPlayerUuid
+                      && props.gameView.currentTurnPhase === 'OrderDrinks';
 
   useEffect(() => {
     setCanDiscardCards(getCanDiscardCards(props.gameView));
@@ -44,7 +49,7 @@ export const GamePage = (props: GamePageProps) => {
     if (!canDiscardCards) {
       setSelectedCardIndices([]);
     }
-  }, [canDiscardCards])
+  }, [canDiscardCards]);
 
   if (!props.gameView) {
     return (
@@ -78,7 +83,7 @@ export const GamePage = (props: GamePageProps) => {
         return (
           <Card>
             <CardContent>
-              <Typography gutterBottom variant="h5" component="div">
+              <Typography gutterBottom variant='h5' component='div'>
                 {playerDisplayName}
               </Typography>
               <Typography>
@@ -112,7 +117,7 @@ export const GamePage = (props: GamePageProps) => {
                 if (event.target.checked) {
                   selectedCardIndices.push(index);
                 } else {
-                  selectedCardIndices.filter((item) => item != index);
+                  selectedCardIndices.filter((item) => item !== index);
                 }
               }} checked={selectedCardIndices.includes(index)}/>}
             </CardContent>
@@ -127,8 +132,14 @@ export const GamePage = (props: GamePageProps) => {
         );
       })}
       <Button disabled={!props.gameView.canPass} onClick={() => pass()}>Pass</Button>
-      {props.gameView.currentTurnPlayerUuid ? <div>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</div> : <div>Game not running</div>}
-      {canDiscardCards && <Button onClick={() => discardCards(selectedCardIndices).then(() => setSelectedCardIndices([]))}>Discard {selectedCardIndices.length} cards</Button>}
+      {props.gameView.currentTurnPlayerUuid ?
+        <div>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</div> :
+        <div>Game not running</div>}
+      {canDiscardCards && (
+        <Button onClick={() => discardCards(selectedCardIndices).then(() => setSelectedCardIndices([]))}>
+          Discard {selectedCardIndices.length} cards
+        </Button>
+      )}
       {canOrderDrinks && (<div>
         {props.gameView.playerData.map((player) => {
           const playerDisplayName = props.gameView?.playerDisplayNames[player.playerUuid];

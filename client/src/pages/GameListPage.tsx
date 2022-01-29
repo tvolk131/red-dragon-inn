@@ -1,13 +1,13 @@
-import * as React from 'react';
-import {useState, useEffect} from 'react';
 import {Button, Card, CardActions, CardContent, CircularProgress, Paper, TextField, Typography} from '@mui/material';
-import {createGame, GameView, joinGame, ListedGameView, listGames, signin, signout} from '../api';
+import * as React from 'react';
+import {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router';
+import {createGame, GameView, joinGame, ListedGameView, listGames, signin, signout} from '../api';
 
 interface GameListPageProps {
   displayName: string | undefined;
-  setDisplayName(displayName: string | undefined): void;
   gameView?: GameView;
+  setDisplayName(displayName: string | undefined): void;
 }
 
 export const GameListPage = (props: GameListPageProps) => {
@@ -35,11 +35,10 @@ export const GameListPage = (props: GameListPageProps) => {
       {loadingGames ? <CircularProgress/> : games ? games.map((game) => (
         <Card>
           <CardContent>
-            <Typography gutterBottom variant="h5" component="div">
+            <Typography gutterBottom variant='h5' component='div'>
               {game.gameName}
             </Typography>
           </CardContent>
-          {console.log(game.gameName)}
           <CardActions>
             <Button onClick={() => joinGame(game.gameUuid)}>Join</Button>
           </CardActions>
@@ -69,7 +68,7 @@ const LoginBox = (props: LoginBoxProps) => {
       }}>Login</Button>
     </div>
   );
-}
+};
 
 interface ProfileBoxProps {
   displayName: string | undefined;
@@ -81,11 +80,11 @@ const ProfileBox = (props: ProfileBoxProps) => {
     <div>
       <Paper>Display Name: {props.displayName}</Paper>
       <Button onClick={() => {
-        signout().then(() => props.setDisplayName(undefined))
+        signout().then(() => props.setDisplayName(undefined));
       }}>Logout</Button>
     </div>
   );
-}
+};
 
 const GameCreatorBox = () => {
   const [gameName, setGameName] = useState('');

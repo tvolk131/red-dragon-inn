@@ -1,20 +1,20 @@
+import {Box} from '@mui/material';
 import {blue, teal} from '@mui/material/colors';
 import {
   createTheme,
-  ThemeProvider,
-  Theme
+  Theme,
+  ThemeProvider
 } from '@mui/material/styles';
 import {createStyles, makeStyles} from '@mui/styles';
 import * as React from 'react';
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {Route, Routes} from 'react-router';
 import {BrowserRouter} from 'react-router-dom';
-import {Box} from '@mui/material';
+import {GameView, getGameView, me} from './api';
 import {GameListPage} from './pages/GameListPage';
 import {GamePage} from './pages/GamePage';
-import {NotFoundPage} from './pages/NotFoundPage';
-import {GameView, getGameView, me} from './api';
 import {HomePage} from './pages/HomePage';
+import {NotFoundPage} from './pages/NotFoundPage';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -37,7 +37,7 @@ const SubApp = () => {
 
   const [gameView, setGameView] = useState<GameView | undefined>(undefined);
   const [loadingGameView, setLoadingGameView] = useState(true);
-  
+
   useEffect(() => {
     me()
       .then((displayName) => setDisplayName(displayName))

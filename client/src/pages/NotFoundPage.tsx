@@ -1,5 +1,5 @@
-import * as React from 'react';
 import {Typography} from '@mui/material';
+import * as React from 'react';
 
 export const NotFoundPage = () => (
   <Typography
