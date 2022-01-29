@@ -314,7 +314,7 @@ mod tests {
             .create_game(player_uuid.clone(), "Game 1".to_string())
             .unwrap();
         assert_eq!(
-            game_manager.create_game(player_uuid.clone(), "Game 1".to_string()),
+            game_manager.create_game(player_uuid, "Game 1".to_string()),
             Err(Error::new("Player is already in a game"))
         );
 

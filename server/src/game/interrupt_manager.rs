@@ -381,10 +381,8 @@ impl Default for InterruptManager {
 #[derive(Clone, Copy, Debug)]
 pub enum GameInterruptType {
     AboutToAnte,
-    AboutToSpendGold,
     DirectedActionCardPlayed(PlayerCardInfo),
     SometimesCardPlayed(PlayerCardInfo),
-    AboutToDrink,
 }
 
 impl GameInterruptType {

@@ -613,7 +613,7 @@ mod tests {
                 .get_gold(),
             8
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Start gambling round.
@@ -633,7 +633,7 @@ mod tests {
                 &mut game_logic.turn_info,
             )
             .unwrap();
-        assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
+        assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // 1 gold should be subtracted from each player.
         assert_eq!(
@@ -652,7 +652,7 @@ mod tests {
                 .get_gold(),
             7
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), true);
+        assert!(game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Player 2 does not take control of the gambling round, making player 1 the winner.
@@ -678,7 +678,7 @@ mod tests {
                 .get_gold(),
             7
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
     }
 
@@ -713,7 +713,7 @@ mod tests {
                 .get_gold(),
             8
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Start gambling round.
@@ -820,7 +820,7 @@ mod tests {
                 .get_gold(),
             8
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         assert!(game_logic
@@ -853,7 +853,7 @@ mod tests {
                 &mut game_logic.turn_info,
             )
             .unwrap();
-        assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
+        assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // Fortitude should be reduced.
         assert_eq!(
@@ -897,7 +897,7 @@ mod tests {
                 .get_gold(),
             8
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Reduce player 2's fortitude to ensure that it is properly restored.
@@ -944,7 +944,7 @@ mod tests {
             .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
             .unwrap();
 
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         assert!(game_logic
@@ -978,7 +978,7 @@ mod tests {
                 &mut game_logic.turn_info,
             )
             .unwrap();
-        assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
+        assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // Fortitude should not be reduced.
         assert_eq!(
@@ -1048,10 +1048,10 @@ mod tests {
         assert_eq!(
             rotate_player_vec_to_start_with_player(player_uuids, &PlayerUUID::new()),
             vec![
-                player1_uuid.clone(),
-                player2_uuid.clone(),
-                player3_uuid.clone(),
-                player4_uuid.clone(),
+                player1_uuid,
+                player2_uuid,
+                player3_uuid,
+                player4_uuid,
             ]
         );
     }
