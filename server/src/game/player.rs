@@ -10,7 +10,7 @@ use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Player {
     alcohol_content: i32,
     fortitude: i32,
@@ -193,7 +193,7 @@ impl Player {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DrinkMePile {
     drink_cards: Vec<DrinkCard>,
 }

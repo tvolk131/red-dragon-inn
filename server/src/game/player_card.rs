@@ -4,8 +4,9 @@ use super::interrupt_manager::{GameInterruptType, InterruptManager, PlayerCardIn
 use super::player_manager::PlayerManager;
 use super::uuid::PlayerUUID;
 use std::sync::Arc;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum PlayerCard {
     RootPlayerCard(RootPlayerCard),
     InterruptPlayerCard(InterruptPlayerCard),
@@ -87,6 +88,12 @@ pub struct RootPlayerCard {
         dyn Fn(&PlayerUUID, &PlayerUUID, &mut PlayerManager, &mut GamblingManager) + Send + Sync,
     >,
     interrupt_data_or: Option<RootPlayerCardInterruptData>,
+}
+
+impl Debug for RootPlayerCard {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.display_name)
+    }
 }
 
 impl RootPlayerCard {
@@ -209,6 +216,12 @@ pub struct InterruptPlayerCard {
     interrupt_type_output: GameInterruptType,
     interrupt_fn:
         Arc<dyn Fn(&PlayerUUID, &InterruptManager) -> ShouldCancelPreviousCard + Send + Sync>,
+}
+
+impl Debug for InterruptPlayerCard {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.display_name)
+    }
 }
 
 impl InterruptPlayerCard {

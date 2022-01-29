@@ -1,6 +1,7 @@
 use super::player::Player;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DrinkCard {
     Drink(Drink),
     DrinkEvent(DrinkEvent),
@@ -25,6 +26,12 @@ pub struct Drink {
     has_chaser: bool,
 }
 
+impl Debug for Drink {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.display_name)
+    }
+}
+
 impl Drink {
     pub fn process(&self, player: &mut Player) {
         (self.process_fn)(player)
@@ -35,7 +42,7 @@ impl Drink {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DrinkEvent {
     DrinkingContest,
     RoundOnTheHouse,

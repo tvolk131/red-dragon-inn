@@ -3,7 +3,7 @@ use super::player_view::GameViewPlayerData;
 use super::uuid::PlayerUUID;
 use super::Character;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PlayerManager {
     players: Vec<(PlayerUUID, Player)>,
 }

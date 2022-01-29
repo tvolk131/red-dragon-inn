@@ -10,7 +10,7 @@ use super::{Character, Error};
 use serde::Serialize;
 use std::collections::HashSet;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GameLogic {
     player_manager: PlayerManager,
     gambling_manager: GamblingManager,
@@ -512,7 +512,7 @@ fn process_root_player_card(
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TurnInfo {
     player_turn: PlayerUUID,
     turn_phase: TurnPhase,

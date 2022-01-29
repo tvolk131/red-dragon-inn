@@ -3,7 +3,7 @@ use super::player_manager::PlayerManager;
 use super::uuid::PlayerUUID;
 use std::default::Default;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GamblingManager {
     gambling_round_or: Option<GamblingRound>,
 }
@@ -150,7 +150,7 @@ impl Default for GamblingManager {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct GamblingRound {
     active_player_uuids: Vec<PlayerUUID>,
     current_player_turn: PlayerUUID,

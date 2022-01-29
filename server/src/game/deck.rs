@@ -4,7 +4,7 @@ use super::drink::{
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AutoShufflingDeck<T> {
     draw_pile: Vec<T>,
     discard_pile: Vec<T>,

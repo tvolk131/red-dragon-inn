@@ -9,7 +9,7 @@ use super::Error;
 use std::default::Default;
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InterruptManager {
     interrupt_stacks: Vec<GameInterruptStack>,
     current_interrupt_turn_or: Option<PlayerUUID>,
@@ -378,7 +378,7 @@ impl Default for InterruptManager {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum GameInterruptType {
     AboutToAnte,
     AboutToSpendGold,
@@ -393,7 +393,7 @@ impl GameInterruptType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct GameInterruptStack {
     root_card: Arc<RootPlayerCard>,
     root_card_interrupt_type: GameInterruptType,
@@ -421,14 +421,14 @@ impl GameInterruptStack {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct GameInterruptData {
     card: InterruptPlayerCard,
     card_interrupt_type: GameInterruptType,
     card_owner_uuid: PlayerUUID,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct PlayerCardInfo {
     pub affects_fortitude: bool,
 }
