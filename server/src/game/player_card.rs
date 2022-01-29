@@ -3,8 +3,8 @@ use super::game_logic::TurnInfo;
 use super::interrupt_manager::{GameInterruptType, InterruptManager, PlayerCardInfo};
 use super::player_manager::PlayerManager;
 use super::uuid::PlayerUUID;
-use std::sync::Arc;
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub enum PlayerCard {
@@ -206,7 +206,7 @@ pub enum TargetStyle {
     SelfPlayer,
     SingleOtherPlayer,
     AllOtherPlayers,
-    AllPlayersIncludingSelf,
+    AllGamblingPlayersIncludingSelf,
 }
 
 #[derive(Clone)]
@@ -309,7 +309,7 @@ pub fn i_raise_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("I raise!"),
         card_type: RootPlayerCardType::Gambling,
-        target_style: TargetStyle::AllPlayersIncludingSelf, // TODO - This should not be all players. Instead, it should be all players in the gambling round.
+        target_style: TargetStyle::AllGamblingPlayersIncludingSelf,
         can_play_fn: |player_uuid: &PlayerUUID,
                       gambling_manager: &GamblingManager,
                       _interrupt_manager: &InterruptManager,

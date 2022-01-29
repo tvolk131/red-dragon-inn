@@ -464,7 +464,7 @@ fn process_root_player_card(
             }
         }
         // TODO - This branch is almost identical to the one above. Let's reduce code duplication somehow.
-        TargetStyle::AllPlayersIncludingSelf => {
+        TargetStyle::AllGamblingPlayersIncludingSelf => {
             if targeted_player_uuid_or.is_some() {
                 return Err((
                     root_player_card,
@@ -480,7 +480,7 @@ fn process_root_player_card(
             ) {
                 ShouldInterrupt::Yes => {
                     let targeted_player_uuids = rotate_player_vec_to_start_with_player(
-                        player_manager.clone_uuids_of_all_alive_players(),
+                        gambling_manager.clone_uuids_of_all_active_players(),
                         player_uuid,
                     );
 

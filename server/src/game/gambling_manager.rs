@@ -105,6 +105,13 @@ impl GamblingManager {
         turn_info.set_order_drinks_phase();
     }
 
+    pub fn clone_uuids_of_all_active_players(&self) -> Vec<PlayerUUID> {
+        match &self.gambling_round_or {
+            Some(gambling_round) => gambling_round.active_player_uuids.clone(),
+            None => Vec::new(),
+        }
+    }
+
     fn increment_player_turn(&mut self) {
         let gambling_round = match &mut self.gambling_round_or {
             Some(gambling_round) => gambling_round,
