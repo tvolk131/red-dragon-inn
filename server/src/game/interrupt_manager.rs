@@ -137,13 +137,16 @@ impl InterruptManager {
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
     ) -> Result<(), Error> {
-        let current_stack_is_only_interruptable_by_targeted_player = if let Some(current_stack) = self.interrupt_stacks.first() {
-            current_stack.only_targeted_player_can_interrupt
-        } else {
-            false
-        };
+        let current_stack_is_only_interruptable_by_targeted_player =
+            if let Some(current_stack) = self.interrupt_stacks.first() {
+                current_stack.only_targeted_player_can_interrupt
+            } else {
+                false
+            };
 
-        if self.current_interrupt_turn_or.is_some() && current_stack_is_only_interruptable_by_targeted_player {
+        if self.current_interrupt_turn_or.is_some()
+            && current_stack_is_only_interruptable_by_targeted_player
+        {
             self.resolve_current_stack(player_manager, gambling_manager, turn_info)?;
             match self.interrupt_stacks.first() {
                 Some(first_interrupt_stack) => {
@@ -302,7 +305,7 @@ impl InterruptManager {
             root_card_owner_uuid: card_owner_uuid,
             targeted_player_uuid,
             interrupt_cards: Vec::new(),
-            only_targeted_player_can_interrupt: false
+            only_targeted_player_can_interrupt: false,
         });
     }
 
@@ -325,7 +328,7 @@ impl InterruptManager {
                 root_card_owner_uuid: card_owner_uuid.clone(),
                 targeted_player_uuid,
                 interrupt_cards: Vec::new(),
-                only_targeted_player_can_interrupt: true
+                only_targeted_player_can_interrupt: true,
             });
         }
     }
@@ -407,7 +410,7 @@ struct GameInterruptStack {
     root_card_owner_uuid: PlayerUUID,
     targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
     interrupt_cards: Vec<GameInterruptData>,
-    only_targeted_player_can_interrupt: bool
+    only_targeted_player_can_interrupt: bool,
 }
 
 impl GameInterruptStack {
