@@ -5,7 +5,7 @@ use super::drink::{
 use super::gambling_manager::GamblingManager;
 use super::game_logic::TurnInfo;
 use super::interrupt_manager::InterruptManager;
-use super::player_card::PlayerCard;
+use super::player_card::{PlayerCard, TargetStyle};
 use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::Character;
@@ -79,6 +79,10 @@ impl Player {
                     interrupt_manager,
                     turn_info,
                 ),
+                is_directed: match card {
+                    PlayerCard::RootPlayerCard(root_player_card) => root_player_card.get_target_style() == TargetStyle::SingleOtherPlayer,
+                    PlayerCard::InterruptPlayerCard(_) => false
+                }
             })
             .collect()
     }

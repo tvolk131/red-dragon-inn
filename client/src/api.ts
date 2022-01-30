@@ -3,6 +3,7 @@ import axios from 'axios';
 interface GameViewPlayerCard {
   cardName: string;
   isPlayable: boolean;
+  isDirected: boolean;
 }
 
 interface GameViewPlayerData {

@@ -8,6 +8,7 @@ use std::collections::HashMap;
 pub struct GameViewPlayerCard {
     pub card_name: String,
     pub is_playable: bool,
+    pub is_directed: bool
 }
 
 #[derive(Serialize)]
