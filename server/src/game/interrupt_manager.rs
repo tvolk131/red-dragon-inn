@@ -37,9 +37,6 @@ impl InterruptManager {
         card: RootPlayerCard,
         card_owner_uuid: PlayerUUID,
         targeted_player_uuid: PlayerUUID,
-        player_manager: &mut PlayerManager,
-        gambling_manager: &mut GamblingManager,
-        turn_info: &mut TurnInfo,
     ) -> Result<(), (RootPlayerCard, Error)> {
         if self.interrupt_in_progress() {
             return Err((card, Error::new("An interrupt is already in progress")));
@@ -64,9 +61,6 @@ impl InterruptManager {
         card: RootPlayerCard,
         card_owner_uuid: &PlayerUUID,
         targeted_player_uuids: Vec<PlayerUUID>,
-        player_manager: &mut PlayerManager,
-        gambling_manager: &mut GamblingManager,
-        turn_info: &mut TurnInfo,
     ) -> Result<(), (RootPlayerCard, Error)> {
         if self.interrupt_in_progress() {
             return Err((card, Error::new("An interrupt is already in progress")));

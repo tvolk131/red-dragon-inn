@@ -363,9 +363,6 @@ fn process_root_player_card(
                             root_player_card,
                             player_uuid.clone(),
                             player_uuid.clone(),
-                            player_manager,
-                            gambling_manager,
-                            turn_info,
                         )?;
                         Ok(None)
                     } else {
@@ -395,9 +392,6 @@ fn process_root_player_card(
                                 root_player_card,
                                 player_uuid.clone(),
                                 targeted_player_uuid.clone(),
-                                player_manager,
-                                gambling_manager,
-                                turn_info,
                             )?;
                             Ok(None)
                         } else {
@@ -447,9 +441,6 @@ fn process_root_player_card(
                             root_player_card,
                             player_uuid,
                             targeted_player_uuids,
-                            player_manager,
-                            gambling_manager,
-                            turn_info,
                         )?;
                         Ok(None)
                     } else {
@@ -493,9 +484,6 @@ fn process_root_player_card(
                             root_player_card,
                             player_uuid,
                             targeted_player_uuids,
-                            player_manager,
-                            gambling_manager,
-                            turn_info,
                         )?;
                         Ok(None)
                     } else {
@@ -721,7 +709,7 @@ mod tests {
                 .get_gold(),
             8
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Player 1 starts gambling round.
@@ -743,7 +731,7 @@ mod tests {
                 &mut game_logic.turn_info,
             )
             .unwrap();
-        assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
+        assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // 1 gold should be subtracted from each player.
         assert_eq!(
@@ -762,7 +750,7 @@ mod tests {
                 .get_gold(),
             7
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), true);
+        assert!(game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
         // Player 2 raises.
@@ -839,7 +827,7 @@ mod tests {
                 .get_gold(),
             10
         );
-        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
     }
 
