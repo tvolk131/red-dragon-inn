@@ -46,13 +46,7 @@ impl InterruptManager {
         }
 
         if let Some(interrupt_data) = card.get_interrupt_data_or() {
-            self.current_interrupt_turn_or = Some(card_owner_uuid.clone());
-            if let Err(err) =
-                self.increment_player_turn(player_manager, gambling_manager, turn_info)
-            {
-                self.current_interrupt_turn_or = None;
-                return Err((card, err));
-            }
+            self.current_interrupt_turn_or = Some(targeted_player_uuid.clone());
             self.push_new_stack(
                 interrupt_data.get_interrupt_style(),
                 card,
@@ -78,14 +72,18 @@ impl InterruptManager {
             return Err((card, Error::new("An interrupt is already in progress")));
         }
 
-        if let Some(interrupt_data) = card.get_interrupt_data_or() {
-            self.current_interrupt_turn_or = Some(card_owner_uuid.clone());
-            if let Err(err) =
-                self.increment_player_turn(player_manager, gambling_manager, turn_info)
-            {
-                self.current_interrupt_turn_or = None;
-                return Err((card, err));
+        let first_targeted_player_uuid = match targeted_player_uuids.first() {
+            Some(first_targeted_player_uuid) => first_targeted_player_uuid,
+            None => {
+                return Err((
+                    card,
+                    Error::new("Cannot start an interrupt with no targeted players"),
+                ))
             }
+        };
+
+        if let Some(interrupt_data) = card.get_interrupt_data_or() {
+            self.current_interrupt_turn_or = Some(first_targeted_player_uuid.clone());
             self.push_new_stacks(
                 interrupt_data.get_interrupt_style(),
                 card,
@@ -145,6 +143,26 @@ impl InterruptManager {
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
     ) -> Result<(), Error> {
+        let current_stack_is_only_interruptable_by_targeted_player = if let Some(current_stack) = self.interrupt_stacks.first() {
+            current_stack.only_targeted_player_can_interrupt
+        } else {
+            false
+        };
+
+        if self.current_interrupt_turn_or.is_some() && current_stack_is_only_interruptable_by_targeted_player {
+            self.resolve_current_stack(player_manager, gambling_manager, turn_info)?;
+            match self.interrupt_stacks.first() {
+                Some(first_interrupt_stack) => {
+                    self.current_interrupt_turn_or =
+                        Some(first_interrupt_stack.targeted_player_uuid.clone());
+                }
+                None => {
+                    self.current_interrupt_turn_or = None;
+                }
+            }
+            return Ok(());
+        }
+
         if let Some(current_interrupt_turn) = &self.current_interrupt_turn_or {
             match player_manager.get_next_alive_player_uuid(current_interrupt_turn) {
                 NextPlayerUUIDOption::Some(next_player_uuid) => {
@@ -156,12 +174,7 @@ impl InterruptManager {
                         match self.interrupt_stacks.first() {
                             Some(first_interrupt_stack) => {
                                 self.current_interrupt_turn_or =
-                                    Some(first_interrupt_stack.root_card_owner_uuid.clone());
-                                self.increment_player_turn(
-                                    player_manager,
-                                    gambling_manager,
-                                    turn_info,
-                                )?;
+                                    Some(first_interrupt_stack.targeted_player_uuid.clone());
                             }
                             None => {
                                 self.current_interrupt_turn_or = None;
@@ -295,6 +308,7 @@ impl InterruptManager {
             root_card_owner_uuid: card_owner_uuid,
             targeted_player_uuid,
             interrupt_cards: Vec::new(),
+            only_targeted_player_can_interrupt: false
         });
     }
 
@@ -317,6 +331,7 @@ impl InterruptManager {
                 root_card_owner_uuid: card_owner_uuid.clone(),
                 targeted_player_uuid,
                 interrupt_cards: Vec::new(),
+                only_targeted_player_can_interrupt: true
             });
         }
     }
@@ -398,6 +413,7 @@ struct GameInterruptStack {
     root_card_owner_uuid: PlayerUUID,
     targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
     interrupt_cards: Vec<GameInterruptData>,
+    only_targeted_player_can_interrupt: bool
 }
 
 impl GameInterruptStack {

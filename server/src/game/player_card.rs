@@ -329,7 +329,14 @@ pub fn i_raise_card() -> RootPlayerCard {
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_style: GameInterruptType::AboutToAnte,
-            post_interrupt_play_fn_or: None,
+            post_interrupt_play_fn_or: Some(Arc::from(
+                |player_uuid: &PlayerUUID,
+                 _player_manager: &mut PlayerManager,
+                 gambling_manager: &mut GamblingManager,
+                 _turn_info: &mut TurnInfo| {
+                    gambling_manager.take_control_of_round(player_uuid.clone(), false);
+                },
+            )),
         }),
     }
 }

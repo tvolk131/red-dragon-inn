@@ -196,13 +196,17 @@ impl GameLogic {
     }
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
-        if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
-            self.interrupt_manager.pass(
-                &mut self.player_manager,
-                &mut self.gambling_manager,
-                &mut self.turn_info,
-            )?;
-            return Ok(());
+        if self.interrupt_manager.interrupt_in_progress() {
+            if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
+                self.interrupt_manager.pass(
+                    &mut self.player_manager,
+                    &mut self.gambling_manager,
+                    &mut self.turn_info,
+                )?;
+                return Ok(());
+            } else {
+                return Err(Error::new("Cannot pass at this time"));
+            }
         }
 
         if self.gambling_manager.is_turn(player_uuid) {
@@ -616,15 +620,17 @@ mod tests {
         assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
-        // Start gambling round.
+        // Player 1 starts gambling round.
         assert!(game_logic
             .process_card(gambling_im_in_card().into(), &player1_uuid, &None)
             .is_ok());
 
-        // Other player chooses not to play an interrupt card.
+        // Player 2 chooses not to play an interrupt card.
         assert!(game_logic
             .interrupt_manager
             .is_turn_to_interrupt(&player2_uuid));
+        assert!(!game_logic.player_can_pass(&player1_uuid));
+        assert!(game_logic.player_can_pass(&player2_uuid));
         game_logic
             .interrupt_manager
             .pass(
@@ -657,6 +663,8 @@ mod tests {
 
         // Player 2 does not take control of the gambling round, making player 1 the winner.
         assert!(game_logic.gambling_manager.is_turn(&player2_uuid));
+        assert!(!game_logic.player_can_pass(&player1_uuid));
+        assert!(game_logic.player_can_pass(&player2_uuid));
         game_logic
             .gambling_manager
             .pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
@@ -679,6 +687,159 @@ mod tests {
             7
         );
         assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
+    }
+
+    #[test]
+    fn raise_in_gambling_round() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        // Sanity check.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 starts gambling round.
+        assert!(game_logic
+            .process_card(gambling_im_in_card().into(), &player1_uuid, &None)
+            .is_ok());
+
+        // Player 2 chooses not to play an interrupt card.
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player2_uuid));
+        assert!(!game_logic.player_can_pass(&player1_uuid));
+        assert!(game_logic.player_can_pass(&player2_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
+            )
+            .unwrap();
+        assert_eq!(game_logic.interrupt_manager.interrupt_in_progress(), false);
+
+        // 1 gold should be subtracted from each player.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            7
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            7
+        );
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), true);
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 2 raises.
+        assert!(game_logic.gambling_manager.is_turn(&player2_uuid));
+        assert!(!game_logic.player_can_pass(&player1_uuid));
+        assert!(game_logic.player_can_pass(&player2_uuid));
+        assert!(game_logic
+            .process_card(i_raise_card().into(), &player2_uuid, &None)
+            .is_ok());
+
+        // Player 2 chooses not to interrupt their ante.
+        assert!(!game_logic.player_can_pass(&player1_uuid));
+        assert!(game_logic.player_can_pass(&player2_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
+            )
+            .unwrap();
+        // Player 1 chooses not to interrupt their ante.
+        assert!(game_logic.player_can_pass(&player1_uuid));
+        assert!(!game_logic.player_can_pass(&player2_uuid));
+        game_logic
+            .interrupt_manager
+            .pass(
+                &mut game_logic.player_manager,
+                &mut game_logic.gambling_manager,
+                &mut game_logic.turn_info,
+            )
+            .unwrap();
+
+        // 1 more gold should be subtracted from each player.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            6
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            6
+        );
+
+        // Player 1 does not take control of the gambling round, making player 2 the winner.
+        assert!(game_logic.gambling_manager.is_turn(&player1_uuid));
+        assert!(game_logic.player_can_pass(&player1_uuid));
+        assert!(!game_logic.player_can_pass(&player2_uuid));
+        game_logic
+            .gambling_manager
+            .pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
+
+        // Gambling pot should be given to the winner.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            6
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            10
+        );
+        assert_eq!(game_logic.gambling_manager.round_in_progress(), false);
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
     }
 
