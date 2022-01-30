@@ -1,6 +1,3 @@
-use super::drink::{
-    impl_get_revealed_drink, Drink, DrinkCard, DrinkWithPossibleChasers, RevealedDrink,
-};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
@@ -43,7 +40,8 @@ impl<T> AutoShufflingDeck<T> {
     }
 }
 
-impl_get_revealed_drink!(
-    AutoShufflingDeck<DrinkCard>,
-    |deck: &mut AutoShufflingDeck<DrinkCard>| deck.draw_card()
-);
+// TODO - Uncomment this macro once we need to call the functions that it implements.
+// impl_get_revealed_drink!(
+//     AutoShufflingDeck<DrinkCard>,
+//     |deck: &mut AutoShufflingDeck<DrinkCard>| deck.draw_card()
+// );

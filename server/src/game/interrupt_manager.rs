@@ -97,7 +97,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-    ) -> Result<(), (InterruptPlayerCard, Error)> {
+    ) -> Result<Vec<(PlayerUUID, PlayerCard)>, (InterruptPlayerCard, Error)> {
         if !self.is_turn_to_interrupt(&player_uuid) {
             return Err((
                 card,
@@ -105,11 +105,9 @@ impl InterruptManager {
             ));
         }
         match self.push_to_current_stack(card, player_uuid) {
-            Ok(_) => {
-                self.increment_player_turn(player_manager, gambling_manager, turn_info)
-                    .unwrap();
-                Ok(())
-            }
+            Ok(_) => Ok(self
+                .increment_player_turn(player_manager, gambling_manager, turn_info)
+                .unwrap()),
             Err(err) => Err(err),
         }
     }
@@ -127,7 +125,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-    ) -> Result<(), Error> {
+    ) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
         self.increment_player_turn(player_manager, gambling_manager, turn_info)
     }
 
@@ -136,7 +134,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-    ) -> Result<(), Error> {
+    ) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
         let current_stack_is_only_interruptable_by_targeted_player =
             if let Some(current_stack) = self.interrupt_stacks.first() {
                 current_stack.only_targeted_player_can_interrupt
@@ -147,17 +145,11 @@ impl InterruptManager {
         if self.current_interrupt_turn_or.is_some()
             && current_stack_is_only_interruptable_by_targeted_player
         {
-            self.resolve_current_stack(player_manager, gambling_manager, turn_info)?;
-            match self.interrupt_stacks.first() {
-                Some(first_interrupt_stack) => {
-                    self.current_interrupt_turn_or =
-                        Some(first_interrupt_stack.targeted_player_uuid.clone());
-                }
-                None => {
-                    self.current_interrupt_turn_or = None;
-                }
-            }
-            return Ok(());
+            return self.resolve_current_stack_and_maybe_increment_current_interrupt_turn(
+                player_manager,
+                gambling_manager,
+                turn_info,
+            );
         }
 
         if let Some(current_interrupt_turn) = &self.current_interrupt_turn_or {
@@ -167,26 +159,42 @@ impl InterruptManager {
                     // looped back around to the last player who played a card, then
                     // that ends the interrupt stack since that player was uninterrupted.
                     if Some(next_player_uuid) == self.get_last_player_to_play_on_current_stack() {
-                        self.resolve_current_stack(player_manager, gambling_manager, turn_info)?;
-                        match self.interrupt_stacks.first() {
-                            Some(first_interrupt_stack) => {
-                                self.current_interrupt_turn_or =
-                                    Some(first_interrupt_stack.targeted_player_uuid.clone());
-                            }
-                            None => {
-                                self.current_interrupt_turn_or = None;
-                            }
-                        }
+                        self.resolve_current_stack_and_maybe_increment_current_interrupt_turn(player_manager, gambling_manager, turn_info)
                     } else {
                         self.current_interrupt_turn_or = Some(next_player_uuid.clone());
+                        Ok(Vec::new())
                     }
                 }
-                _ => {} // TODO - Return an error here.
-            };
-            Ok(())
+                NextPlayerUUIDOption::PlayerNotFound => {
+                    Err(Error::new("Uh oh! Failed to increment player turn. This is an internal error, due to some sort of bug."))
+                },
+                NextPlayerUUIDOption::OnlyPlayerLeft => {
+                    self.resolve_current_stack_and_maybe_increment_current_interrupt_turn(player_manager, gambling_manager, turn_info)
+                }
+
+            }
         } else {
             Err(Error::new("It is not anyone's turn to interrupt"))
         }
+    }
+
+    fn resolve_current_stack_and_maybe_increment_current_interrupt_turn(
+        &mut self,
+        player_manager: &mut PlayerManager,
+        gambling_manager: &mut GamblingManager,
+        turn_info: &mut TurnInfo,
+    ) -> Result<Vec<(PlayerUUID, PlayerCard)>, Error> {
+        let return_val = self.resolve_current_stack(player_manager, gambling_manager, turn_info)?;
+        match self.interrupt_stacks.first() {
+            Some(first_interrupt_stack) => {
+                self.current_interrupt_turn_or =
+                    Some(first_interrupt_stack.targeted_player_uuid.clone());
+            }
+            None => {
+                self.current_interrupt_turn_or = None;
+            }
+        }
+        Ok(return_val)
     }
 
     fn resolve_current_stack(

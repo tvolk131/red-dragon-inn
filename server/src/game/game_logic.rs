@@ -198,11 +198,12 @@ impl GameLogic {
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if self.interrupt_manager.interrupt_in_progress() {
             if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
-                self.interrupt_manager.pass(
+                let spent_cards = self.interrupt_manager.pass(
                     &mut self.player_manager,
                     &mut self.gambling_manager,
                     &mut self.turn_info,
                 )?;
+                self.player_manager.discard_cards(spent_cards).unwrap();
                 return Ok(());
             } else {
                 return Err(Error::new("Cannot pass at this time"));
@@ -270,7 +271,10 @@ impl GameLogic {
                             &mut self.gambling_manager,
                             &mut self.turn_info,
                         ) {
-                            Ok(_) => Ok(None),
+                            Ok(spent_cards) => {
+                                self.player_manager.discard_cards(spent_cards).unwrap();
+                                Ok(None)
+                            }
                             Err((card, error)) => Err((card.into(), error)),
                         }
                     }

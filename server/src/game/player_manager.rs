@@ -1,4 +1,5 @@
 use super::player::Player;
+use super::player_card::PlayerCard;
 use super::player_view::GameViewPlayerData;
 use super::uuid::PlayerUUID;
 use super::Character;
@@ -99,6 +100,26 @@ impl PlayerManager {
         }
 
         NextPlayerUUIDOption::Some(next_player_uuid)
+    }
+
+    pub fn discard_cards(
+        &mut self,
+        cards: Vec<(PlayerUUID, PlayerCard)>,
+    ) -> Result<(), Vec<(PlayerUUID, PlayerCard)>> {
+        let mut unhandled_cards = Vec::new();
+        for (card_owner_uuid, card) in cards {
+            if let Some(card_owner) = self.get_player_by_uuid_mut(&card_owner_uuid) {
+                card_owner.discard_card(card);
+            } else {
+                unhandled_cards.push((card_owner_uuid, card));
+            }
+        }
+
+        if unhandled_cards.is_empty() {
+            Ok(())
+        } else {
+            Err(unhandled_cards)
+        }
     }
 
     fn get_starting_gold_amount_for_player_count(player_count: usize) -> i32 {
