@@ -80,9 +80,11 @@ impl Player {
                     turn_info,
                 ),
                 is_directed: match card {
-                    PlayerCard::RootPlayerCard(root_player_card) => root_player_card.get_target_style() == TargetStyle::SingleOtherPlayer,
-                    PlayerCard::InterruptPlayerCard(_) => false
-                }
+                    PlayerCard::RootPlayerCard(root_player_card) => {
+                        root_player_card.get_target_style() == TargetStyle::SingleOtherPlayer
+                    }
+                    PlayerCard::InterruptPlayerCard(_) => false,
+                },
             })
             .collect()
     }
