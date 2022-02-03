@@ -61,6 +61,18 @@ impl From<InterruptPlayerCard> for PlayerCard {
     }
 }
 
+type PreInterruptPlayFn = Arc<
+    dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager, &mut TurnInfo) -> ShouldInterrupt
+        + Send
+        + Sync,
+>;
+
+type InterruptPlayFn =
+    Arc<dyn Fn(&PlayerUUID, &PlayerUUID, &mut PlayerManager, &mut GamblingManager) + Send + Sync>;
+
+type PostInterruptPlayFn =
+    Arc<dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager, &mut TurnInfo) + Send + Sync>;
+
 #[derive(Clone)]
 pub struct RootPlayerCard {
     display_name: String,
@@ -72,21 +84,8 @@ pub struct RootPlayerCard {
         interrupt_manager: &InterruptManager,
         turn_info: &TurnInfo,
     ) -> bool,
-    pre_interrupt_play_fn_or: Option<
-        Arc<
-            dyn Fn(
-                    &PlayerUUID,
-                    &mut PlayerManager,
-                    &mut GamblingManager,
-                    &mut TurnInfo,
-                ) -> ShouldInterrupt
-                + Send
-                + Sync,
-        >,
-    >,
-    interrupt_play_fn: Arc<
-        dyn Fn(&PlayerUUID, &PlayerUUID, &mut PlayerManager, &mut GamblingManager) + Send + Sync,
-    >,
+    pre_interrupt_play_fn_or: Option<PreInterruptPlayFn>,
+    interrupt_play_fn: InterruptPlayFn,
     interrupt_data_or: Option<RootPlayerCardInterruptData>,
 }
 
@@ -174,13 +173,7 @@ pub enum ShouldInterrupt {
 #[derive(Clone)]
 pub struct RootPlayerCardInterruptData {
     interrupt_style: GameInterruptType,
-    post_interrupt_play_fn_or: Option<
-        Arc<
-            dyn Fn(&PlayerUUID, &mut PlayerManager, &mut GamblingManager, &mut TurnInfo)
-                + Send
-                + Sync,
-        >,
-    >,
+    post_interrupt_play_fn_or: Option<PostInterruptPlayFn>,
 }
 
 impl RootPlayerCardInterruptData {
