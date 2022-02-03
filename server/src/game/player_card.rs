@@ -172,13 +172,13 @@ pub enum ShouldInterrupt {
 
 #[derive(Clone)]
 pub struct RootPlayerCardInterruptData {
-    interrupt_style: GameInterruptType,
+    interrupt_type_output: GameInterruptType,
     post_interrupt_play_fn_or: Option<PostInterruptPlayFn>,
 }
 
 impl RootPlayerCardInterruptData {
-    pub fn get_interrupt_style(&self) -> GameInterruptType {
-        self.interrupt_style
+    pub fn get_interrupt_type_output(&self) -> GameInterruptType {
+        self.interrupt_type_output
     }
 
     pub fn post_interrupt_play(
@@ -285,7 +285,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
             },
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
-            interrupt_style: GameInterruptType::AboutToAnte,
+            interrupt_type_output: GameInterruptType::AboutToAnte,
             post_interrupt_play_fn_or: Some(Arc::from(
                 |_player_uuid: &PlayerUUID,
                  player_manager: &mut PlayerManager,
@@ -321,7 +321,7 @@ pub fn i_raise_card() -> RootPlayerCard {
             },
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
-            interrupt_style: GameInterruptType::AboutToAnte,
+            interrupt_type_output: GameInterruptType::AboutToAnte,
             post_interrupt_play_fn_or: Some(Arc::from(
                 |player_uuid: &PlayerUUID,
                  _player_manager: &mut PlayerManager,
@@ -424,7 +424,7 @@ pub fn change_other_player_fortitude_card(
             },
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
-            interrupt_style: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo {
+            interrupt_type_output: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo {
                 affects_fortitude: true,
             }),
             post_interrupt_play_fn_or: None,
@@ -508,7 +508,7 @@ pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
              _gambling_manager: &mut GamblingManager| {},
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
-            interrupt_style: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
                 affects_fortitude: false,
             }),
             post_interrupt_play_fn_or: None,
@@ -544,7 +544,7 @@ pub fn oh_i_guess_the_wench_thought_that_was_her_tip_card() -> RootPlayerCard {
              _gambling_manager: &mut GamblingManager| {},
         ),
         interrupt_data_or: Some(RootPlayerCardInterruptData {
-            interrupt_style: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
                 affects_fortitude: false,
             }),
             post_interrupt_play_fn_or: None,

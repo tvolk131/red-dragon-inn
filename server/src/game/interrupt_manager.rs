@@ -45,7 +45,7 @@ impl InterruptManager {
         if let Some(interrupt_data) = card.get_interrupt_data_or() {
             self.current_interrupt_turn_or = Some(targeted_player_uuid.clone());
             self.push_new_stack(
-                interrupt_data.get_interrupt_style(),
+                interrupt_data.get_interrupt_type_output(),
                 card,
                 card_owner_uuid,
                 targeted_player_uuid,
@@ -79,7 +79,7 @@ impl InterruptManager {
         if let Some(interrupt_data) = card.get_interrupt_data_or() {
             self.current_interrupt_turn_or = Some(first_targeted_player_uuid.clone());
             self.push_new_stacks(
-                interrupt_data.get_interrupt_style(),
+                interrupt_data.get_interrupt_type_output(),
                 card,
                 card_owner_uuid,
                 targeted_player_uuids,
