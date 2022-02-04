@@ -102,19 +102,11 @@ impl Game {
         if self.game_logic_or.is_some() {
             return Err(Error::new("Cannot change characters while game is running"));
         }
-        // TODO - Find out why the clone on this line is necessary.
-        self.players = self
-            .players
-            .clone()
-            .into_iter()
-            .map(|(uuid, character_or)| {
-                if &uuid == player_uuid {
-                    (uuid, Some(character))
-                } else {
-                    (uuid, character_or)
-                }
-            })
-            .collect();
+        self.players.iter_mut().for_each(|(uuid, character_or)| {
+            if uuid == player_uuid {
+                *character_or = Some(character);
+            }
+        });
         Ok(())
     }
 

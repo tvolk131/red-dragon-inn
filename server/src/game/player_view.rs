@@ -75,8 +75,11 @@ macro_rules! impl_to_json_string_responder {
                     .ok()
             }
         }
-    }
+    };
 }
 
-impl_to_json_string_responder!(ListedGameViewCollection, |collection: ListedGameViewCollection| collection.listed_game_views);
+impl_to_json_string_responder!(
+    ListedGameViewCollection,
+    |collection: ListedGameViewCollection| collection.listed_game_views
+);
 impl_to_json_string_responder!(GameView, |game_view: GameView| game_view);
