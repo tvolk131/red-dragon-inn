@@ -191,11 +191,11 @@ impl Player {
     }
 
     fn is_broke(&self) -> bool {
-        self.gold <= 0
+        self.get_gold() <= 0
     }
 
     fn is_passed_out(&self) -> bool {
-        self.alcohol_content >= self.fortitude
+        self.alcohol_content >= self.get_fortitude()
     }
 }
 
