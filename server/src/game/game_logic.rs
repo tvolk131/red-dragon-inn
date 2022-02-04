@@ -168,26 +168,27 @@ impl GameLogic {
             return Err(Error::new("Cannot order drinks at this time"));
         }
 
-        // TODO - Handle the unwrap here.
-        let drink = self.drink_deck.draw_card().unwrap();
-        let other_player = match self
-            .player_manager
-            .get_player_by_uuid_mut(other_player_uuid)
-        {
-            Some(other_player) => other_player,
-            None => {
-                return Err(Error::new(format!(
-                    "Player does not exist with player id {}",
-                    player_uuid.to_string()
-                )))
-            }
+        if let Some(drink) = self.drink_deck.draw_card() {
+            let other_player = match self
+                .player_manager
+                .get_player_by_uuid_mut(other_player_uuid)
+            {
+                Some(other_player) => other_player,
+                None => {
+                    return Err(Error::new(format!(
+                        "Player does not exist with player id {}",
+                        player_uuid.to_string()
+                    )))
+                }
+            };
+            other_player.add_drink_to_drink_pile(drink);
         };
-        other_player.add_drink_to_drink_pile(drink);
 
         self.turn_info.drinks_to_order -= 1;
         if self.turn_info.drinks_to_order == 0 {
             self.perform_drink_phase(player_uuid)?;
         }
+
         Ok(())
     }
 
@@ -421,9 +422,12 @@ fn process_root_player_card(
                 game_logic.player_manager.clone_uuids_of_all_alive_players(),
                 player_uuid,
             );
-            // Remove self from list.
-            // TODO - Add check here so that `remove` never panicks.
-            targeted_player_uuids.remove(0);
+
+            // This check is here because `remove` panicks if the index does not exist.
+            if !targeted_player_uuids.is_empty() {
+                // Remove self from list.
+                targeted_player_uuids.remove(0);
+            }
 
             target_root_card_at_list_of_players(
                 player_uuid,
