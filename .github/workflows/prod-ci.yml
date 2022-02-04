@@ -49,9 +49,6 @@ jobs:
       - name: Log in to DigitalOcean Container Registry with short-lived credentials
         run: doctl registry login --expiry-seconds 1200
 
-      - name: List all DigitalOcean certificates (TODO - Delete this step once the proper certificate ID is retrieved)
-        run: doctl compute certificate list
-
       - name: Push image to DigitalOcean Container Registry
         run: docker push registry.digitalocean.com/cards/rdi:$(echo $GITHUB_SHA | head -c7)
 
