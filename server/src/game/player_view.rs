@@ -61,30 +61,22 @@ impl Ord for ListedGameView {
     }
 }
 
-// TODO - Abstract this into a procedural macro along with all other Responder impl blocks in other structs (if there are any).
-impl<'r> rocket::response::Responder<'r, 'static> for ListedGameViewCollection {
-    fn respond_to(
-        self,
-        _request: &'r rocket::request::Request,
-    ) -> Result<rocket::response::Response<'static>, rocket::http::Status> {
-        let json_string = serde_json::json!(self.listed_game_views).to_string();
-        rocket::Response::build()
-            .header(rocket::http::ContentType::JSON)
-            .sized_body(json_string.len(), std::io::Cursor::new(json_string))
-            .ok()
+macro_rules! impl_to_json_string_responder {
+    ($struct_name:ident, $get_serialized_var:expr) => {
+        impl<'r> rocket::response::Responder<'r, 'static> for $struct_name {
+            fn respond_to(
+                self,
+                _request: &'r rocket::request::Request,
+            ) -> Result<rocket::response::Response<'static>, rocket::http::Status> {
+                let json_string = serde_json::json!($get_serialized_var(self)).to_string();
+                rocket::Response::build()
+                    .header(rocket::http::ContentType::JSON)
+                    .sized_body(json_string.len(), std::io::Cursor::new(json_string))
+                    .ok()
+            }
+        }
     }
 }
 
-// TODO - Abstract this into a procedural macro along with all other Responder impl blocks in other structs (if there are any).
-impl<'r> rocket::response::Responder<'r, 'static> for GameView {
-    fn respond_to(
-        self,
-        _request: &'r rocket::request::Request,
-    ) -> Result<rocket::response::Response<'static>, rocket::http::Status> {
-        let json_string = serde_json::json!(self).to_string();
-        rocket::Response::build()
-            .header(rocket::http::ContentType::JSON)
-            .sized_body(json_string.len(), std::io::Cursor::new(json_string))
-            .ok()
-    }
-}
+impl_to_json_string_responder!(ListedGameViewCollection, |collection: ListedGameViewCollection| collection.listed_game_views);
+impl_to_json_string_responder!(GameView, |game_view: GameView| game_view);

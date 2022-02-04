@@ -7,7 +7,6 @@ impl Error {
     }
 }
 
-// TODO - Abstract this into a procedural macro along with all other Responder impl blocks in other structs (if there are any).
 impl<'r> rocket::response::Responder<'r, 'static> for Error {
     fn respond_to(
         self,
