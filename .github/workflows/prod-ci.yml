@@ -3,7 +3,7 @@ name: Prod CI/CD
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
 
 
 jobs:
