@@ -367,9 +367,7 @@ impl InterruptManager {
     fn can_push_to_current_stack(&self, card: &InterruptPlayerCard) -> Result<(), Error> {
         match self.get_current_interrupt() {
             Some(current_interrupt) => {
-                if !card
-                    .get_interrupt_type_input()
-                    .variant_eq(current_interrupt)
+                if !card.can_interrupt(current_interrupt)
                 {
                     return Err(Error::new(
                         "This card cannot interrupt the last played card",
@@ -403,12 +401,6 @@ pub enum GameInterruptType {
     AboutToAnte,
     DirectedActionCardPlayed(PlayerCardInfo),
     SometimesCardPlayed(PlayerCardInfo),
-}
-
-impl GameInterruptType {
-    pub fn variant_eq(&self, other: Self) -> bool {
-        std::mem::discriminant(self) == std::mem::discriminant(&other)
-    }
 }
 
 #[derive(Clone, Debug)]

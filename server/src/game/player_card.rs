@@ -41,9 +41,7 @@ impl PlayerCard {
                     Some(current_interrupt) => current_interrupt,
                     None => return false,
                 };
-                interrupt_player_card
-                    .get_interrupt_type_input()
-                    .variant_eq(current_interrupt)
+                interrupt_player_card.can_interrupt(current_interrupt)
             }
         }
     }
@@ -205,7 +203,7 @@ pub enum TargetStyle {
 #[derive(Clone)]
 pub struct InterruptPlayerCard {
     display_name: String,
-    interrupt_type_input: GameInterruptType,
+    can_interrupt_fn: fn(GameInterruptType) -> bool,
     interrupt_type_output: GameInterruptType,
     interrupt_fn:
         Arc<dyn Fn(&PlayerUUID, &InterruptManager) -> ShouldCancelPreviousCard + Send + Sync>,
@@ -222,8 +220,8 @@ impl InterruptPlayerCard {
         &self.display_name
     }
 
-    pub fn get_interrupt_type_input(&self) -> GameInterruptType {
-        self.interrupt_type_input
+    pub fn can_interrupt(&self, current_interrupt: GameInterruptType) -> bool {
+        (self.can_interrupt_fn)(current_interrupt)
     }
 
     pub fn get_interrupt_type_output(&self) -> GameInterruptType {
@@ -233,9 +231,9 @@ impl InterruptPlayerCard {
     pub fn interrupt(
         &self,
         player_uuid: &PlayerUUID,
-        game_interrupts: &mut InterruptManager,
+        interrupt_manager: &mut InterruptManager,
     ) -> ShouldCancelPreviousCard {
-        (self.interrupt_fn)(player_uuid, game_interrupts)
+        (self.interrupt_fn)(player_uuid, interrupt_manager)
     }
 }
 
@@ -435,9 +433,13 @@ pub fn change_other_player_fortitude_card(
 pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
-        interrupt_type_input: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo {
-            affects_fortitude: true,
-        }),
+        can_interrupt_fn: |current_interrupt| {
+            if let GameInterruptType::DirectedActionCardPlayed(player_card_info) = current_interrupt {
+                player_card_info.affects_fortitude
+            } else {
+                false
+            }
+        },
         interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: false,
         }),
