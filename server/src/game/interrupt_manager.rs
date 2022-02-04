@@ -367,8 +367,7 @@ impl InterruptManager {
     fn can_push_to_current_stack(&self, card: &InterruptPlayerCard) -> Result<(), Error> {
         match self.get_current_interrupt() {
             Some(current_interrupt) => {
-                if !card.can_interrupt(current_interrupt)
-                {
+                if !card.can_interrupt(current_interrupt) {
                     return Err(Error::new(
                         "This card cannot interrupt the last played card",
                     ));
@@ -442,4 +441,5 @@ struct GameInterruptData {
 #[derive(Clone, Copy, Debug)]
 pub struct PlayerCardInfo {
     pub affects_fortitude: bool,
+    pub is_i_dont_think_so_card: bool,
 }

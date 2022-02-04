@@ -41,6 +41,16 @@ impl PlayerCard {
                     Some(current_interrupt) => current_interrupt,
                     None => return false,
                 };
+
+                if let GameInterruptType::SometimesCardPlayed(player_card_info) = current_interrupt
+                {
+                    if player_card_info.is_i_dont_think_so_card
+                        && !interrupt_player_card.is_i_dont_think_so_card
+                    {
+                        return false;
+                    }
+                }
+
                 interrupt_player_card.can_interrupt(current_interrupt)
             }
         }
@@ -207,6 +217,7 @@ pub struct InterruptPlayerCard {
     interrupt_type_output: GameInterruptType,
     interrupt_fn:
         Arc<dyn Fn(&PlayerUUID, &InterruptManager) -> ShouldCancelPreviousCard + Send + Sync>,
+    is_i_dont_think_so_card: bool,
 }
 
 impl Debug for InterruptPlayerCard {
@@ -424,6 +435,7 @@ pub fn change_other_player_fortitude_card(
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_type_output: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo {
                 affects_fortitude: true,
+                is_i_dont_think_so_card: false,
             }),
             post_interrupt_play_fn_or: None,
         }),
@@ -434,7 +446,8 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
     InterruptPlayerCard {
         display_name: display_name.to_string(),
         can_interrupt_fn: |current_interrupt| {
-            if let GameInterruptType::DirectedActionCardPlayed(player_card_info) = current_interrupt {
+            if let GameInterruptType::DirectedActionCardPlayed(player_card_info) = current_interrupt
+            {
                 player_card_info.affects_fortitude
             } else {
                 false
@@ -442,12 +455,14 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
         },
         interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: false,
+            is_i_dont_think_so_card: false,
         }),
         interrupt_fn: Arc::from(
             |_player_uuid: &PlayerUUID,
              _interrupt_manager: &InterruptManager|
              -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Ignore },
         ),
+        is_i_dont_think_so_card: false,
     }
 }
 
@@ -512,6 +527,7 @@ pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
                 affects_fortitude: false,
+                is_i_dont_think_so_card: false,
             }),
             post_interrupt_play_fn_or: None,
         }),
@@ -548,8 +564,28 @@ pub fn oh_i_guess_the_wench_thought_that_was_her_tip_card() -> RootPlayerCard {
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
                 affects_fortitude: false,
+                is_i_dont_think_so_card: false,
             }),
             post_interrupt_play_fn_or: None,
         }),
+    }
+}
+
+pub fn i_dont_think_so_card() -> InterruptPlayerCard {
+    InterruptPlayerCard {
+        display_name: String::from("I don't think so!"),
+        can_interrupt_fn: |current_interrupt| {
+            matches!(current_interrupt, GameInterruptType::SometimesCardPlayed(_))
+        },
+        interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            affects_fortitude: false,
+            is_i_dont_think_so_card: true,
+        }),
+        interrupt_fn: Arc::from(
+            |_player_uuid: &PlayerUUID,
+             _interrupt_manager: &InterruptManager|
+             -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Negate },
+        ),
+        is_i_dont_think_so_card: true,
     }
 }
