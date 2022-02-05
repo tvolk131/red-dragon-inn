@@ -112,6 +112,28 @@ impl RootPlayerCard {
         self.target_style
     }
 
+    pub fn is_action_card(&self) -> bool {
+        match self.card_type {
+            RootPlayerCardType::Action => true,
+            RootPlayerCardType::ActionGambling => true,
+            RootPlayerCardType::Anytime => false,
+            RootPlayerCardType::Gambling => false,
+            RootPlayerCardType::Cheating => false,
+            RootPlayerCardType::Sometimes => false,
+        }
+    }
+
+    pub fn is_gambling_card(&self) -> bool {
+        match self.card_type {
+            RootPlayerCardType::Action => false,
+            RootPlayerCardType::ActionGambling => true,
+            RootPlayerCardType::Anytime => false,
+            RootPlayerCardType::Gambling => true,
+            RootPlayerCardType::Cheating => false,
+            RootPlayerCardType::Sometimes => false,
+        }
+    }
+
     pub fn can_play(
         &self,
         player_uuid: &PlayerUUID,

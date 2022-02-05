@@ -204,7 +204,10 @@ impl GameLogic {
                     &mut self.gambling_manager,
                     &mut self.turn_info,
                 )?;
-                self.player_manager.discard_cards(spent_cards).unwrap();
+                if spent_cards.current_user_action_phase_is_over() {
+                    self.skip_action_phase()?;
+                }
+                self.player_manager.discard_cards(spent_cards.take_all_player_cards()).unwrap();
                 return Ok(());
             } else {
                 return Err(Error::new("Cannot pass at this time"));
@@ -270,7 +273,10 @@ impl GameLogic {
                             &mut self.turn_info,
                         ) {
                             Ok(spent_cards) => {
-                                self.player_manager.discard_cards(spent_cards).unwrap();
+                                if spent_cards.current_user_action_phase_is_over() {
+                                    self.skip_action_phase().unwrap();
+                                }
+                                self.player_manager.discard_cards(spent_cards.take_all_player_cards()).unwrap();
                                 Ok(None)
                             }
                             Err((card, error)) => Err((card.into(), error)),
@@ -962,6 +968,9 @@ mod tests {
                 .get_fortitude(),
             18
         );
+
+        // Should proceed to player 1's order drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
     }
 
     #[test]
