@@ -611,13 +611,7 @@ mod tests {
             .is_turn_to_interrupt(&player2_uuid));
         assert!(!game_logic.player_can_pass(&player1_uuid));
         assert!(game_logic.player_can_pass(&player2_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
+        game_logic.pass(&player2_uuid)
             .unwrap();
         assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
@@ -645,9 +639,7 @@ mod tests {
         assert!(game_logic.gambling_manager.is_turn(&player2_uuid));
         assert!(!game_logic.player_can_pass(&player1_uuid));
         assert!(game_logic.player_can_pass(&player2_uuid));
-        game_logic
-            .gambling_manager
-            .pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
+        game_logic.pass(&player2_uuid).unwrap();
 
         // Gambling pot should be given to the winner.
         assert_eq!(
@@ -715,14 +707,7 @@ mod tests {
             .is_turn_to_interrupt(&player2_uuid));
         assert!(!game_logic.player_can_pass(&player1_uuid));
         assert!(game_logic.player_can_pass(&player2_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
-            .unwrap();
+        game_logic.pass(&player2_uuid).unwrap();
         assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // 1 gold should be subtracted from each player.
@@ -756,25 +741,11 @@ mod tests {
         // Player 2 chooses not to interrupt their ante.
         assert!(!game_logic.player_can_pass(&player1_uuid));
         assert!(game_logic.player_can_pass(&player2_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
-            .unwrap();
+        game_logic.pass(&player2_uuid).unwrap();
         // Player 1 chooses not to interrupt their ante.
         assert!(game_logic.player_can_pass(&player1_uuid));
         assert!(!game_logic.player_can_pass(&player2_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
-            .unwrap();
+        game_logic.pass(&player1_uuid).unwrap();
 
         // 1 more gold should be subtracted from each player.
         assert_eq!(
@@ -798,9 +769,7 @@ mod tests {
         assert!(game_logic.gambling_manager.is_turn(&player1_uuid));
         assert!(game_logic.player_can_pass(&player1_uuid));
         assert!(!game_logic.player_can_pass(&player2_uuid));
-        game_logic
-            .gambling_manager
-            .pass(&mut game_logic.player_manager, &mut game_logic.turn_info);
+        game_logic.pass(&player1_uuid).unwrap();
 
         // Gambling pot should be given to the winner.
         assert_eq!(
@@ -894,14 +863,7 @@ mod tests {
         ));
 
         // Player 2 passes and antes.
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
-            .unwrap();
+        game_logic.pass(&player2_uuid).unwrap();
 
         // Player 2 can now play a gambling card.
         assert!(!i_raise_card().can_play(
@@ -964,6 +926,7 @@ mod tests {
         assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
+        // Player 1 attempts to hurt player 2.
         assert!(game_logic
             .process_card(
                 change_other_player_fortitude_card("Punch in the face", -2).into(),
@@ -981,19 +944,13 @@ mod tests {
                 .get_fortitude(),
             20
         );
+        assert!(game_logic.interrupt_manager.interrupt_in_progress());
 
-        // Player 2 choose not to play an interrupt card.
+        // Player 2 chooses not to play an interrupt card.
         assert!(game_logic
             .interrupt_manager
             .is_turn_to_interrupt(&player2_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
-            .unwrap();
+        game_logic.pass(&player2_uuid).unwrap();
         assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // Fortitude should be reduced.
@@ -1111,14 +1068,7 @@ mod tests {
         assert!(game_logic
             .interrupt_manager
             .is_turn_to_interrupt(&player1_uuid));
-        game_logic
-            .interrupt_manager
-            .pass(
-                &mut game_logic.player_manager,
-                &mut game_logic.gambling_manager,
-                &mut game_logic.turn_info,
-            )
-            .unwrap();
+        game_logic.pass(&player1_uuid).unwrap();
         assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // Fortitude should not be reduced.
