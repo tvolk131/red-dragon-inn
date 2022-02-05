@@ -97,7 +97,7 @@ const GameCreatorBox = () => {
         createGame(gameName).then(() => {
           setGameName('');
         });
-      }}>Login</Button>
+      }}>Create Game</Button>
     </div>
   );
 };
