@@ -1,8 +1,9 @@
-import {Button, Card, CardActions, CardContent, Checkbox, Typography} from '@mui/material';
+import {Button, Card, CardContent, Typography} from '@mui/material';
 import * as React from 'react';
 import {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router';
-import {discardCards, GameView, orderDrink, pass, playCard, selectCharacter, startGame} from '../api';
+import {discardCards, GameView, orderDrink, pass, selectCharacter, startGame} from '../api';
+import {Hand} from './gamePage/Hand';
 
 enum Character {
   Fiona,
@@ -32,7 +33,6 @@ interface GamePageProps {
 }
 
 export const GamePage = (props: GamePageProps) => {
-  const [selectedCardIndices, setSelectedCardIndices] = useState<number[]>([]);
   const [canDiscardCards, setCanDiscardCards] = useState(getCanDiscardCards(props.gameView));
 
   const navigate = useNavigate();
@@ -44,12 +44,6 @@ export const GamePage = (props: GamePageProps) => {
   useEffect(() => {
     setCanDiscardCards(getCanDiscardCards(props.gameView));
   }, [props.gameView]);
-
-  useEffect(() => {
-    if (!canDiscardCards) {
-      setSelectedCardIndices([]);
-    }
-  }, [canDiscardCards]);
 
   if (!props.gameView) {
     return (
@@ -108,48 +102,11 @@ export const GamePage = (props: GamePageProps) => {
           </Card>
         );
       })}
-      {props.gameView.hand.map((card, index) => {
-        return (
-          <Card>
-            <CardContent>
-              {card.cardName}
-              {canDiscardCards && <Checkbox onChange={(event) => {
-                if (event.target.checked) {
-                  selectedCardIndices.push(index);
-                } else {
-                  selectedCardIndices.filter((item) => item !== index);
-                }
-              }} checked={selectedCardIndices.includes(index)}/>}
-            </CardContent>
-            {card.isPlayable && (card.isDirected ? (
-              props.gameView?.playerData.map((playerData) => {
-                return (
-                  <CardActions>
-                    <Button onClick={() => playCard(index, playerData.playerUuid)}>
-                      Play (Direct at {props.gameView?.playerDisplayNames[playerData.playerUuid]})
-                    </Button>
-                  </CardActions>
-                );
-              })
-            ) : (
-              <CardActions>
-                <Button onClick={() => playCard(index)}>
-                  Play
-                </Button>
-              </CardActions>
-            ))}
-          </Card>
-        );
-      })}
+      <Hand gameView={props.gameView} canDiscardCards={canDiscardCards}/>
       <Button disabled={!props.gameView.canPass} onClick={() => pass()}>Pass</Button>
       {props.gameView.currentTurnPlayerUuid ?
-        <div>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</div> :
+        <Typography>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</Typography> :
         <div>Game not running</div>}
-      {canDiscardCards && (
-        <Button onClick={() => discardCards(selectedCardIndices).then(() => setSelectedCardIndices([]))}>
-          Discard {selectedCardIndices.length} cards
-        </Button>
-      )}
       {canOrderDrinks && (<div>
         {props.gameView.playerData.map((player) => {
           const playerDisplayName = props.gameView?.playerDisplayNames[player.playerUuid];
