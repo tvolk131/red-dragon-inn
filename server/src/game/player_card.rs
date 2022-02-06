@@ -51,7 +51,8 @@ impl PlayerCard {
                     }
                 }
 
-                interrupt_player_card.can_interrupt(current_interrupt) && interrupt_manager.is_turn_to_interrupt(player_uuid)
+                interrupt_player_card.can_interrupt(current_interrupt)
+                    && interrupt_manager.is_turn_to_interrupt(player_uuid)
             }
         }
     }

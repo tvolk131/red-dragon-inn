@@ -207,7 +207,9 @@ impl GameLogic {
                 if spent_cards.current_user_action_phase_is_over() {
                     self.skip_action_phase()?;
                 }
-                self.player_manager.discard_cards(spent_cards.take_all_player_cards()).unwrap();
+                self.player_manager
+                    .discard_cards(spent_cards.take_all_player_cards())
+                    .unwrap();
                 return Ok(());
             } else {
                 return Err(Error::new("Cannot pass at this time"));
@@ -276,7 +278,9 @@ impl GameLogic {
                                 if spent_cards.current_user_action_phase_is_over() {
                                     self.skip_action_phase().unwrap();
                                 }
-                                self.player_manager.discard_cards(spent_cards.take_all_player_cards()).unwrap();
+                                self.player_manager
+                                    .discard_cards(spent_cards.take_all_player_cards())
+                                    .unwrap();
                                 Ok(None)
                             }
                             Err((card, error)) => Err((card.into(), error)),
@@ -617,8 +621,7 @@ mod tests {
             .is_turn_to_interrupt(&player2_uuid));
         assert!(!game_logic.player_can_pass(&player1_uuid));
         assert!(game_logic.player_can_pass(&player2_uuid));
-        game_logic.pass(&player2_uuid)
-            .unwrap();
+        game_logic.pass(&player2_uuid).unwrap();
         assert!(!game_logic.interrupt_manager.interrupt_in_progress());
 
         // 1 gold should be subtracted from each player.

@@ -436,7 +436,7 @@ impl GameInterruptStack {
         while let Some(game_interrupt_data) = self.interrupt_cards.pop() {
             interrupt_cards.push((
                 game_interrupt_data.card_owner_uuid,
-                game_interrupt_data.card.into(),
+                game_interrupt_data.card,
             ));
         }
 
@@ -478,7 +478,9 @@ impl InterruptStackResolveData {
 
     pub fn current_user_action_phase_is_over(&self) -> bool {
         match &self.root_card_or {
-            Some((_, root_player_card)) => root_player_card.is_action_card() && !root_player_card.is_gambling_card(),
+            Some((_, root_player_card)) => {
+                root_player_card.is_action_card() && !root_player_card.is_gambling_card()
+            }
             None => false,
         }
     }
