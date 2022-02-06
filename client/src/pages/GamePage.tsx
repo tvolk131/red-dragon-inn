@@ -72,36 +72,33 @@ export const GamePage = (props: GamePageProps) => {
       <Button onClick={() => selectCharacter(characterToString(Character.Gerki))}>
         Select Gerki
       </Button>
-      {props.gameView.playerData.map((playerData) => {
-        const playerDisplayName = props.gameView?.playerDisplayNames[playerData.playerUuid];
-        return (
-          <Card>
-            <CardContent>
-              <Typography gutterBottom variant='h5' component='div'>
-                {playerDisplayName}
-              </Typography>
-              <Typography>
-                Draw Pile Size: {playerData.drawPileSize}
-              </Typography>
-              <Typography>
-                Discard Pile Size: {playerData.discardPileSize}
-              </Typography>
-              <Typography>
-                Drink Me Pile Size: {playerData.drinkMePileSize}
-              </Typography>
-              <Typography>
-                Alcohol Content: {playerData.alcoholContent}
-              </Typography>
-              <Typography>
-                Fortitude: {playerData.fortitude}
-              </Typography>
-              <Typography>
-                Gold: {playerData.gold}
-              </Typography>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {props.gameView.playerData.map((playerData) => (
+        <Card>
+          <CardContent>
+            <Typography gutterBottom variant='h5' component='div'>
+              {props.gameView?.playerDisplayNames[playerData.playerUuid]}
+            </Typography>
+            <Typography>
+              Draw Pile Size: {playerData.drawPileSize}
+            </Typography>
+            <Typography>
+              Discard Pile Size: {playerData.discardPileSize}
+            </Typography>
+            <Typography>
+              Drink Me Pile Size: {playerData.drinkMePileSize}
+            </Typography>
+            <Typography>
+              Alcohol Content: {playerData.alcoholContent}
+            </Typography>
+            <Typography>
+              Fortitude: {playerData.fortitude}
+            </Typography>
+            <Typography>
+              Gold: {playerData.gold}
+            </Typography>
+          </CardContent>
+        </Card>
+      ))}
       <Hand gameView={props.gameView} canDiscardCards={canDiscardCards}/>
       <Button disabled={!props.gameView.canPass} onClick={() => pass()}>Pass</Button>
       {props.gameView.currentTurnPlayerUuid ?
