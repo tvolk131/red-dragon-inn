@@ -4,7 +4,7 @@ use super::gambling_manager::GamblingManager;
 use super::interrupt_manager::InterruptManager;
 use super::player_card::{PlayerCard, RootPlayerCard, ShouldInterrupt, TargetStyle};
 use super::player_manager::{NextPlayerUUIDOption, PlayerManager};
-use super::player_view::{GameViewPlayerCard, GameViewPlayerData, GameViewInterruptData};
+use super::player_view::{GameViewInterruptData, GameViewPlayerCard, GameViewPlayerData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use serde::Serialize;

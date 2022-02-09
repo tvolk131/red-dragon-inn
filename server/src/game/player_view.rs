@@ -28,14 +28,14 @@ pub struct GameViewPlayerData {
 #[serde(rename_all = "camelCase")]
 pub struct GameViewInterruptData {
     pub interrupts: Vec<GameViewInterruptStack>,
-    pub current_interrupt_turn: PlayerUUID
+    pub current_interrupt_turn: PlayerUUID,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameViewInterruptStack {
     pub root_card_name: String,
-    pub interrupt_card_names: Vec<String>
+    pub interrupt_card_names: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -49,7 +49,7 @@ pub struct GameView {
     pub hand: Vec<GameViewPlayerCard>,
     pub player_data: Vec<GameViewPlayerData>,
     pub player_display_names: HashMap<PlayerUUID, String>,
-    pub interrupts: Option<GameViewInterruptData>
+    pub interrupts: Option<GameViewInterruptData>,
 }
 
 #[derive(Serialize, PartialEq, Eq)]

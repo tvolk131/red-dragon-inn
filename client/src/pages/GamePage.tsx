@@ -1,4 +1,4 @@
-import {Button, Card, CardContent, Typography, Paper} from '@mui/material';
+import {Button, Card, CardContent, Paper, Typography} from '@mui/material';
 import * as React from 'react';
 import {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router';
