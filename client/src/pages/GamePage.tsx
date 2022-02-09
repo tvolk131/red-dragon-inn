@@ -1,8 +1,8 @@
-import {Button, Card, CardContent, Typography} from '@mui/material';
+import {Button, Card, CardContent, Typography, Paper} from '@mui/material';
 import * as React from 'react';
 import {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router';
-import {discardCards, GameView, orderDrink, pass, selectCharacter, startGame} from '../api';
+import {GameView, orderDrink, pass, selectCharacter, startGame} from '../api';
 import {Hand} from './gamePage/Hand';
 
 enum Character {
@@ -99,6 +99,18 @@ export const GamePage = (props: GamePageProps) => {
           </CardContent>
         </Card>
       ))}
+      {props.gameView.interrupts && <Paper>
+        <Typography>Game Interrupts</Typography>
+        <Typography>Current interrupt turn: {props.gameView.interrupts.currentInterruptTurn}</Typography>
+        {props.gameView.interrupts.interrupts.map((interrupt) => (
+          <Paper>
+            Root card: {interrupt.rootCardName}
+            {interrupt.interruptCardNames.map((interruptCardName) => (
+              <Paper>Interrupt card: {interruptCardName}</Paper>
+            ))}
+          </Paper>
+        ))}
+      </Paper>}
       <Hand gameView={props.gameView} canDiscardCards={canDiscardCards}/>
       <Button disabled={!props.gameView.canPass} onClick={() => pass()}>Pass</Button>
       {props.gameView.currentTurnPlayerUuid ?

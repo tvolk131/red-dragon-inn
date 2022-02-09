@@ -8,6 +8,7 @@ use super::uuid::PlayerUUID;
 use super::Error;
 use std::default::Default;
 use std::sync::Arc;
+use super::player_view::{GameViewInterruptData, GameViewInterruptStack};
 
 #[derive(Clone, Debug)]
 pub struct InterruptManager {
@@ -29,6 +30,31 @@ impl InterruptManager {
         Some(match current_stack.interrupt_cards.last() {
             Some(most_recent_interrupt_data) => most_recent_interrupt_data.card_interrupt_type,
             None => current_stack.root_card_interrupt_type,
+        })
+    }
+    
+    pub fn get_game_view_interrupt_data_or(&self) -> Option<GameViewInterruptData> {
+        let current_interrupt_turn = match &self.current_interrupt_turn_or {
+            Some(current_interrupt_turn) => current_interrupt_turn.clone(),
+            None => return None
+        };
+
+        let mut interrupts = Vec::new();
+        let mut seen_root_card_arcs = Vec::new();
+        for interrupt_stack in &self.interrupt_stacks {
+            let root_card_already_seen = seen_root_card_arcs.iter().rfold(false, |acc, x| acc || Arc::ptr_eq(&interrupt_stack.root_card, x));
+            if !root_card_already_seen {
+                interrupts.push(GameViewInterruptStack {
+                    root_card_name: interrupt_stack.root_card.get_display_name().to_string(),
+                    interrupt_card_names: interrupt_stack.interrupt_cards.iter().map(|interrupt_card| interrupt_card.card.get_display_name().to_string()).collect()
+                });
+                seen_root_card_arcs.push(interrupt_stack.root_card.clone());
+            }
+        }
+
+        Some(GameViewInterruptData {
+            interrupts,
+            current_interrupt_turn
         })
     }
 

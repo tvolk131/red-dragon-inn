@@ -4,7 +4,7 @@ use super::gambling_manager::GamblingManager;
 use super::interrupt_manager::InterruptManager;
 use super::player_card::{PlayerCard, RootPlayerCard, ShouldInterrupt, TargetStyle};
 use super::player_manager::{NextPlayerUUIDOption, PlayerManager};
-use super::player_view::{GameViewPlayerCard, GameViewPlayerData};
+use super::player_view::{GameViewPlayerCard, GameViewPlayerData, GameViewInterruptData};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use serde::Serialize;
@@ -56,6 +56,10 @@ impl GameLogic {
             ),
             None => Vec::new(),
         }
+    }
+
+    pub fn get_game_view_interrupt_data_or(&self) -> Option<GameViewInterruptData> {
+        self.interrupt_manager.get_game_view_interrupt_data_or()
     }
 
     pub fn get_turn_phase(&self) -> TurnPhase {

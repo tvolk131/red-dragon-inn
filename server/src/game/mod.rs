@@ -217,6 +217,10 @@ impl Game {
                     )
                 })
                 .collect(),
+            interrupts: match &self.game_logic_or {
+                Some(game_logic) => game_logic.get_game_view_interrupt_data_or(),
+                None => None
+            }
         })
     }
 

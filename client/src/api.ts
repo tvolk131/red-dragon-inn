@@ -17,6 +17,16 @@ interface GameViewPlayerData {
   isDead: boolean;
 }
 
+interface GameViewInterruptData {
+  interrupts: GameViewInterruptStack[];
+  currentInterruptTurn: string;
+}
+
+interface GameViewInterruptStack {
+  rootCardName: string;
+  interruptCardNames: string[];
+}
+
 export interface GameView {
   gameName: string;
   selfPlayerUuid: string;
@@ -26,6 +36,7 @@ export interface GameView {
   hand: GameViewPlayerCard[];
   playerData: GameViewPlayerData[];
   playerDisplayNames: {[key: string]: string};
+  interrupts?: GameViewInterruptData;
 }
 
 export interface ListedGameView {
