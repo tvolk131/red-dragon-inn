@@ -402,6 +402,13 @@ fn process_root_player_card(
         }
         TargetStyle::SingleOtherPlayer => {
             if let Some(targeted_player_uuid) = targeted_player_uuid_or {
+                if player_uuid == targeted_player_uuid {
+                    return Err((
+                        root_player_card,
+                        Error::new("Must not direct this card at yourself"),
+                    ));
+                }
+
                 match root_player_card.pre_interrupt_play(
                     player_uuid,
                     &mut game_logic.player_manager,
@@ -925,22 +932,6 @@ mod tests {
             .unwrap();
 
         // Sanity check.
-        assert_eq!(
-            game_logic
-                .player_manager
-                .get_player_by_uuid(&player1_uuid)
-                .unwrap()
-                .get_gold(),
-            8
-        );
-        assert_eq!(
-            game_logic
-                .player_manager
-                .get_player_by_uuid(&player2_uuid)
-                .unwrap()
-                .get_gold(),
-            8
-        );
         assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
 
@@ -983,6 +974,40 @@ mod tests {
 
         // Should proceed to player 1's order drink phase.
         assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
+    }
+
+    #[test]
+    fn cannot_play_directed_card_on_self() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 attempts to hurt self.
+        assert_eq!(
+            game_logic
+                .process_card(
+                    change_other_player_fortitude_card("Punch in the face", -2).into(),
+                    &player1_uuid,
+                    &Some(player1_uuid.clone())
+                )
+                .unwrap_err()
+                .1,
+            Error::new("Must not direct this card at yourself")
+        );
+
+        // Should stay at player 1's action phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::Action);
     }
 
     #[test]

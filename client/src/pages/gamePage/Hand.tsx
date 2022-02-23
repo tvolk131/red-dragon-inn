@@ -34,22 +34,25 @@ export const Hand = (props: HandProps) => {
                 }} checked={selectedCardIndices.includes(index)}/>}
               </CardContent>
               {card.isPlayable && (card.isDirected ? (
-                props.gameView?.playerData.map((playerData) => {
-                  return (
-                    <CardActions>
-                      <Button onClick={() => playCard(index, playerData.playerUuid)}>
-                        Play (Direct at {props.gameView?.playerDisplayNames[playerData.playerUuid]})
-                      </Button>
-                    </CardActions>
-                  );
-                })
-              ) : (
-                <CardActions>
-                  <Button onClick={() => playCard(index)}>
-                    Play
-                  </Button>
-                </CardActions>
-              ))}
+                props.gameView?.playerData
+                  .filter((player) => player.playerUuid !== props.gameView?.selfPlayerUuid)
+                  .map((playerData) => {
+                    return (
+                      <CardActions>
+                        <Button onClick={() => playCard(index, playerData.playerUuid)}>
+                          Play (Direct at {props.gameView?.playerDisplayNames[playerData.playerUuid]})
+                        </Button>
+                      </CardActions>
+                    );
+                  })
+                ) : (
+                  <CardActions>
+                    <Button onClick={() => playCard(index)}>
+                      Play
+                    </Button>
+                  </CardActions>
+                ))
+              }
             </Card>
           );
         })}
