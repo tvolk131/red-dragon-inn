@@ -101,12 +101,14 @@ export const GamePage = (props: GamePageProps) => {
       ))}
       {props.gameView.interrupts && <Paper>
         <Typography>Game Interrupts</Typography>
-        <Typography>Current interrupt turn: {props.gameView.interrupts.currentInterruptTurn}</Typography>
+        <Typography>
+          Current interrupt turn: {props.gameView.playerDisplayNames[props.gameView.interrupts.currentInterruptTurn]}
+        </Typography>
         {props.gameView.interrupts.interrupts.map((interrupt) => (
           <Paper>
-            Root card: {interrupt.rootCardName}
+            <Typography>Root card: {interrupt.rootCardName}</Typography>
             {interrupt.interruptCardNames.map((interruptCardName) => (
-              <Paper>Interrupt card: {interruptCardName}</Paper>
+              <Typography>Interrupt card: {interruptCardName}</Typography>
             ))}
           </Paper>
         ))}
