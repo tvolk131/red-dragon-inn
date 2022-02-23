@@ -1101,7 +1101,7 @@ mod tests {
 
         let mut game_logic = GameLogic::new(vec![
             (player1_uuid.clone(), Character::Deirdre),
-            (player2_uuid.clone(), Character::Gerki),
+            (player2_uuid, Character::Gerki),
         ])
         .unwrap();
         game_logic
@@ -1321,7 +1321,7 @@ mod tests {
 
         let mut game_logic = GameLogic::new(vec![
             (player1_uuid.clone(), Character::Deirdre),
-            (player2_uuid.clone(), Character::Gerki),
+            (player2_uuid, Character::Gerki),
         ])
         .unwrap();
         game_logic
