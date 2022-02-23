@@ -482,7 +482,7 @@ mod tests {
                 Ok(())
             );
             assert_eq!(game.pass(&player2_uuid), Ok(()));
-            assert_eq!(game.order_drink(&player2_uuid, &player2_uuid), Ok(()));
+            assert_eq!(game.order_drink(&player2_uuid, &player1_uuid), Ok(()));
         }
     }
 }

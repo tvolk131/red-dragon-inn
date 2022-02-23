@@ -172,6 +172,10 @@ impl GameLogic {
             return Err(Error::new("Cannot order drinks at this time"));
         }
 
+        if player_uuid == other_player_uuid {
+            return Err(Error::new("Cannot order drink for yourself"));
+        }
+
         if let Some(drink) = self.drink_deck.draw_card() {
             let other_player = match self
                 .player_manager
@@ -577,6 +581,7 @@ mod tests {
     use super::super::player_card::{
         change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_im_in_card,
         i_raise_card, ignore_root_card_affecting_fortitude,
+        wench_bring_some_drinks_for_my_friends_card,
     };
     use super::*;
 
@@ -1095,6 +1100,105 @@ mod tests {
                 .unwrap()
                 .get_fortitude(),
             20
+        );
+    }
+
+    #[test]
+    fn can_order_drinks_after_action_phase() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 skips their action phase.
+        assert!(game_logic.pass(&player1_uuid).is_ok());
+
+        // Should proceed to player 1's order drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
+
+        assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+
+        // Should proceed to player 2's discard phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::DiscardAndDraw);
+    }
+
+    #[test]
+    fn can_order_multiple_drinks() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 skips their action phase.
+        assert!(game_logic.pass(&player1_uuid).is_ok());
+
+        // Should proceed to player 1's order drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
+
+        assert!(game_logic
+            .process_card(
+                wench_bring_some_drinks_for_my_friends_card().into(),
+                &player1_uuid,
+                &None
+            )
+            .is_ok());
+
+        assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+        assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+        assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+
+        // Should proceed to player 2's discard phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::DiscardAndDraw);
+    }
+
+    #[test]
+    fn cannot_order_drinks_for_self() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 skips their action phase.
+        assert!(game_logic.pass(&player1_uuid).is_ok());
+
+        // Should proceed to player 1's order drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
+
+        assert_eq!(
+            game_logic
+                .order_drink(&player1_uuid, &player1_uuid)
+                .unwrap_err(),
+            Error::new("Cannot order drink for yourself")
         );
     }
 

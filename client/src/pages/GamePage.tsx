@@ -117,7 +117,7 @@ export const GamePage = (props: GamePageProps) => {
         <Typography>{props.gameView.playerDisplayNames[props.gameView.currentTurnPlayerUuid]}'s turn</Typography> :
         <div>Game not running</div>}
       {canOrderDrinks && (<div>
-        {props.gameView.playerData.map((player) => {
+        {props.gameView.playerData.filter((player) => player.playerUuid !== props.gameView?.selfPlayerUuid).map((player) => {
           const playerDisplayName = props.gameView?.playerDisplayNames[player.playerUuid];
           return (
             <Button onClick={() => orderDrink(player.playerUuid)}>
