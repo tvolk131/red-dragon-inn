@@ -585,6 +585,7 @@ fn rotate_player_vec_to_start_with_player(
 
 #[cfg(test)]
 mod tests {
+    use super::super::drink::create_simple_ale_test_drink;
     use super::super::player_card::{
         change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
         gambling_im_in_card, i_raise_card, ignore_root_card_affecting_fortitude,
@@ -1309,6 +1310,71 @@ mod tests {
         assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
         assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
         assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+
+        // Should proceed to player 2's discard phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::DiscardAndDraw);
+    }
+
+    #[test]
+    fn player_drinks_top_drink_after_ordering_drinks() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 skips their action phase.
+        assert!(game_logic.pass(&player1_uuid).is_ok());
+
+        // Should proceed to player 1's order drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
+
+        // Player should drink the top card of their drink deck after ordering drinks for other players.
+        game_logic
+            .player_manager
+            .get_player_by_uuid_mut(&player1_uuid)
+            .unwrap()
+            .add_drink_to_drink_pile(create_simple_ale_test_drink(false).into());
+        let player1_drink_me_pile_size = game_logic
+            .player_manager
+            .get_player_by_uuid(&player1_uuid)
+            .unwrap()
+            .to_game_view_player_data(player1_uuid.clone())
+            .drink_me_pile_size;
+        let player1_alcohol_content = game_logic
+            .player_manager
+            .get_player_by_uuid(&player1_uuid)
+            .unwrap()
+            .to_game_view_player_data(player1_uuid.clone())
+            .alcohol_content;
+        assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .to_game_view_player_data(player1_uuid.clone())
+                .drink_me_pile_size,
+            player1_drink_me_pile_size - 1
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .to_game_view_player_data(player1_uuid.clone())
+                .alcohol_content,
+            player1_alcohol_content + 1
+        );
 
         // Should proceed to player 2's discard phase.
         assert_eq!(game_logic.get_turn_phase(), TurnPhase::DiscardAndDraw);

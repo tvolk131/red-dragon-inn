@@ -95,6 +95,11 @@ macro_rules! simple_drink {
     };
 }
 
+#[cfg(test)]
+pub fn create_simple_ale_test_drink(has_chaser: bool) -> Drink {
+    simple_drink!("Test Ale", 1, 0, has_chaser)
+}
+
 fn orcish_rotgut() -> Drink {
     Drink {
         display_name: "Orcish Rotgut".to_string(),
