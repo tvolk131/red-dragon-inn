@@ -38,7 +38,7 @@ impl InterruptManager {
         let mut interrupts = Vec::new();
         let mut seen_root_card_arcs = Vec::new();
         for interrupt_stack in &self.interrupt_stacks {
-            let interrupt_card_names = match interrupt_stack.sessions.first() {
+            let interrupt_card_names = match interrupt_stack.sessions.last() {
                 Some(first_session) => first_session
                     .interrupt_cards
                     .iter()
@@ -114,7 +114,7 @@ impl InterruptManager {
 
             let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
 
-            for targeted_player_uuid in targeted_player_uuids {
+            for targeted_player_uuid in targeted_player_uuids.into_iter().rev() {
                 sessions.push(GameInterruptStackSession {
                     root_card_interrupt_type,
                     targeted_player_uuid,
@@ -293,19 +293,23 @@ impl InterruptManager {
             ));
         }
 
-        let (root_card, root_card_owner_uuid) = match should_cancel_root_card {
+        let root_card_with_owner_or = match should_cancel_root_card {
             ShouldCancelPreviousCard::Negate => {
                 let interrupt_stack_resolve_data = current_stack.drain_all_cards();
                 for (player_uuid, card) in interrupt_stack_resolve_data.interrupt_cards {
                     spent_interrupt_cards.push((player_uuid, card));
                 }
-                (
-                    interrupt_stack_resolve_data.root_card,
-                    interrupt_stack_resolve_data.root_card_owner_uuid,
-                )
+                interrupt_stack_resolve_data.root_card_with_owner_or
             }
             ShouldCancelPreviousCard::Ignore => {
-                (current_stack.root_card, current_stack.root_card_owner_uuid)
+                if let Some(next_session) = current_stack.sessions.last() {
+                    current_stack.current_interrupt_turn =
+                        next_session.targeted_player_uuid.clone();
+                    self.interrupt_stacks.insert(0, current_stack);
+                    None
+                } else {
+                    Some((current_stack.root_card, current_stack.root_card_owner_uuid))
+                }
             }
             ShouldCancelPreviousCard::No => {
                 current_stack.root_card.interrupt_play(
@@ -315,24 +319,28 @@ impl InterruptManager {
                     gambling_manager,
                 );
 
-                // TODO - Handle this unwrap.
-                current_stack
-                    .root_card
-                    .get_interrupt_data_or()
-                    .unwrap()
-                    .post_interrupt_play(
+                if let Some(interrupt_data) = current_stack.root_card.get_interrupt_data_or() {
+                    interrupt_data.post_interrupt_play(
                         &current_stack.root_card_owner_uuid,
                         player_manager,
                         gambling_manager,
                         turn_info,
                     );
-                (current_stack.root_card, current_stack.root_card_owner_uuid)
+                }
+
+                if let Some(next_session) = current_stack.sessions.last() {
+                    current_stack.current_interrupt_turn =
+                        next_session.targeted_player_uuid.clone();
+                    self.interrupt_stacks.insert(0, current_stack);
+                    None
+                } else {
+                    Some((current_stack.root_card, current_stack.root_card_owner_uuid))
+                }
             }
         };
 
         Ok(InterruptStackResolveData {
-            root_card,
-            root_card_owner_uuid,
+            root_card_with_owner_or,
             interrupt_cards: spent_interrupt_cards,
         })
     }
@@ -383,7 +391,7 @@ impl InterruptManager {
         let current_stack = self.interrupt_stacks.first()?;
 
         Some(
-            match current_stack.sessions.first()?.get_last_player_to_play() {
+            match current_stack.sessions.last()?.get_last_player_to_play() {
                 Some(player_uuid) => player_uuid,
                 None => &current_stack.root_card_owner_uuid,
             },
@@ -414,10 +422,10 @@ struct GameInterruptStack {
 
 impl GameInterruptStack {
     fn get_current_session(&self) -> Option<&GameInterruptStackSession> {
-        self.sessions.first()
+        self.sessions.last()
     }
     fn get_current_session_mut(&mut self) -> Option<&mut GameInterruptStackSession> {
-        self.sessions.first_mut()
+        self.sessions.last_mut()
     }
 
     fn get_current_interrupt(&self) -> Option<GameInterruptType> {
@@ -465,8 +473,7 @@ impl GameInterruptStack {
         }
 
         InterruptStackResolveData {
-            root_card: self.root_card,
-            root_card_owner_uuid: self.root_card_owner_uuid,
+            root_card_with_owner_or: Some((self.root_card, self.root_card_owner_uuid)),
             interrupt_cards,
         }
     }
@@ -500,18 +507,24 @@ pub struct PlayerCardInfo {
 }
 
 pub struct InterruptStackResolveData {
-    root_card: RootPlayerCard,
-    root_card_owner_uuid: PlayerUUID,
+    root_card_with_owner_or: Option<(RootPlayerCard, PlayerUUID)>,
     interrupt_cards: Vec<(PlayerUUID, InterruptPlayerCard)>,
 }
 
 impl InterruptStackResolveData {
     pub fn current_user_action_phase_is_over(&self) -> bool {
-        self.root_card.is_action_card() && !self.root_card.is_gambling_card()
+        if let Some((root_card, _)) = &self.root_card_with_owner_or {
+            root_card.is_action_card() && !root_card.is_gambling_card()
+        } else {
+            false
+        }
     }
 
     pub fn take_all_player_cards(self) -> Vec<(PlayerUUID, PlayerCard)> {
-        let mut cards = vec![(self.root_card_owner_uuid, self.root_card.into())];
+        let mut cards = Vec::new();
+        if let Some((root_card, root_card_owner_uuid)) = self.root_card_with_owner_or {
+            cards.push((root_card_owner_uuid, root_card.into()));
+        }
         for (card_owner_uuid, card) in self.interrupt_cards {
             cards.push((card_owner_uuid, card.into()));
         }
