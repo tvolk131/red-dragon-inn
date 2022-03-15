@@ -61,54 +61,77 @@ impl InterruptManager {
 
     pub fn start_single_player_interrupt(
         &mut self,
-        card: RootPlayerCard,
-        card_owner_uuid: PlayerUUID,
+        root_card: RootPlayerCard,
+        root_card_owner_uuid: PlayerUUID,
         targeted_player_uuid: PlayerUUID,
     ) -> Result<(), (RootPlayerCard, Error)> {
         if self.interrupt_in_progress() {
-            return Err((card, Error::new("An interrupt is already in progress")));
+            return Err((root_card, Error::new("An interrupt is already in progress")));
         }
 
-        if let Some(interrupt_data) = card.get_interrupt_data_or() {
-            self.push_new_stack(
-                interrupt_data.get_interrupt_type_output(),
-                card,
-                card_owner_uuid,
-                targeted_player_uuid,
-            );
+        if let Some(interrupt_data) = root_card.get_interrupt_data_or() {
+            let root_card_interrupt_type = interrupt_data.get_interrupt_type_output();
+            self.interrupt_stacks.push(GameInterruptStack {
+                root_card,
+                root_card_owner_uuid,
+                current_interrupt_turn: targeted_player_uuid.clone(),
+                sessions: vec![GameInterruptStackSession {
+                    root_card_interrupt_type,
+                    targeted_player_uuid,
+                    interrupt_cards: Vec::new(),
+                    only_targeted_player_can_interrupt: false,
+                }],
+            });
             Ok(())
         } else {
-            Err((card, Error::new("Card is not interruptable")))
+            Err((root_card, Error::new("Card is not interruptable")))
         }
     }
 
+    /// Create multiple consecutive interrupt stacks each targeting a different player.
+    /// This is used for cards where multiple players are affected individually, such as
+    /// an `I Raise` card, which forces each individual user to ante.
     pub fn start_multi_player_interrupt(
         &mut self,
-        card: RootPlayerCard,
-        card_owner_uuid: PlayerUUID,
+        root_card: RootPlayerCard,
+        root_card_owner_uuid: PlayerUUID,
         targeted_player_uuids: Vec<PlayerUUID>,
     ) -> Result<(), (RootPlayerCard, Error)> {
         if self.interrupt_in_progress() {
-            return Err((card, Error::new("An interrupt is already in progress")));
+            return Err((root_card, Error::new("An interrupt is already in progress")));
         }
 
         if targeted_player_uuids.is_empty() {
             return Err((
-                card,
+                root_card,
                 Error::new("Cannot start an interrupt with no targeted players"),
             ));
         }
 
-        if let Some(interrupt_data) = card.get_interrupt_data_or() {
-            self.push_new_stacks(
-                interrupt_data.get_interrupt_type_output(),
-                card,
-                card_owner_uuid,
-                targeted_player_uuids,
-            );
+        if let Some(interrupt_data) = root_card.get_interrupt_data_or() {
+            let root_card_interrupt_type = interrupt_data.get_interrupt_type_output();
+            let mut sessions = Vec::new();
+    
+            let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
+    
+            for targeted_player_uuid in targeted_player_uuids {
+                sessions.push(GameInterruptStackSession {
+                    root_card_interrupt_type,
+                    targeted_player_uuid,
+                    interrupt_cards: Vec::new(),
+                    only_targeted_player_can_interrupt: true,
+                });
+            }
+    
+            self.interrupt_stacks.push(GameInterruptStack {
+                root_card,
+                root_card_owner_uuid,
+                current_interrupt_turn,
+                sessions,
+            });
             Ok(())
         } else {
-            Err((card, Error::new("Card is not interruptable")))
+            Err((root_card, Error::new("Card is not interruptable")))
         }
     }
 
@@ -312,59 +335,6 @@ impl InterruptManager {
             root_card_owner_uuid,
             interrupt_cards: spent_interrupt_cards,
         })
-    }
-
-    // TODO - Remove this function. It's only used once, let's just inline the logic.
-    fn push_new_stack(
-        &mut self,
-        game_interrupt_type: GameInterruptType,
-        root_card: RootPlayerCard,
-        root_card_owner_uuid: PlayerUUID,
-        targeted_player_uuid: PlayerUUID,
-    ) {
-        self.interrupt_stacks.push(GameInterruptStack {
-            root_card,
-            root_card_owner_uuid,
-            current_interrupt_turn: targeted_player_uuid.clone(),
-            sessions: vec![GameInterruptStackSession {
-                root_card_interrupt_type: game_interrupt_type,
-                targeted_player_uuid,
-                interrupt_cards: Vec::new(),
-                only_targeted_player_can_interrupt: false,
-            }],
-        });
-    }
-
-    /// Create multiple consecutive interrupt stacks each targeting a different player.
-    /// This is used for cards where multiple players are affected individually, such as
-    /// an `I Raise` card, which forces each individual user to ante.
-    // TODO - Remove this function. It's only used once, let's just inline the logic.
-    fn push_new_stacks(
-        &mut self,
-        game_interrupt_type: GameInterruptType,
-        root_card: RootPlayerCard,
-        root_card_owner_uuid: PlayerUUID,
-        targeted_player_uuids: Vec<PlayerUUID>,
-    ) {
-        let mut sessions = Vec::new();
-
-        let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
-
-        for targeted_player_uuid in targeted_player_uuids {
-            sessions.push(GameInterruptStackSession {
-                root_card_interrupt_type: game_interrupt_type,
-                targeted_player_uuid,
-                interrupt_cards: Vec::new(),
-                only_targeted_player_can_interrupt: true,
-            });
-        }
-
-        self.interrupt_stacks.push(GameInterruptStack {
-            root_card,
-            root_card_owner_uuid,
-            current_interrupt_turn,
-            sessions,
-        });
     }
 
     fn push_to_current_stack(
