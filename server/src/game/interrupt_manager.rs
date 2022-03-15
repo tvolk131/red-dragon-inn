@@ -39,14 +39,16 @@ impl InterruptManager {
         let mut seen_root_card_arcs = Vec::new();
         for interrupt_stack in &self.interrupt_stacks {
             let interrupt_card_names = match interrupt_stack.sessions.first() {
-                Some(first_session) => first_session.interrupt_cards.iter()
-                .map(|interrupt_card| interrupt_card.card.get_display_name().to_string())
-                .collect(),
-                None => Vec::new()
+                Some(first_session) => first_session
+                    .interrupt_cards
+                    .iter()
+                    .map(|interrupt_card| interrupt_card.card.get_display_name().to_string())
+                    .collect(),
+                None => Vec::new(),
             };
             interrupts.push(GameViewInterruptStack {
                 root_card_name: interrupt_stack.root_card.get_display_name().to_string(),
-                interrupt_card_names: interrupt_card_names,
+                interrupt_card_names,
             });
             seen_root_card_arcs.push(&interrupt_stack.root_card);
         }
@@ -173,9 +175,13 @@ impl InterruptManager {
         if self.get_current_interrupt_turn_or().is_some()
             && current_stack_session_is_only_interruptable_by_targeted_player
         {
-            return match self.resolve_current_stack_session(player_manager, gambling_manager, turn_info) {
+            return match self.resolve_current_stack_session(
+                player_manager,
+                gambling_manager,
+                turn_info,
+            ) {
                 Ok(interrupt_stack_resolve_data) => Ok(Some(interrupt_stack_resolve_data)),
-                Err(err) => Err(err)
+                Err(err) => Err(err),
             };
         }
 
@@ -270,7 +276,10 @@ impl InterruptManager {
                 for (player_uuid, card) in interrupt_stack_resolve_data.interrupt_cards {
                     spent_interrupt_cards.push((player_uuid, card));
                 }
-                (interrupt_stack_resolve_data.root_card, interrupt_stack_resolve_data.root_card_owner_uuid)
+                (
+                    interrupt_stack_resolve_data.root_card,
+                    interrupt_stack_resolve_data.root_card_owner_uuid,
+                )
             }
             ShouldCancelPreviousCard::Ignore => {
                 (current_stack.root_card, current_stack.root_card_owner_uuid)
@@ -284,7 +293,8 @@ impl InterruptManager {
                 );
 
                 // TODO - Handle this unwrap.
-                current_stack.root_card
+                current_stack
+                    .root_card
                     .get_interrupt_data_or()
                     .unwrap()
                     .post_interrupt_play(
@@ -321,7 +331,7 @@ impl InterruptManager {
                 targeted_player_uuid,
                 interrupt_cards: Vec::new(),
                 only_targeted_player_can_interrupt: false,
-            }]
+            }],
         });
     }
 
@@ -337,7 +347,7 @@ impl InterruptManager {
         targeted_player_uuids: Vec<PlayerUUID>,
     ) {
         let mut sessions = Vec::new();
-        
+
         let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
 
         for targeted_player_uuid in targeted_player_uuids {
@@ -353,7 +363,7 @@ impl InterruptManager {
             root_card,
             root_card_owner_uuid,
             current_interrupt_turn,
-            sessions
+            sessions,
         });
     }
 
@@ -371,11 +381,13 @@ impl InterruptManager {
             None => return Err((card, Error::new("No card to interrupt"))),
         };
 
-        if let Err((game_interrupt_data, err)) = current_stack.push_game_interrupt_data_to_current_stack(GameInterruptData {
-            card_interrupt_type: card.get_interrupt_type_output(),
-            card,
-            card_owner_uuid,
-        }) {
+        if let Err((game_interrupt_data, err)) = current_stack
+            .push_game_interrupt_data_to_current_stack(GameInterruptData {
+                card_interrupt_type: card.get_interrupt_type_output(),
+                card,
+                card_owner_uuid,
+            })
+        {
             return Err((game_interrupt_data.card, err));
         }
 
@@ -400,10 +412,12 @@ impl InterruptManager {
     fn get_last_player_to_play_on_current_stack(&self) -> Option<&PlayerUUID> {
         let current_stack = self.interrupt_stacks.first()?;
 
-        Some(match current_stack.sessions.first()?.get_last_player_to_play() {
-            Some(player_uuid) => player_uuid,
-            None => &current_stack.root_card_owner_uuid
-        })
+        Some(
+            match current_stack.sessions.first()?.get_last_player_to_play() {
+                Some(player_uuid) => player_uuid,
+                None => &current_stack.root_card_owner_uuid,
+            },
+        )
     }
 }
 
@@ -425,7 +439,7 @@ struct GameInterruptStack {
     root_card: RootPlayerCard,
     root_card_owner_uuid: PlayerUUID,
     current_interrupt_turn: PlayerUUID,
-    sessions: Vec<GameInterruptStackSession>
+    sessions: Vec<GameInterruptStackSession>,
 }
 
 impl GameInterruptStack {
@@ -441,7 +455,7 @@ impl GameInterruptStack {
 
         Some(match current_session.interrupt_cards.last() {
             Some(current_interrupt_data) => current_interrupt_data.card_interrupt_type,
-            None => current_session.root_card_interrupt_type
+            None => current_session.root_card_interrupt_type,
         })
     }
 
@@ -449,10 +463,18 @@ impl GameInterruptStack {
         &self.current_interrupt_turn
     }
 
-    fn push_game_interrupt_data_to_current_stack(&mut self, game_interrupt_data: GameInterruptData) -> Result<(), (GameInterruptData, Error)> {
+    fn push_game_interrupt_data_to_current_stack(
+        &mut self,
+        game_interrupt_data: GameInterruptData,
+    ) -> Result<(), (GameInterruptData, Error)> {
         let current_session = match self.get_current_session_mut() {
             Some(current_session) => current_session,
-            None => return Err((game_interrupt_data, Error::new("Game interrupt stack has no session to push to - this is an internal error")))
+            None => return Err((
+                game_interrupt_data,
+                Error::new(
+                    "Game interrupt stack has no session to push to - this is an internal error",
+                ),
+            )),
         };
 
         current_session.interrupt_cards.push(game_interrupt_data);
