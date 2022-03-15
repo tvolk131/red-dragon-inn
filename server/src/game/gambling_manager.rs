@@ -42,17 +42,14 @@ impl GamblingManager {
             None => return,
         };
 
-        gambling_round.winning_player = player_uuid;
+        gambling_round.winning_player = player_uuid.clone();
         gambling_round.need_cheating_card_to_take_next_control =
             need_cheating_card_to_take_next_control;
+        gambling_round.current_player_turn = player_uuid;
         self.increment_player_turn();
     }
 
     pub fn ante_up(&mut self, player_uuid: &PlayerUUID, player_manager: &mut PlayerManager) {
-        if !self.is_turn(player_uuid) {
-            return;
-        }
-
         match &mut self.gambling_round_or {
             Some(gambling_round) => gambling_round.pot_amount += 1,
             None => return,
@@ -62,8 +59,6 @@ impl GamblingManager {
             .get_player_by_uuid_mut(player_uuid)
             .unwrap()
             .change_gold(-1);
-
-        self.increment_player_turn();
     }
 
     pub fn pass(&mut self, player_manager: &mut PlayerManager, turn_info: &mut TurnInfo) {
