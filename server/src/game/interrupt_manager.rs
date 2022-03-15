@@ -111,9 +111,9 @@ impl InterruptManager {
         if let Some(interrupt_data) = root_card.get_interrupt_data_or() {
             let root_card_interrupt_type = interrupt_data.get_interrupt_type_output();
             let mut sessions = Vec::new();
-    
+
             let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
-    
+
             for targeted_player_uuid in targeted_player_uuids {
                 sessions.push(GameInterruptStackSession {
                     root_card_interrupt_type,
@@ -122,7 +122,7 @@ impl InterruptManager {
                     only_targeted_player_can_interrupt: true,
                 });
             }
-    
+
             self.interrupt_stacks.push(GameInterruptStack {
                 root_card,
                 root_card_owner_uuid,
