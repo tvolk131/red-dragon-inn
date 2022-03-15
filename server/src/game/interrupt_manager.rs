@@ -8,33 +8,29 @@ use super::player_view::{GameViewInterruptData, GameViewInterruptStack};
 use super::uuid::PlayerUUID;
 use super::Error;
 use std::default::Default;
-use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct InterruptManager {
     interrupt_stacks: Vec<GameInterruptStack>,
-    current_interrupt_turn_or: Option<PlayerUUID>,
 }
 
 impl InterruptManager {
     pub fn new() -> Self {
         Self {
             interrupt_stacks: Vec::new(),
-            current_interrupt_turn_or: None,
         }
     }
 
     pub fn get_current_interrupt(&self) -> Option<GameInterruptType> {
-        let current_stack = self.interrupt_stacks.first()?;
+        self.interrupt_stacks.first()?.get_current_interrupt()
+    }
 
-        Some(match current_stack.interrupt_cards.last() {
-            Some(most_recent_interrupt_data) => most_recent_interrupt_data.card_interrupt_type,
-            None => current_stack.root_card_interrupt_type,
-        })
+    fn get_current_interrupt_turn_or(&self) -> Option<&PlayerUUID> {
+        Some(self.interrupt_stacks.first()?.get_current_interrupt_turn())
     }
 
     pub fn get_game_view_interrupt_data_or(&self) -> Option<GameViewInterruptData> {
-        let current_interrupt_turn = match &self.current_interrupt_turn_or {
+        let current_interrupt_turn = match self.get_current_interrupt_turn_or() {
             Some(current_interrupt_turn) => current_interrupt_turn.clone(),
             None => return None,
         };
@@ -42,20 +38,17 @@ impl InterruptManager {
         let mut interrupts = Vec::new();
         let mut seen_root_card_arcs = Vec::new();
         for interrupt_stack in &self.interrupt_stacks {
-            let root_card_already_seen = seen_root_card_arcs.iter().rfold(false, |acc, x| {
-                acc || Arc::ptr_eq(&interrupt_stack.root_card, x)
+            let interrupt_card_names = match interrupt_stack.sessions.first() {
+                Some(first_session) => first_session.interrupt_cards.iter()
+                .map(|interrupt_card| interrupt_card.card.get_display_name().to_string())
+                .collect(),
+                None => Vec::new()
+            };
+            interrupts.push(GameViewInterruptStack {
+                root_card_name: interrupt_stack.root_card.get_display_name().to_string(),
+                interrupt_card_names: interrupt_card_names,
             });
-            if !root_card_already_seen {
-                interrupts.push(GameViewInterruptStack {
-                    root_card_name: interrupt_stack.root_card.get_display_name().to_string(),
-                    interrupt_card_names: interrupt_stack
-                        .interrupt_cards
-                        .iter()
-                        .map(|interrupt_card| interrupt_card.card.get_display_name().to_string())
-                        .collect(),
-                });
-                seen_root_card_arcs.push(interrupt_stack.root_card.clone());
-            }
+            seen_root_card_arcs.push(&interrupt_stack.root_card);
         }
 
         Some(GameViewInterruptData {
@@ -75,7 +68,6 @@ impl InterruptManager {
         }
 
         if let Some(interrupt_data) = card.get_interrupt_data_or() {
-            self.current_interrupt_turn_or = Some(targeted_player_uuid.clone());
             self.push_new_stack(
                 interrupt_data.get_interrupt_type_output(),
                 card,
@@ -91,25 +83,21 @@ impl InterruptManager {
     pub fn start_multi_player_interrupt(
         &mut self,
         card: RootPlayerCard,
-        card_owner_uuid: &PlayerUUID,
+        card_owner_uuid: PlayerUUID,
         targeted_player_uuids: Vec<PlayerUUID>,
     ) -> Result<(), (RootPlayerCard, Error)> {
         if self.interrupt_in_progress() {
             return Err((card, Error::new("An interrupt is already in progress")));
         }
 
-        let first_targeted_player_uuid = match targeted_player_uuids.first() {
-            Some(first_targeted_player_uuid) => first_targeted_player_uuid,
-            None => {
-                return Err((
-                    card,
-                    Error::new("Cannot start an interrupt with no targeted players"),
-                ))
-            }
-        };
+        if targeted_player_uuids.is_empty() {
+            return Err((
+                card,
+                Error::new("Cannot start an interrupt with no targeted players"),
+            ));
+        }
 
         if let Some(interrupt_data) = card.get_interrupt_data_or() {
-            self.current_interrupt_turn_or = Some(first_targeted_player_uuid.clone());
             self.push_new_stacks(
                 interrupt_data.get_interrupt_type_output(),
                 card,
@@ -129,7 +117,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-    ) -> Result<InterruptStackResolveData, (InterruptPlayerCard, Error)> {
+    ) -> Result<Option<InterruptStackResolveData>, (InterruptPlayerCard, Error)> {
         if !self.is_turn_to_interrupt(&player_uuid) {
             return Err((
                 card,
@@ -148,8 +136,12 @@ impl InterruptManager {
         !self.interrupt_stacks.is_empty()
     }
 
+    fn get_current_interrupt_turn(&self) -> Option<&PlayerUUID> {
+        Some(self.interrupt_stacks.first()?.get_current_interrupt_turn())
+    }
+
     pub fn is_turn_to_interrupt(&self, player_uuid: &PlayerUUID) -> bool {
-        Some(player_uuid) == self.current_interrupt_turn_or.as_ref()
+        Some(player_uuid) == self.get_current_interrupt_turn()
     }
 
     pub fn pass(
@@ -157,7 +149,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-    ) -> Result<InterruptStackResolveData, Error> {
+    ) -> Result<Option<InterruptStackResolveData>, Error> {
         self.increment_player_turn(player_manager, gambling_manager, turn_info)
     }
 
@@ -166,42 +158,53 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-    ) -> Result<InterruptStackResolveData, Error> {
-        let current_stack_is_only_interruptable_by_targeted_player =
+    ) -> Result<Option<InterruptStackResolveData>, Error> {
+        let current_stack_session_is_only_interruptable_by_targeted_player =
             if let Some(current_stack) = self.interrupt_stacks.first() {
-                current_stack.only_targeted_player_can_interrupt
+                if let Some(current_session) = current_stack.get_current_session() {
+                    current_session.only_targeted_player_can_interrupt
+                } else {
+                    false
+                }
             } else {
                 false
             };
 
-        if self.current_interrupt_turn_or.is_some()
-            && current_stack_is_only_interruptable_by_targeted_player
+        if self.get_current_interrupt_turn_or().is_some()
+            && current_stack_session_is_only_interruptable_by_targeted_player
         {
-            return self.resolve_current_stack_and_maybe_increment_current_interrupt_turn(
-                player_manager,
-                gambling_manager,
-                turn_info,
-            );
+            return match self.resolve_current_stack_session(player_manager, gambling_manager, turn_info) {
+                Ok(interrupt_stack_resolve_data) => Ok(Some(interrupt_stack_resolve_data)),
+                Err(err) => Err(err)
+            };
         }
 
-        if let Some(current_interrupt_turn) = &self.current_interrupt_turn_or {
+        if let Some(current_interrupt_turn) = &self.get_current_interrupt_turn_or() {
             match player_manager.get_next_alive_player_uuid(current_interrupt_turn) {
                 NextPlayerUUIDOption::Some(next_player_uuid) => {
                     // If, after incrementing the player turn, the interrupt turn has
                     // looped back around to the last player who played a card, then
                     // that ends the interrupt stack since that player was uninterrupted.
                     if Some(next_player_uuid) == self.get_last_player_to_play_on_current_stack() {
-                        self.resolve_current_stack_and_maybe_increment_current_interrupt_turn(player_manager, gambling_manager, turn_info)
+                        match self.resolve_current_stack_session(player_manager, gambling_manager, turn_info) {
+                            Ok(interrupt_stack_resolve_data) => Ok(Some(interrupt_stack_resolve_data)),
+                            Err(err) => Err(err)
+                        }
                     } else {
-                        self.current_interrupt_turn_or = Some(next_player_uuid.clone());
-                        Ok(InterruptStackResolveData::empty())
+                        if let Some(current_stack) = self.interrupt_stacks.first_mut() {
+                            current_stack.current_interrupt_turn = next_player_uuid.clone();
+                        }
+                        Ok(None)
                     }
                 }
                 NextPlayerUUIDOption::PlayerNotFound => {
                     Err(Error::new("Uh oh! Failed to increment player turn. This is an internal error, due to some sort of bug."))
                 },
                 NextPlayerUUIDOption::OnlyPlayerLeft => {
-                    self.resolve_current_stack_and_maybe_increment_current_interrupt_turn(player_manager, gambling_manager, turn_info)
+                    match self.resolve_current_stack_session(player_manager, gambling_manager, turn_info) {
+                        Ok(interrupt_stack_resolve_data) => Ok(Some(interrupt_stack_resolve_data)),
+                        Err(err) => Err(err)
+                    }
                 }
 
             }
@@ -210,26 +213,7 @@ impl InterruptManager {
         }
     }
 
-    fn resolve_current_stack_and_maybe_increment_current_interrupt_turn(
-        &mut self,
-        player_manager: &mut PlayerManager,
-        gambling_manager: &mut GamblingManager,
-        turn_info: &mut TurnInfo,
-    ) -> Result<InterruptStackResolveData, Error> {
-        let return_val = self.resolve_current_stack(player_manager, gambling_manager, turn_info)?;
-        match self.interrupt_stacks.first() {
-            Some(first_interrupt_stack) => {
-                self.current_interrupt_turn_or =
-                    Some(first_interrupt_stack.targeted_player_uuid.clone());
-            }
-            None => {
-                self.current_interrupt_turn_or = None;
-            }
-        }
-        Ok(return_val)
-    }
-
-    fn resolve_current_stack(
+    fn resolve_current_stack_session(
         &mut self,
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
@@ -245,13 +229,15 @@ impl InterruptManager {
 
         let mut should_cancel_root_card = ShouldCancelPreviousCard::No;
 
-        while let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
+        let mut session = current_stack.sessions.pop().unwrap(); // TODO - Handle this unwrap.
+
+        while let Some(game_interrupt_data) = session.interrupt_cards.pop() {
             match game_interrupt_data
                 .card
                 .interrupt(&game_interrupt_data.card_owner_uuid, self)
             {
                 ShouldCancelPreviousCard::Negate => {
-                    if let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
+                    if let Some(game_interrupt_data) = session.interrupt_cards.pop() {
                         spent_interrupt_cards.push((
                             game_interrupt_data.card_owner_uuid,
                             game_interrupt_data.card,
@@ -261,7 +247,7 @@ impl InterruptManager {
                     }
                 }
                 ShouldCancelPreviousCard::Ignore => {
-                    if let Some(game_interrupt_data) = current_stack.interrupt_cards.pop() {
+                    if let Some(game_interrupt_data) = session.interrupt_cards.pop() {
                         spent_interrupt_cards.push((
                             game_interrupt_data.card_owner_uuid,
                             game_interrupt_data.card,
@@ -278,116 +264,97 @@ impl InterruptManager {
             ));
         }
 
-        let root_card_or = match should_cancel_root_card {
+        let (root_card, root_card_owner_uuid) = match should_cancel_root_card {
             ShouldCancelPreviousCard::Negate => {
-                // TODO - use `drain_filter` instead of while loop. At time of writing, it is only availabe in nightly release.
-                let mut i = 0;
-                let mut root_card_or = None;
-                while i < self.interrupt_stacks.len() {
-                    if Arc::ptr_eq(
-                        &self.interrupt_stacks.get(i).unwrap().root_card,
-                        &current_stack.root_card,
-                    ) {
-                        let stack = self.interrupt_stacks.remove(i);
-                        let interrupt_stack_resolve_data = stack.drain_all_cards();
-                        for (player_uuid, card) in interrupt_stack_resolve_data.interrupt_cards {
-                            spent_interrupt_cards.push((player_uuid, card));
-                        }
-                        if let Some(root_card) = interrupt_stack_resolve_data.root_card_or {
-                            root_card_or = Some(root_card);
-                            break;
-                        }
-                    } else {
-                        i += 1;
-                    }
+                let interrupt_stack_resolve_data = current_stack.drain_all_cards();
+                for (player_uuid, card) in interrupt_stack_resolve_data.interrupt_cards {
+                    spent_interrupt_cards.push((player_uuid, card));
                 }
-
-                if root_card_or.is_some() {
-                    root_card_or
-                } else if let Ok(root_card) = Arc::try_unwrap(current_stack.root_card) {
-                    Some((current_stack.root_card_owner_uuid, root_card))
-                } else {
-                    None
-                }
+                (interrupt_stack_resolve_data.root_card, interrupt_stack_resolve_data.root_card_owner_uuid)
             }
             ShouldCancelPreviousCard::Ignore => {
-                if let Ok(root_card) = Arc::try_unwrap(current_stack.root_card) {
-                    Some((current_stack.root_card_owner_uuid, root_card))
-                } else {
-                    None
-                }
+                (current_stack.root_card, current_stack.root_card_owner_uuid)
             }
             ShouldCancelPreviousCard::No => {
                 current_stack.root_card.interrupt_play(
                     &current_stack.root_card_owner_uuid,
-                    &current_stack.targeted_player_uuid,
+                    &session.targeted_player_uuid,
                     player_manager,
                     gambling_manager,
                 );
 
-                if let Ok(root_card) = Arc::try_unwrap(current_stack.root_card) {
-                    // TODO - Handle this unwrap.
-                    root_card
-                        .get_interrupt_data_or()
-                        .unwrap()
-                        .post_interrupt_play(
-                            &current_stack.root_card_owner_uuid,
-                            player_manager,
-                            gambling_manager,
-                            turn_info,
-                        );
-                    Some((current_stack.root_card_owner_uuid, root_card))
-                } else {
-                    None
-                }
+                // TODO - Handle this unwrap.
+                current_stack.root_card
+                    .get_interrupt_data_or()
+                    .unwrap()
+                    .post_interrupt_play(
+                        &current_stack.root_card_owner_uuid,
+                        player_manager,
+                        gambling_manager,
+                        turn_info,
+                    );
+                (current_stack.root_card, current_stack.root_card_owner_uuid)
             }
         };
 
         Ok(InterruptStackResolveData {
+            root_card,
+            root_card_owner_uuid,
             interrupt_cards: spent_interrupt_cards,
-            root_card_or,
         })
     }
 
+    // TODO - Remove this function. It's only used once, let's just inline the logic.
     fn push_new_stack(
         &mut self,
         game_interrupt_type: GameInterruptType,
-        card: RootPlayerCard,
-        card_owner_uuid: PlayerUUID,
+        root_card: RootPlayerCard,
+        root_card_owner_uuid: PlayerUUID,
         targeted_player_uuid: PlayerUUID,
     ) {
         self.interrupt_stacks.push(GameInterruptStack {
-            root_card: Arc::from(card),
-            root_card_interrupt_type: game_interrupt_type,
-            root_card_owner_uuid: card_owner_uuid,
-            targeted_player_uuid,
-            interrupt_cards: Vec::new(),
-            only_targeted_player_can_interrupt: false,
+            root_card,
+            root_card_owner_uuid,
+            current_interrupt_turn: targeted_player_uuid.clone(),
+            sessions: vec![GameInterruptStackSession {
+                root_card_interrupt_type: game_interrupt_type,
+                targeted_player_uuid,
+                interrupt_cards: Vec::new(),
+                only_targeted_player_can_interrupt: false,
+            }]
         });
     }
 
     /// Create multiple consecutive interrupt stacks each targeting a different player.
     /// This is used for cards where multiple players are affected individually, such as
     /// an `I Raise` card, which forces each individual user to ante.
+    // TODO - Remove this function. It's only used once, let's just inline the logic.
     fn push_new_stacks(
         &mut self,
         game_interrupt_type: GameInterruptType,
-        card: RootPlayerCard,
-        card_owner_uuid: &PlayerUUID,
+        root_card: RootPlayerCard,
+        root_card_owner_uuid: PlayerUUID,
         targeted_player_uuids: Vec<PlayerUUID>,
     ) {
-        let card_arc = Arc::from(card);
+        let mut sessions = Vec::new();
+        
+        let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
 
         for targeted_player_uuid in targeted_player_uuids {
-            self.interrupt_stacks.push(GameInterruptStack {
-                root_card: card_arc.clone(),
+            sessions.push(GameInterruptStackSession {
                 root_card_interrupt_type: game_interrupt_type,
-                root_card_owner_uuid: card_owner_uuid.clone(),
                 targeted_player_uuid,
                 interrupt_cards: Vec::new(),
                 only_targeted_player_can_interrupt: true,
             });
         }
+
+        self.interrupt_stacks.push(GameInterruptStack {
+            root_card,
+            root_card_owner_uuid,
+            current_interrupt_turn,
+            sessions
+        });
     }
 
     fn push_to_current_stack(
@@ -404,11 +371,13 @@ impl InterruptManager {
             None => return Err((card, Error::new("No card to interrupt"))),
         };
 
-        current_stack.interrupt_cards.push(GameInterruptData {
+        if let Err((game_interrupt_data, err)) = current_stack.push_game_interrupt_data_to_current_stack(GameInterruptData {
             card_interrupt_type: card.get_interrupt_type_output(),
             card,
             card_owner_uuid,
-        });
+        }) {
+            return Err((game_interrupt_data.card, err));
+        }
 
         Ok(())
     }
@@ -431,9 +400,9 @@ impl InterruptManager {
     fn get_last_player_to_play_on_current_stack(&self) -> Option<&PlayerUUID> {
         let current_stack = self.interrupt_stacks.first()?;
 
-        Some(match current_stack.interrupt_cards.last() {
-            Some(most_recent_interrupt_data) => &most_recent_interrupt_data.card_owner_uuid,
-            None => &current_stack.root_card_owner_uuid,
+        Some(match current_stack.sessions.first()?.get_last_player_to_play() {
+            Some(player_uuid) => player_uuid,
+            None => &current_stack.root_card_owner_uuid
         })
     }
 }
@@ -453,32 +422,75 @@ pub enum GameInterruptType {
 
 #[derive(Clone, Debug)]
 struct GameInterruptStack {
-    root_card: Arc<RootPlayerCard>,
-    root_card_interrupt_type: GameInterruptType,
+    root_card: RootPlayerCard,
     root_card_owner_uuid: PlayerUUID,
+    current_interrupt_turn: PlayerUUID,
+    sessions: Vec<GameInterruptStackSession>
+}
+
+impl GameInterruptStack {
+    fn get_current_session(&self) -> Option<&GameInterruptStackSession> {
+        self.sessions.first()
+    }
+    fn get_current_session_mut(&mut self) -> Option<&mut GameInterruptStackSession> {
+        self.sessions.first_mut()
+    }
+
+    fn get_current_interrupt(&self) -> Option<GameInterruptType> {
+        let current_session = self.get_current_session()?;
+
+        Some(match current_session.interrupt_cards.last() {
+            Some(current_interrupt_data) => current_interrupt_data.card_interrupt_type,
+            None => current_session.root_card_interrupt_type
+        })
+    }
+
+    fn get_current_interrupt_turn(&self) -> &PlayerUUID {
+        &self.current_interrupt_turn
+    }
+
+    fn push_game_interrupt_data_to_current_stack(&mut self, game_interrupt_data: GameInterruptData) -> Result<(), (GameInterruptData, Error)> {
+        let current_session = match self.get_current_session_mut() {
+            Some(current_session) => current_session,
+            None => return Err((game_interrupt_data, Error::new("Game interrupt stack has no session to push to - this is an internal error")))
+        };
+
+        current_session.interrupt_cards.push(game_interrupt_data);
+
+        Ok(())
+    }
+
+    fn drain_all_cards(mut self) -> InterruptStackResolveData {
+        let mut interrupt_cards = Vec::new();
+
+        for session in &mut self.sessions {
+            while let Some(game_interrupt_data) = session.interrupt_cards.pop() {
+                interrupt_cards.push((
+                    game_interrupt_data.card_owner_uuid,
+                    game_interrupt_data.card,
+                ));
+            }
+        }
+
+        InterruptStackResolveData {
+            root_card: self.root_card,
+            root_card_owner_uuid: self.root_card_owner_uuid,
+            interrupt_cards,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct GameInterruptStackSession {
+    root_card_interrupt_type: GameInterruptType,
     targeted_player_uuid: PlayerUUID, // The player that the root card is targeting.
     interrupt_cards: Vec<GameInterruptData>,
     only_targeted_player_can_interrupt: bool,
 }
 
-impl GameInterruptStack {
-    fn drain_all_cards(mut self) -> InterruptStackResolveData {
-        let mut interrupt_cards = Vec::new();
-
-        while let Some(game_interrupt_data) = self.interrupt_cards.pop() {
-            interrupt_cards.push((
-                game_interrupt_data.card_owner_uuid,
-                game_interrupt_data.card,
-            ));
-        }
-
-        InterruptStackResolveData {
-            interrupt_cards,
-            root_card_or: match Arc::try_unwrap(self.root_card) {
-                Ok(root_card) => Some((self.root_card_owner_uuid, root_card)),
-                Err(_) => None,
-            },
-        }
+impl GameInterruptStackSession {
+    fn get_last_player_to_play(&self) -> Option<&PlayerUUID> {
+        Some(&self.interrupt_cards.last()?.card_owner_uuid)
     }
 }
 
@@ -496,34 +508,20 @@ pub struct PlayerCardInfo {
 }
 
 pub struct InterruptStackResolveData {
+    root_card: RootPlayerCard,
+    root_card_owner_uuid: PlayerUUID,
     interrupt_cards: Vec<(PlayerUUID, InterruptPlayerCard)>,
-    root_card_or: Option<(PlayerUUID, RootPlayerCard)>,
 }
 
 impl InterruptStackResolveData {
-    fn empty() -> Self {
-        Self {
-            interrupt_cards: Vec::new(),
-            root_card_or: None,
-        }
-    }
-
     pub fn current_user_action_phase_is_over(&self) -> bool {
-        match &self.root_card_or {
-            Some((_, root_player_card)) => {
-                root_player_card.is_action_card() && !root_player_card.is_gambling_card()
-            }
-            None => false,
-        }
+        self.root_card.is_action_card() && !self.root_card.is_gambling_card()
     }
 
     pub fn take_all_player_cards(self) -> Vec<(PlayerUUID, PlayerCard)> {
-        let mut cards = Vec::new();
+        let mut cards = vec![(self.root_card_owner_uuid, self.root_card.into())];
         for (card_owner_uuid, card) in self.interrupt_cards {
             cards.push((card_owner_uuid, card.into()));
-        }
-        if let Some((card_owner_uuid, root_player_card)) = self.root_card_or {
-            cards.push((card_owner_uuid, root_player_card.into()));
         }
         cards
     }
