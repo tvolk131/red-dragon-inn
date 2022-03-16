@@ -1,10 +1,13 @@
+use super::drink::DrinkWithPossibleChasers;
 use super::gambling_manager::GamblingManager;
 use super::game_logic::TurnInfo;
 use super::player_card::{
     InterruptPlayerCard, PlayerCard, RootPlayerCard, ShouldCancelPreviousCard,
 };
 use super::player_manager::{NextPlayerUUIDOption, PlayerManager};
-use super::player_view::{GameViewInterruptData, GameViewInterruptStack};
+use super::player_view::{
+    GameViewInterruptData, GameViewInterruptStack, GameViewInterruptStackRootItem,
+};
 use super::uuid::PlayerUUID;
 use super::Error;
 use std::default::Default;
@@ -46,8 +49,20 @@ impl InterruptManager {
                 None => Vec::new(),
             };
             interrupts.push(GameViewInterruptStack {
-                root_card_name: match &interrupt_stack.root {
-                    InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => root_player_card_with_interrupt_data.root_card.get_display_name().to_string()
+                root_item: match &interrupt_stack.root {
+                    InterruptRoot::RootPlayerCard(root_player_card_with_owner) => {
+                        GameViewInterruptStackRootItem {
+                            name: root_player_card_with_owner
+                                .root_card
+                                .get_display_name()
+                                .to_string(),
+                            item_type: String::from("rootPlayerCard"),
+                        }
+                    }
+                    InterruptRoot::Drink(drink_with_owner) => GameViewInterruptStackRootItem {
+                        name: drink_with_owner.drink.get_display_name(),
+                        item_type: String::from("drinkEvent"),
+                    },
                 },
                 interrupt_card_names,
             });
@@ -297,37 +312,62 @@ impl InterruptManager {
             ));
         }
 
-        let root_card_with_owner_or = match should_cancel_root_card {
+        match should_cancel_root_card {
             ShouldCancelPreviousCard::Negate => {
-                let interrupt_stack_resolve_data = current_stack.drain_all_cards();
-                for (player_uuid, card) in interrupt_stack_resolve_data.interrupt_cards {
-                    spent_interrupt_cards.push((player_uuid, card));
-                }
-                interrupt_stack_resolve_data.root_card_with_owner_or
+                let mut interrupt_stack_resolve_data = current_stack.drain_all_cards();
+                interrupt_stack_resolve_data
+                    .interrupt_cards
+                    .append(&mut spent_interrupt_cards);
+                Ok(interrupt_stack_resolve_data)
             }
             ShouldCancelPreviousCard::Ignore => {
                 if let Some(next_session) = current_stack.sessions.last() {
                     current_stack.current_interrupt_turn =
                         next_session.targeted_player_uuid.clone();
                     self.interrupt_stacks.insert(0, current_stack);
-                    None
+                    Ok(InterruptStackResolveData {
+                        root_card_with_owner_or: None,
+                        interrupt_cards: spent_interrupt_cards,
+                        drink_or: None,
+                    })
                 } else {
-                    match current_stack.root {
-                        InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => Some((root_player_card_with_interrupt_data.root_card, root_player_card_with_interrupt_data.root_card_owner_uuid))
-                    }
+                    Ok(match current_stack.root {
+                        InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => {
+                            InterruptStackResolveData {
+                                root_card_with_owner_or: Some((
+                                    root_player_card_with_interrupt_data.root_card,
+                                    root_player_card_with_interrupt_data.root_card_owner_uuid,
+                                )),
+                                interrupt_cards: spent_interrupt_cards,
+                                drink_or: None,
+                            }
+                        }
+                        InterruptRoot::Drink(drink_with_interrupt_data) => {
+                            InterruptStackResolveData {
+                                root_card_with_owner_or: None,
+                                interrupt_cards: spent_interrupt_cards,
+                                drink_or: Some(drink_with_interrupt_data.drink),
+                            }
+                        }
+                    })
                 }
             }
             ShouldCancelPreviousCard::No => {
                 match &current_stack.root {
                     InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => {
-                        root_player_card_with_interrupt_data.root_card.interrupt_play(
-                            &root_player_card_with_interrupt_data.root_card_owner_uuid,
-                            &session.targeted_player_uuid,
-                            player_manager,
-                            gambling_manager,
-                        );
-        
-                        if let Some(interrupt_data) = root_player_card_with_interrupt_data.root_card.get_interrupt_data_or() {
+                        root_player_card_with_interrupt_data
+                            .root_card
+                            .interrupt_play(
+                                &root_player_card_with_interrupt_data.root_card_owner_uuid,
+                                &session.targeted_player_uuid,
+                                player_manager,
+                                gambling_manager,
+                            );
+
+                        if let Some(interrupt_data) = root_player_card_with_interrupt_data
+                            .root_card
+                            .get_interrupt_data_or()
+                        {
                             interrupt_data.post_interrupt_play(
                                 &root_player_card_with_interrupt_data.root_card_owner_uuid,
                                 player_manager,
@@ -336,25 +376,43 @@ impl InterruptManager {
                             );
                         }
                     }
+                    InterruptRoot::Drink(drink_with_interrupt_data) => {
+                        // TODO - Make the targeted player consume the drink.
+                    }
                 };
 
                 if let Some(next_session) = current_stack.sessions.last() {
                     current_stack.current_interrupt_turn =
                         next_session.targeted_player_uuid.clone();
                     self.interrupt_stacks.insert(0, current_stack);
-                    None
+                    Ok(InterruptStackResolveData {
+                        root_card_with_owner_or: None,
+                        interrupt_cards: spent_interrupt_cards,
+                        drink_or: None,
+                    })
                 } else {
-                    match current_stack.root {
-                        InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => Some((root_player_card_with_interrupt_data.root_card, root_player_card_with_interrupt_data.root_card_owner_uuid))
-                    }
+                    Ok(match current_stack.root {
+                        InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => {
+                            InterruptStackResolveData {
+                                root_card_with_owner_or: Some((
+                                    root_player_card_with_interrupt_data.root_card,
+                                    root_player_card_with_interrupt_data.root_card_owner_uuid,
+                                )),
+                                interrupt_cards: spent_interrupt_cards,
+                                drink_or: None,
+                            }
+                        }
+                        InterruptRoot::Drink(drink_with_interrupt_data) => {
+                            InterruptStackResolveData {
+                                root_card_with_owner_or: None,
+                                interrupt_cards: spent_interrupt_cards,
+                                drink_or: Some(drink_with_interrupt_data.drink),
+                            }
+                        }
+                    })
                 }
             }
-        };
-
-        Ok(InterruptStackResolveData {
-            root_card_with_owner_or,
-            interrupt_cards: spent_interrupt_cards,
-        })
+        }
     }
 
     fn push_to_current_stack(
@@ -406,7 +464,10 @@ impl InterruptManager {
             match current_stack.sessions.last()?.get_last_player_to_play() {
                 Some(player_uuid) => player_uuid,
                 None => match &current_stack.root {
-                    InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => &root_player_card_with_interrupt_data.root_card_owner_uuid
+                    InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => {
+                        &root_player_card_with_interrupt_data.root_card_owner_uuid
+                    }
+                    InterruptRoot::Drink(_) => return None,
                 },
             },
         )
@@ -429,12 +490,18 @@ pub enum GameInterruptType {
 #[derive(Clone, Debug)]
 struct RootPlayerCardWithInterruptData {
     root_card: RootPlayerCard,
-    root_card_owner_uuid: PlayerUUID
+    root_card_owner_uuid: PlayerUUID,
+}
+
+#[derive(Clone, Debug)]
+struct DrinkWithInterruptData {
+    drink: DrinkWithPossibleChasers,
 }
 
 #[derive(Clone, Debug)]
 enum InterruptRoot {
-    RootPlayerCard(RootPlayerCardWithInterruptData)
+    RootPlayerCard(RootPlayerCardWithInterruptData),
+    Drink(DrinkWithInterruptData),
 }
 
 #[derive(Clone, Debug)]
@@ -496,13 +563,22 @@ impl GameInterruptStack {
             }
         }
 
-        let root_card_with_owner_or = match self.root {
-            InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => Some((root_player_card_with_interrupt_data.root_card, root_player_card_with_interrupt_data.root_card_owner_uuid))
-        };
-
-        InterruptStackResolveData {
-            root_card_with_owner_or,
-            interrupt_cards,
+        match self.root {
+            InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => {
+                InterruptStackResolveData {
+                    root_card_with_owner_or: Some((
+                        root_player_card_with_interrupt_data.root_card,
+                        root_player_card_with_interrupt_data.root_card_owner_uuid,
+                    )),
+                    interrupt_cards,
+                    drink_or: None,
+                }
+            }
+            InterruptRoot::Drink(drink_with_interrupt_data) => InterruptStackResolveData {
+                root_card_with_owner_or: None,
+                interrupt_cards,
+                drink_or: Some(drink_with_interrupt_data.drink),
+            },
         }
     }
 }
@@ -537,6 +613,7 @@ pub struct PlayerCardInfo {
 pub struct InterruptStackResolveData {
     root_card_with_owner_or: Option<(RootPlayerCard, PlayerUUID)>,
     interrupt_cards: Vec<(PlayerUUID, InterruptPlayerCard)>,
+    drink_or: Option<DrinkWithPossibleChasers>,
 }
 
 impl InterruptStackResolveData {

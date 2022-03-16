@@ -385,11 +385,13 @@ fn process_root_player_card(
             ) {
                 ShouldInterrupt::Yes => {
                     if root_player_card.get_interrupt_data_or().is_some() {
-                        game_logic.interrupt_manager.start_single_player_root_player_card_interrupt(
-                            root_player_card,
-                            player_uuid.clone(),
-                            player_uuid.clone(),
-                        )?;
+                        game_logic
+                            .interrupt_manager
+                            .start_single_player_root_player_card_interrupt(
+                                root_player_card,
+                                player_uuid.clone(),
+                                player_uuid.clone(),
+                            )?;
                         Ok(None)
                     } else {
                         root_player_card.interrupt_play(
@@ -421,11 +423,13 @@ fn process_root_player_card(
                 ) {
                     ShouldInterrupt::Yes => {
                         if root_player_card.get_interrupt_data_or().is_some() {
-                            game_logic.interrupt_manager.start_single_player_root_player_card_interrupt(
-                                root_player_card,
-                                player_uuid.clone(),
-                                targeted_player_uuid.clone(),
-                            )?;
+                            game_logic
+                                .interrupt_manager
+                                .start_single_player_root_player_card_interrupt(
+                                    root_player_card,
+                                    player_uuid.clone(),
+                                    targeted_player_uuid.clone(),
+                                )?;
                             Ok(None)
                         } else {
                             root_player_card.interrupt_play(
@@ -503,11 +507,13 @@ fn target_root_card_at_list_of_players(
     ) {
         ShouldInterrupt::Yes => {
             if root_player_card.get_interrupt_data_or().is_some() {
-                game_logic.interrupt_manager.start_multi_player_root_player_card_interrupt(
-                    root_player_card,
-                    player_uuid.clone(),
-                    targeted_player_uuids,
-                )?;
+                game_logic
+                    .interrupt_manager
+                    .start_multi_player_root_player_card_interrupt(
+                        root_player_card,
+                        player_uuid.clone(),
+                        targeted_player_uuids,
+                    )?;
                 Ok(None)
             } else {
                 for targeted_player_uuid in &targeted_player_uuids {

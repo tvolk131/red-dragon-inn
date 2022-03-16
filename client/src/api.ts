@@ -23,8 +23,13 @@ interface GameViewInterruptData {
 }
 
 interface GameViewInterruptStack {
-  rootCardName: string;
+  rootItem: GameViewInterruptStackRootItem;
   interruptCardNames: string[];
+}
+
+interface GameViewInterruptStackRootItem {
+  name: string;
+  itemType: string;
 }
 
 export interface GameView {

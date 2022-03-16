@@ -48,6 +48,7 @@ pub enum DrinkEvent {
     RoundOnTheHouse,
 }
 
+#[derive(Clone, Debug)]
 pub struct DrinkWithPossibleChasers {
     drinks: Vec<Drink>,
     ignored_card_or: Option<DrinkCard>,
@@ -74,6 +75,16 @@ impl DrinkWithPossibleChasers {
             discardable_drink_cards.push(ignored_card);
         }
         discardable_drink_cards
+    }
+
+    pub fn get_display_name(&self) -> String {
+        // TODO - I'm pretty sure this will end up with a comma at the end of the last element. Let's fix that.
+        format!(
+            "[{}]",
+            self.drinks
+                .iter()
+                .fold(String::new(), |acc, drink| acc + &drink.display_name + ", ")
+        )
     }
 }
 
