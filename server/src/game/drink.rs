@@ -22,7 +22,8 @@ impl From<DrinkEvent> for DrinkCard {
 #[derive(Clone)]
 pub struct Drink {
     display_name: String,
-    process_fn: fn(player: &mut Player),
+    get_alcohol_content_modifier_fn: fn(player: &Player) -> i32,
+    get_fortitude_modifier_fn: fn(player: &Player) -> i32,
     has_chaser: bool,
 }
 
@@ -33,10 +34,6 @@ impl Debug for Drink {
 }
 
 impl Drink {
-    pub fn process(&self, player: &mut Player) {
-        (self.process_fn)(player)
-    }
-
     pub fn has_chaser(&self) -> bool {
         self.has_chaser
     }
@@ -86,6 +83,30 @@ impl DrinkWithPossibleChasers {
                 .fold(String::new(), |acc, drink| acc + &drink.display_name + ", ")
         )
     }
+
+    pub fn process(&self, player: &mut Player) {
+        let alcohol_content_modifier = self.get_combined_alcohol_content_modifier(player);
+        let fortitude_modifier = self.get_combined_fortitude_modifier(player);
+
+        player.change_alcohol_content(alcohol_content_modifier);
+        player.change_fortitude(fortitude_modifier);
+    }
+
+    fn get_combined_alcohol_content_modifier(&self, player: &Player) -> i32 {
+        let mut modifier = 0;
+        for drink in &self.drinks {
+            modifier += (drink.get_alcohol_content_modifier_fn)(player);
+        }
+        modifier
+    }
+
+    fn get_combined_fortitude_modifier(&self, player: &Player) -> i32 {
+        let mut modifier = 0;
+        for drink in &self.drinks {
+            modifier += (drink.get_fortitude_modifier_fn)(player);
+        }
+        modifier
+    }
 }
 
 pub enum RevealedDrink {
@@ -97,28 +118,28 @@ macro_rules! simple_drink {
     ($display_name:expr, $alcohol_content_mod:expr, $fortitude_mod:expr, $has_chaser:expr) => {
         Drink {
             display_name: $display_name.to_string(),
-            process_fn: |player: &mut Player| {
-                player.change_alcohol_content($alcohol_content_mod);
-                player.change_fortitude($fortitude_mod);
-            },
+            get_alcohol_content_modifier_fn: |_player: &Player| $alcohol_content_mod,
+            get_fortitude_modifier_fn: |_player: &Player| $fortitude_mod,
             has_chaser: $has_chaser,
         }
     };
 }
 
-#[cfg(test)]
-pub fn create_simple_ale_test_drink(has_chaser: bool) -> Drink {
-    simple_drink!("Test Ale", 1, 0, has_chaser)
-}
-
 fn orcish_rotgut() -> Drink {
     Drink {
         display_name: "Orcish Rotgut".to_string(),
-        process_fn: |player: &mut Player| {
+        get_alcohol_content_modifier_fn: |player: &Player| {
             if player.is_orc() {
-                player.change_alcohol_content(2);
+                2
             } else {
-                player.change_fortitude(-2);
+                0
+            }
+        },
+        get_fortitude_modifier_fn: |player: &Player| {
+            if player.is_orc() {
+                0
+            } else {
+                -2
             }
         },
         has_chaser: false,
@@ -128,16 +149,27 @@ fn orcish_rotgut() -> Drink {
 fn troll_swill() -> Drink {
     Drink {
         display_name: "Troll Swill".to_string(),
-        process_fn: |player: &mut Player| {
+        get_alcohol_content_modifier_fn: |player: &Player| {
             if player.is_troll() {
-                player.change_alcohol_content(2);
+                2
             } else {
-                player.change_alcohol_content(1);
-                player.change_fortitude(-1);
+                1
+            }
+        },
+        get_fortitude_modifier_fn: |player: &Player| {
+            if player.is_troll() {
+                0
+            } else {
+                -1
             }
         },
         has_chaser: false,
     }
+}
+
+#[cfg(test)]
+pub fn create_simple_ale_test_drink(has_chaser: bool) -> Drink {
+    simple_drink!("Test Ale", 1, 0, has_chaser)
 }
 
 pub fn create_drink_deck() -> Vec<DrinkCard> {

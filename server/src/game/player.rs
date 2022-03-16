@@ -140,10 +140,7 @@ impl Player {
 
         match revealed_drink {
             RevealedDrink::DrinkWithPossibleChasers(drink_with_possible_chasers) => {
-                drink_with_possible_chasers
-                    .get_drinks()
-                    .iter()
-                    .for_each(|drink| drink.process(self));
+                drink_with_possible_chasers.process(self);
                 drink_with_possible_chasers.take_all_discardable_drink_cards()
             }
             RevealedDrink::DrinkEvent(drink_event) => {

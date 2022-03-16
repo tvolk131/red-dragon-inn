@@ -377,7 +377,9 @@ impl InterruptManager {
                         }
                     }
                     InterruptRoot::Drink(drink_with_interrupt_data) => {
-                        // TODO - Make the targeted player consume the drink.
+                        if let Some(targeted_player) = player_manager.get_player_by_uuid_mut(&session.targeted_player_uuid) {
+                            drink_with_interrupt_data.drink.process(targeted_player);
+                        };
                     }
                 };
 
