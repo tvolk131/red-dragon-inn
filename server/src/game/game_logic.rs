@@ -1,7 +1,7 @@
 use super::deck::AutoShufflingDeck;
 use super::drink::{create_drink_deck, DrinkCard};
 use super::gambling_manager::GamblingManager;
-use super::interrupt_manager::InterruptManager;
+use super::interrupt_manager::{InterruptManager, InterruptStackResolveData};
 use super::player_card::{PlayerCard, RootPlayerCard, ShouldInterrupt, TargetStyle};
 use super::player_manager::{NextPlayerUUIDOption, PlayerManager};
 use super::player_view::{GameViewInterruptData, GameViewPlayerCard, GameViewPlayerData};
@@ -204,6 +204,17 @@ impl GameLogic {
         self.clone().pass(player_uuid).is_ok()
     }
 
+    fn discard_cards(&mut self, interrupt_stack_resolve_data: InterruptStackResolveData) {
+        let (spent_player_cards, spent_drink_cards) =
+            interrupt_stack_resolve_data.take_all_player_cards();
+        self.player_manager
+            .discard_cards(spent_player_cards)
+            .unwrap();
+        for drink_card in spent_drink_cards {
+            self.drink_deck.discard_card(drink_card);
+        }
+    }
+
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         if self.interrupt_manager.interrupt_in_progress() {
             if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
@@ -216,9 +227,7 @@ impl GameLogic {
                     if spent_cards.current_user_action_phase_is_over() {
                         self.skip_action_phase()?;
                     }
-                    self.player_manager
-                        .discard_cards(spent_cards.take_all_player_cards())
-                        .unwrap();
+                    self.discard_cards(spent_cards);
                 }
                 return Ok(());
             } else {
@@ -289,9 +298,7 @@ impl GameLogic {
                                     if spent_cards.current_user_action_phase_is_over() {
                                         self.skip_action_phase().unwrap();
                                     }
-                                    self.player_manager
-                                        .discard_cards(spent_cards.take_all_player_cards())
-                                        .unwrap();
+                                    self.discard_cards(spent_cards);
                                 }
                                 Ok(None)
                             }

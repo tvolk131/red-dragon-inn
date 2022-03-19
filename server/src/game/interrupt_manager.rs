@@ -1,4 +1,4 @@
-use super::drink::DrinkWithPossibleChasers;
+use super::drink::{DrinkCard, DrinkWithPossibleChasers};
 use super::gambling_manager::GamblingManager;
 use super::game_logic::TurnInfo;
 use super::player_card::{
@@ -377,7 +377,9 @@ impl InterruptManager {
                         }
                     }
                     InterruptRoot::Drink(drink_with_interrupt_data) => {
-                        if let Some(targeted_player) = player_manager.get_player_by_uuid_mut(&session.targeted_player_uuid) {
+                        if let Some(targeted_player) =
+                            player_manager.get_player_by_uuid_mut(&session.targeted_player_uuid)
+                        {
                             drink_with_interrupt_data.drink.process(targeted_player);
                         };
                     }
@@ -627,7 +629,7 @@ impl InterruptStackResolveData {
         }
     }
 
-    pub fn take_all_player_cards(self) -> Vec<(PlayerUUID, PlayerCard)> {
+    pub fn take_all_player_cards(self) -> (Vec<(PlayerUUID, PlayerCard)>, Vec<DrinkCard>) {
         let mut cards = Vec::new();
         if let Some((root_card, root_card_owner_uuid)) = self.root_card_with_owner_or {
             cards.push((root_card_owner_uuid, root_card.into()));
@@ -635,6 +637,13 @@ impl InterruptStackResolveData {
         for (card_owner_uuid, card) in self.interrupt_cards {
             cards.push((card_owner_uuid, card.into()));
         }
-        cards
+        (
+            cards,
+            if let Some(drink) = self.drink_or {
+                drink.take_all_discardable_drink_cards()
+            } else {
+                Vec::new()
+            },
+        )
     }
 }
