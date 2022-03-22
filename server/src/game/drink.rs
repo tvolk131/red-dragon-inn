@@ -59,10 +59,6 @@ impl DrinkWithPossibleChasers {
         }
     }
 
-    pub fn get_drinks(&self) -> &Vec<Drink> {
-        &self.drinks
-    }
-
     pub fn take_all_discardable_drink_cards(self) -> Vec<DrinkCard> {
         let mut discardable_drink_cards = Vec::new();
         for drink in self.drinks {

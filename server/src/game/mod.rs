@@ -469,13 +469,18 @@ mod tests {
         );
         assert_eq!(game.start(&player1_uuid), Ok(()));
 
-        for _ in 1..5 {
+        for _ in 1..10 {
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
                 Ok(())
             );
             assert_eq!(game.pass(&player1_uuid), Ok(()));
             assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), Ok(()));
+            if game.player_can_pass(&player1_uuid) {
+                game.pass(&player1_uuid).unwrap();
+                game.pass(&player2_uuid).unwrap();
+                game.pass(&player1_uuid).unwrap();
+            }
 
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
@@ -483,6 +488,11 @@ mod tests {
             );
             assert_eq!(game.pass(&player2_uuid), Ok(()));
             assert_eq!(game.order_drink(&player2_uuid, &player1_uuid), Ok(()));
+            if game.player_can_pass(&player2_uuid) {
+                game.pass(&player2_uuid).unwrap();
+                game.pass(&player1_uuid).unwrap();
+                game.pass(&player2_uuid).unwrap();
+            }
         }
     }
 }
