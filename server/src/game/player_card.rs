@@ -612,3 +612,23 @@ pub fn i_dont_think_so_card() -> InterruptPlayerCard {
         is_i_dont_think_so_card: true,
     }
 }
+
+// TODO - Add this card for all characters other than Zot. I only added the card to Zot's deck when I implemented this function.
+pub fn ignore_drink_card(display_name: impl ToString) -> InterruptPlayerCard {
+    InterruptPlayerCard {
+        display_name: display_name.to_string(),
+        can_interrupt_fn: |current_interrupt| {
+            matches!(current_interrupt, GameInterruptType::AboutToDrink)
+        },
+        interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            affects_fortitude: false,
+            is_i_dont_think_so_card: false,
+        }),
+        interrupt_fn: Arc::from(
+            |_player_uuid: &PlayerUUID,
+             _interrupt_manager: &InterruptManager|
+             -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Ignore },
+        ),
+        is_i_dont_think_so_card: false,
+    }
+}

@@ -229,7 +229,9 @@ impl GameLogic {
                         self.skip_action_phase()?;
                     }
                     self.discard_cards(spent_cards);
-                    if !self.interrupt_manager.interrupt_in_progress() && self.turn_info.turn_phase == TurnPhase::Drink {
+                    if !self.interrupt_manager.interrupt_in_progress()
+                        && self.turn_info.turn_phase == TurnPhase::Drink
+                    {
                         self.start_next_player_turn();
                     }
                 }
@@ -342,19 +344,22 @@ impl GameLogic {
             None => {
                 // TODO - Sober up.
                 self.start_next_player_turn();
-                return Ok(())
+                return Ok(());
             }
         };
 
         match revealed_drink {
             RevealedDrink::DrinkWithPossibleChasers(drink) => {
-                if let Err((drink, err)) = self.interrupt_manager.start_single_player_drink_interrupt(drink, player_uuid.clone()) {
+                if let Err((drink, err)) = self
+                    .interrupt_manager
+                    .start_single_player_drink_interrupt(drink, player_uuid.clone())
+                {
                     for drink_card in drink.take_all_discardable_drink_cards() {
                         self.drink_deck.discard_card(drink_card);
                     }
                     return Err(err);
                 }
-            },
+            }
             RevealedDrink::DrinkEvent(drink_event) => {
                 // TODO - Process drink event. It currently doesn't do anything. Also remove the two lines below.
                 self.drink_deck.discard_card(drink_event.into());
@@ -616,7 +621,7 @@ pub enum TurnPhase {
     DiscardAndDraw,
     Action,
     OrderDrinks,
-    Drink
+    Drink,
 }
 
 fn rotate_player_vec_to_start_with_player(
@@ -636,7 +641,7 @@ mod tests {
     use super::super::drink::create_simple_ale_test_drink;
     use super::super::player_card::{
         change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
-        gambling_im_in_card, i_raise_card, ignore_root_card_affecting_fortitude,
+        gambling_im_in_card, i_raise_card, ignore_drink_card, ignore_root_card_affecting_fortitude,
         wench_bring_some_drinks_for_my_friends_card, winning_hand_card,
     };
     use super::*;
@@ -1386,7 +1391,7 @@ mod tests {
         // Should proceed to player 1's order drink phase.
         assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
 
-        // Player should drink the top card of their drink deck after ordering drinks for other players.
+        // Order drink for next player.
         game_logic
             .player_manager
             .get_player_by_uuid_mut(&player1_uuid)
@@ -1440,6 +1445,90 @@ mod tests {
                 .to_game_view_player_data(player1_uuid.clone())
                 .alcohol_content,
             player1_alcohol_content + 1
+        );
+
+        // Should proceed to player 2's discard phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::DiscardAndDraw);
+    }
+
+    #[test]
+    fn player_can_ignore_drink() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 skips their action phase.
+        assert!(game_logic.pass(&player1_uuid).is_ok());
+
+        // Should proceed to player 1's order drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::OrderDrinks);
+
+        // Order drink for next player.
+        game_logic
+            .player_manager
+            .get_player_by_uuid_mut(&player1_uuid)
+            .unwrap()
+            .add_drink_to_drink_pile(create_simple_ale_test_drink(false).into());
+        let player1_drink_me_pile_size = game_logic
+            .player_manager
+            .get_player_by_uuid(&player1_uuid)
+            .unwrap()
+            .to_game_view_player_data(player1_uuid.clone())
+            .drink_me_pile_size;
+        let player1_alcohol_content = game_logic
+            .player_manager
+            .get_player_by_uuid(&player1_uuid)
+            .unwrap()
+            .to_game_view_player_data(player1_uuid.clone())
+            .alcohol_content;
+        assert!(game_logic.order_drink(&player1_uuid, &player2_uuid).is_ok());
+
+        // Should proceed to player 1's drink phase.
+        assert_eq!(game_logic.get_turn_phase(), TurnPhase::Drink);
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .to_game_view_player_data(player1_uuid.clone())
+                .drink_me_pile_size,
+            player1_drink_me_pile_size - 1
+        );
+        assert!(game_logic.player_can_pass(&player1_uuid));
+        game_logic.pass(&player1_uuid).unwrap();
+        assert!(game_logic.player_can_pass(&player2_uuid));
+        game_logic.pass(&player2_uuid).unwrap();
+        println!("{:?}", game_logic.interrupt_manager);
+        assert!(game_logic
+            .process_card(
+                ignore_drink_card("Ignore Drink").into(),
+                &player1_uuid,
+                &None
+            )
+            .is_ok());
+        println!("{:?}", game_logic.interrupt_manager);
+        // Player 2 passes on the chance to interrupt player 1's 'Ignore Drink' card.
+        assert!(game_logic.player_can_pass(&player2_uuid));
+        game_logic.pass(&player2_uuid).unwrap();
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .to_game_view_player_data(player1_uuid.clone())
+                .alcohol_content,
+            player1_alcohol_content
         );
 
         // Should proceed to player 2's discard phase.

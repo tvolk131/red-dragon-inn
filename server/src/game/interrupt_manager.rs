@@ -129,7 +129,7 @@ impl InterruptManager {
                     targeted_player_uuid,
                     interrupt_cards: Vec::new(),
                     only_targeted_player_can_interrupt: false,
-                }
+                },
             ],
         });
         Ok(())
@@ -499,7 +499,9 @@ impl InterruptManager {
                     InterruptRoot::RootPlayerCard(root_player_card_with_interrupt_data) => {
                         &root_player_card_with_interrupt_data.root_card_owner_uuid
                     }
-                    InterruptRoot::Drink(_) => &current_stack.get_current_session()?.targeted_player_uuid,
+                    InterruptRoot::Drink(_) => {
+                        &current_stack.get_current_session()?.targeted_player_uuid
+                    }
                 },
             },
         )
@@ -680,22 +682,33 @@ impl InterruptStackResolveData {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::Character;
     use super::super::player_card::change_other_player_fortitude_card;
+    use super::super::Character;
+    use super::*;
 
     #[test]
     fn player_root_player_card_interrupt_ends_after_everyone_passes_2_player_game() {
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
         let mut interrupt_manager = InterruptManager::new();
-        let mut player_manager = PlayerManager::new(vec![(player1_uuid.clone(), Character::Gerki), (player2_uuid.clone(), Character::Deirdre)]);
+        let mut player_manager = PlayerManager::new(vec![
+            (player1_uuid.clone(), Character::Gerki),
+            (player2_uuid.clone(), Character::Deirdre),
+        ]);
         let mut gambling_manager = GamblingManager::new();
         let mut turn_info = TurnInfo::new_test(player1_uuid.clone());
 
-        assert!(interrupt_manager.start_single_player_root_player_card_interrupt(change_other_player_fortitude_card("Test card", -1), player1_uuid, player2_uuid.clone()).is_ok());
+        assert!(interrupt_manager
+            .start_single_player_root_player_card_interrupt(
+                change_other_player_fortitude_card("Test card", -1),
+                player1_uuid,
+                player2_uuid.clone()
+            )
+            .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         assert!(!interrupt_manager.interrupt_in_progress());
     }
 
@@ -705,15 +718,29 @@ mod tests {
         let player2_uuid = PlayerUUID::new();
         let player3_uuid = PlayerUUID::new();
         let mut interrupt_manager = InterruptManager::new();
-        let mut player_manager = PlayerManager::new(vec![(player1_uuid.clone(), Character::Gerki), (player2_uuid.clone(), Character::Deirdre), (player3_uuid.clone(), Character::Zot)]);
+        let mut player_manager = PlayerManager::new(vec![
+            (player1_uuid.clone(), Character::Gerki),
+            (player2_uuid.clone(), Character::Deirdre),
+            (player3_uuid.clone(), Character::Zot),
+        ]);
         let mut gambling_manager = GamblingManager::new();
         let mut turn_info = TurnInfo::new_test(player1_uuid.clone());
 
-        assert!(interrupt_manager.start_single_player_root_player_card_interrupt(change_other_player_fortitude_card("Test card", -1), player1_uuid, player2_uuid.clone()).is_ok());
+        assert!(interrupt_manager
+            .start_single_player_root_player_card_interrupt(
+                change_other_player_fortitude_card("Test card", -1),
+                player1_uuid,
+                player2_uuid.clone()
+            )
+            .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player3_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         assert!(!interrupt_manager.interrupt_in_progress());
     }
 
@@ -722,19 +749,33 @@ mod tests {
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
         let mut interrupt_manager = InterruptManager::new();
-        let mut player_manager = PlayerManager::new(vec![(player1_uuid.clone(), Character::Gerki), (player2_uuid.clone(), Character::Deirdre)]);
+        let mut player_manager = PlayerManager::new(vec![
+            (player1_uuid.clone(), Character::Gerki),
+            (player2_uuid.clone(), Character::Deirdre),
+        ]);
         let mut gambling_manager = GamblingManager::new();
         let mut turn_info = TurnInfo::new_test(player1_uuid.clone());
 
-        assert!(interrupt_manager.start_single_player_drink_interrupt(DrinkWithPossibleChasers::new(vec![], None), player1_uuid.clone()).is_ok());
+        assert!(interrupt_manager
+            .start_single_player_drink_interrupt(
+                DrinkWithPossibleChasers::new(vec![], None),
+                player1_uuid.clone()
+            )
+            .is_ok());
         // All players pass on the chance to modify the drink.
         assert!(interrupt_manager.is_turn_to_interrupt(&player1_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         // Targeted player passes on the chance to interrupt the drink.
         assert!(interrupt_manager.is_turn_to_interrupt(&player1_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
 
         assert!(!interrupt_manager.interrupt_in_progress());
     }
@@ -745,21 +786,38 @@ mod tests {
         let player2_uuid = PlayerUUID::new();
         let player3_uuid = PlayerUUID::new();
         let mut interrupt_manager = InterruptManager::new();
-        let mut player_manager = PlayerManager::new(vec![(player1_uuid.clone(), Character::Gerki), (player2_uuid.clone(), Character::Deirdre), (player3_uuid.clone(), Character::Zot)]);
+        let mut player_manager = PlayerManager::new(vec![
+            (player1_uuid.clone(), Character::Gerki),
+            (player2_uuid.clone(), Character::Deirdre),
+            (player3_uuid.clone(), Character::Zot),
+        ]);
         let mut gambling_manager = GamblingManager::new();
         let mut turn_info = TurnInfo::new_test(player1_uuid.clone());
 
-        assert!(interrupt_manager.start_single_player_drink_interrupt(DrinkWithPossibleChasers::new(vec![], None), player1_uuid.clone()).is_ok());
+        assert!(interrupt_manager
+            .start_single_player_drink_interrupt(
+                DrinkWithPossibleChasers::new(vec![], None),
+                player1_uuid.clone()
+            )
+            .is_ok());
         // All players pass on the chance to modify the drink.
         assert!(interrupt_manager.is_turn_to_interrupt(&player1_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player3_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
         // Targeted player passes on the chance to interrupt the drink.
         assert!(interrupt_manager.is_turn_to_interrupt(&player1_uuid));
-        assert!(interrupt_manager.pass(&mut player_manager, &mut gambling_manager, &mut turn_info).is_ok());
+        assert!(interrupt_manager
+            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
+            .is_ok());
 
         assert!(!interrupt_manager.interrupt_in_progress());
     }
