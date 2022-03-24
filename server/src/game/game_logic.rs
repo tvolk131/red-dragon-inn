@@ -641,8 +641,9 @@ mod tests {
     use super::super::drink::create_simple_ale_test_drink;
     use super::super::player_card::{
         change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
-        gambling_im_in_card, i_raise_card, ignore_drink_card, ignore_root_card_affecting_fortitude,
-        wench_bring_some_drinks_for_my_friends_card, winning_hand_card, leave_gambling_round_instead_of_anteing, i_dont_think_so_card,
+        gambling_im_in_card, i_dont_think_so_card, i_raise_card, ignore_drink_card,
+        ignore_root_card_affecting_fortitude, leave_gambling_round_instead_of_anteing,
+        wench_bring_some_drinks_for_my_friends_card, winning_hand_card,
     };
     use super::*;
 
@@ -914,10 +915,20 @@ mod tests {
         assert!(game_logic
             .interrupt_manager
             .is_turn_to_interrupt(&player2_uuid));
-        assert!(game_logic.process_card(leave_gambling_round_instead_of_anteing("Leave gambling round").into(), &player2_uuid, &None).is_ok());
+        assert!(game_logic
+            .process_card(
+                leave_gambling_round_instead_of_anteing("Leave gambling round").into(),
+                &player2_uuid,
+                &None
+            )
+            .is_ok());
         assert!(game_logic.gambling_manager.round_in_progress());
-        assert!(game_logic.process_card(i_dont_think_so_card().into(), &player1_uuid, &None).is_ok());
-        assert!(game_logic.process_card(i_dont_think_so_card().into(), &player2_uuid, &None).is_ok());
+        assert!(game_logic
+            .process_card(i_dont_think_so_card().into(), &player1_uuid, &None)
+            .is_ok());
+        assert!(game_logic
+            .process_card(i_dont_think_so_card().into(), &player2_uuid, &None)
+            .is_ok());
         // Player 1 gives up and lets player 2 leave the gambling round.
         assert!(game_logic.pass(&player1_uuid).is_ok());
 

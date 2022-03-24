@@ -1,8 +1,8 @@
 use super::game_logic::TurnInfo;
 use super::player_manager::PlayerManager;
 use super::uuid::PlayerUUID;
-use std::default::Default;
 use super::Error;
+use std::default::Default;
 
 #[derive(Clone, Debug)]
 pub struct GamblingManager {
@@ -119,14 +119,18 @@ impl GamblingManager {
         if let Some(gambling_round) = &mut self.gambling_round_or {
             // The last player in a gambling round can't leave
             if gambling_round.active_player_uuids.len() < 2 {
-                return Err(Error::new("Last player in gambling round cannot leave the round"));
+                return Err(Error::new(
+                    "Last player in gambling round cannot leave the round",
+                ));
             }
 
             if &gambling_round.current_player_turn == player_uuid {
                 gambling_round.increment_player_turn();
             }
 
-            gambling_round.active_player_uuids.retain(|active_player_uuid| active_player_uuid != player_uuid);
+            gambling_round
+                .active_player_uuids
+                .retain(|active_player_uuid| active_player_uuid != player_uuid);
 
             Ok(())
         } else {
@@ -166,9 +170,7 @@ impl GamblingRound {
 
         let next_player_gambling_round_index = match current_player_gambling_round_index_or {
             Some(current_player_gambling_round_index) => {
-                if current_player_gambling_round_index
-                    < self.active_player_uuids.len() - 1
-                {
+                if current_player_gambling_round_index < self.active_player_uuids.len() - 1 {
                     current_player_gambling_round_index + 1
                 } else {
                     0

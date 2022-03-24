@@ -228,7 +228,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
-        is_passing: bool
+        is_passing: bool,
     ) -> Result<Option<InterruptStackResolveData>, Error> {
         let current_stack_session_is_only_interruptable_by_targeted_player =
             if let Some(current_stack) = self.interrupt_stacks.first() {
@@ -247,7 +247,10 @@ impl InterruptManager {
                 let current_stack = self.interrupt_stacks.first().unwrap();
                 // TODO - Handle this unwrap.
                 let current_session = current_stack.get_current_session().unwrap();
-                if is_passing && (current_session.interrupt_cards.is_empty() || current_interrupt_turn != &current_session.targeted_player_uuid) {
+                if is_passing
+                    && (current_session.interrupt_cards.is_empty()
+                        || current_interrupt_turn != &current_session.targeted_player_uuid)
+                {
                     return match self.resolve_current_stack_session(
                         player_manager,
                         gambling_manager,
@@ -313,10 +316,11 @@ impl InterruptManager {
         let mut session = current_stack.sessions.pop().unwrap(); // TODO - Handle this unwrap.
 
         while let Some(game_interrupt_data) = session.interrupt_cards.pop() {
-            match game_interrupt_data
-                .card
-                .interrupt(&game_interrupt_data.card_owner_uuid, self, gambling_manager)
-            {
+            match game_interrupt_data.card.interrupt(
+                &game_interrupt_data.card_owner_uuid,
+                self,
+                gambling_manager,
+            ) {
                 ShouldCancelPreviousCard::Negate => {
                     if let Some(game_interrupt_data) = session.interrupt_cards.pop() {
                         spent_interrupt_cards.push((

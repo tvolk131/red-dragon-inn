@@ -238,8 +238,11 @@ pub struct InterruptPlayerCard {
     display_name: String,
     can_interrupt_fn: fn(GameInterruptType) -> bool,
     interrupt_type_output: GameInterruptType,
-    interrupt_fn:
-        Arc<dyn Fn(&PlayerUUID, &InterruptManager, &mut GamblingManager) -> ShouldCancelPreviousCard + Send + Sync>,
+    interrupt_fn: Arc<
+        dyn Fn(&PlayerUUID, &InterruptManager, &mut GamblingManager) -> ShouldCancelPreviousCard
+            + Send
+            + Sync,
+    >,
     is_i_dont_think_so_card: bool,
 }
 
@@ -266,7 +269,7 @@ impl InterruptPlayerCard {
         &self,
         player_uuid: &PlayerUUID,
         interrupt_manager: &InterruptManager,
-        gambling_manager: &mut GamblingManager
+        gambling_manager: &mut GamblingManager,
     ) -> ShouldCancelPreviousCard {
         (self.interrupt_fn)(player_uuid, interrupt_manager, gambling_manager)
     }
@@ -652,9 +655,9 @@ pub fn leave_gambling_round_instead_of_anteing(display_name: impl ToString) -> I
              _interrupt_manager: &InterruptManager,
              gambling_manager: &mut GamblingManager|
              -> ShouldCancelPreviousCard {
-                 // TODO - Handle this unwrap.
-                 gambling_manager.leave_gambling_round(player_uuid).unwrap();
-                 ShouldCancelPreviousCard::No
+                // TODO - Handle this unwrap.
+                gambling_manager.leave_gambling_round(player_uuid).unwrap();
+                ShouldCancelPreviousCard::No
             },
         ),
         is_i_dont_think_so_card: false,

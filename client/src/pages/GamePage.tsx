@@ -106,7 +106,7 @@ export const GamePage = (props: GamePageProps) => {
         </Typography>
         {props.gameView.interrupts.interrupts.map((interrupt) => (
           <Paper>
-            <Typography>Root card: {interrupt.rootCardName}</Typography>
+            <Typography>Root {interrupt.rootItem.itemType}: {interrupt.rootItem.name}</Typography>
             {interrupt.interruptCardNames.map((interruptCardName) => (
               <Typography>Interrupt card: {interruptCardName}</Typography>
             ))}
