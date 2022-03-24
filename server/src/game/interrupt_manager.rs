@@ -200,7 +200,7 @@ impl InterruptManager {
         }
         match self.push_to_current_stack(card, player_uuid) {
             Ok(_) => Ok(self
-                .increment_player_turn(player_manager, gambling_manager, turn_info)
+                .increment_player_turn(player_manager, gambling_manager, turn_info, false)
                 .unwrap()),
             Err(err) => Err(err),
         }
@@ -220,7 +220,7 @@ impl InterruptManager {
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
     ) -> Result<Option<InterruptStackResolveData>, Error> {
-        self.increment_player_turn(player_manager, gambling_manager, turn_info)
+        self.increment_player_turn(player_manager, gambling_manager, turn_info, true)
     }
 
     fn increment_player_turn(
@@ -228,6 +228,7 @@ impl InterruptManager {
         player_manager: &mut PlayerManager,
         gambling_manager: &mut GamblingManager,
         turn_info: &mut TurnInfo,
+        is_passing: bool
     ) -> Result<Option<InterruptStackResolveData>, Error> {
         let current_stack_session_is_only_interruptable_by_targeted_player =
             if let Some(current_stack) = self.interrupt_stacks.first() {
@@ -240,17 +241,23 @@ impl InterruptManager {
                 false
             };
 
-        if self.get_current_interrupt_turn_or().is_some()
-            && current_stack_session_is_only_interruptable_by_targeted_player
-        {
-            return match self.resolve_current_stack_session(
-                player_manager,
-                gambling_manager,
-                turn_info,
-            ) {
-                Ok(interrupt_stack_resolve_data) => Ok(Some(interrupt_stack_resolve_data)),
-                Err(err) => Err(err),
-            };
+        if let Some(current_interrupt_turn) = self.get_current_interrupt_turn_or() {
+            if current_stack_session_is_only_interruptable_by_targeted_player {
+                // TODO - Handle this unwrap.
+                let current_stack = self.interrupt_stacks.first().unwrap();
+                // TODO - Handle this unwrap.
+                let current_session = current_stack.get_current_session().unwrap();
+                if is_passing && (current_session.interrupt_cards.is_empty() || current_interrupt_turn != &current_session.targeted_player_uuid) {
+                    return match self.resolve_current_stack_session(
+                        player_manager,
+                        gambling_manager,
+                        turn_info,
+                    ) {
+                        Ok(interrupt_stack_resolve_data) => Ok(Some(interrupt_stack_resolve_data)),
+                        Err(err) => Err(err),
+                    };
+                }
+            }
         }
 
         if let Some(current_interrupt_turn) = &self.get_current_interrupt_turn_or() {
@@ -308,7 +315,7 @@ impl InterruptManager {
         while let Some(game_interrupt_data) = session.interrupt_cards.pop() {
             match game_interrupt_data
                 .card
-                .interrupt(&game_interrupt_data.card_owner_uuid, self)
+                .interrupt(&game_interrupt_data.card_owner_uuid, self, gambling_manager)
             {
                 ShouldCancelPreviousCard::Negate => {
                     if let Some(game_interrupt_data) = session.interrupt_cards.pop() {

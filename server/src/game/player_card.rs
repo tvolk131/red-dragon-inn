@@ -239,7 +239,7 @@ pub struct InterruptPlayerCard {
     can_interrupt_fn: fn(GameInterruptType) -> bool,
     interrupt_type_output: GameInterruptType,
     interrupt_fn:
-        Arc<dyn Fn(&PlayerUUID, &InterruptManager) -> ShouldCancelPreviousCard + Send + Sync>,
+        Arc<dyn Fn(&PlayerUUID, &InterruptManager, &mut GamblingManager) -> ShouldCancelPreviousCard + Send + Sync>,
     is_i_dont_think_so_card: bool,
 }
 
@@ -265,9 +265,10 @@ impl InterruptPlayerCard {
     pub fn interrupt(
         &self,
         player_uuid: &PlayerUUID,
-        interrupt_manager: &mut InterruptManager,
+        interrupt_manager: &InterruptManager,
+        gambling_manager: &mut GamblingManager
     ) -> ShouldCancelPreviousCard {
-        (self.interrupt_fn)(player_uuid, interrupt_manager)
+        (self.interrupt_fn)(player_uuid, interrupt_manager, gambling_manager)
     }
 }
 
@@ -482,7 +483,8 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
         }),
         interrupt_fn: Arc::from(
             |_player_uuid: &PlayerUUID,
-             _interrupt_manager: &InterruptManager|
+             _interrupt_manager: &InterruptManager,
+             _gambling_manager: &mut GamblingManager|
              -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Ignore },
         ),
         is_i_dont_think_so_card: false,
@@ -606,7 +608,8 @@ pub fn i_dont_think_so_card() -> InterruptPlayerCard {
         }),
         interrupt_fn: Arc::from(
             |_player_uuid: &PlayerUUID,
-             _interrupt_manager: &InterruptManager|
+             _interrupt_manager: &InterruptManager,
+             _gambling_manager: &mut GamblingManager|
              -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Negate },
         ),
         is_i_dont_think_so_card: true,
@@ -626,8 +629,33 @@ pub fn ignore_drink_card(display_name: impl ToString) -> InterruptPlayerCard {
         }),
         interrupt_fn: Arc::from(
             |_player_uuid: &PlayerUUID,
-             _interrupt_manager: &InterruptManager|
+             _interrupt_manager: &InterruptManager,
+             _gambling_manager: &mut GamblingManager|
              -> ShouldCancelPreviousCard { ShouldCancelPreviousCard::Ignore },
+        ),
+        is_i_dont_think_so_card: false,
+    }
+}
+
+pub fn leave_gambling_round_instead_of_anteing(display_name: impl ToString) -> InterruptPlayerCard {
+    InterruptPlayerCard {
+        display_name: display_name.to_string(),
+        can_interrupt_fn: |current_interrupt| {
+            matches!(current_interrupt, GameInterruptType::AboutToAnte)
+        },
+        interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
+            affects_fortitude: false,
+            is_i_dont_think_so_card: false,
+        }),
+        interrupt_fn: Arc::from(
+            |player_uuid: &PlayerUUID,
+             _interrupt_manager: &InterruptManager,
+             gambling_manager: &mut GamblingManager|
+             -> ShouldCancelPreviousCard {
+                 // TODO - Handle this unwrap.
+                 gambling_manager.leave_gambling_round(player_uuid).unwrap();
+                 ShouldCancelPreviousCard::No
+            },
         ),
         is_i_dont_think_so_card: false,
     }

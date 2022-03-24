@@ -642,7 +642,7 @@ mod tests {
     use super::super::player_card::{
         change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
         gambling_im_in_card, i_raise_card, ignore_drink_card, ignore_root_card_affecting_fortitude,
-        wench_bring_some_drinks_for_my_friends_card, winning_hand_card,
+        wench_bring_some_drinks_for_my_friends_card, winning_hand_card, leave_gambling_round_instead_of_anteing, i_dont_think_so_card,
     };
     use super::*;
 
@@ -866,6 +866,77 @@ mod tests {
                 .unwrap()
                 .get_gold(),
             10
+        );
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
+    }
+
+    #[test]
+    fn leave_during_initial_ante_in_gambling_round() {
+        let player1_uuid = PlayerUUID::new();
+        let player2_uuid = PlayerUUID::new();
+
+        let mut game_logic = GameLogic::new(vec![
+            (player1_uuid.clone(), Character::Deirdre),
+            (player2_uuid.clone(), Character::Gerki),
+        ])
+        .unwrap();
+        game_logic
+            .discard_cards_and_draw_to_full(&player1_uuid, Vec::new())
+            .unwrap();
+
+        // Sanity check.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            8
+        );
+        assert!(!game_logic.gambling_manager.round_in_progress());
+        assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::Action);
+
+        // Player 1 starts gambling round.
+        assert!(game_logic
+            .process_card(gambling_im_in_card().into(), &player1_uuid, &None)
+            .is_ok());
+
+        // Player 2 tries to leave the gambling round.
+        assert!(game_logic
+            .interrupt_manager
+            .is_turn_to_interrupt(&player2_uuid));
+        assert!(game_logic.process_card(leave_gambling_round_instead_of_anteing("Leave gambling round").into(), &player2_uuid, &None).is_ok());
+        assert!(game_logic.gambling_manager.round_in_progress());
+        assert!(game_logic.process_card(i_dont_think_so_card().into(), &player1_uuid, &None).is_ok());
+        assert!(game_logic.process_card(i_dont_think_so_card().into(), &player2_uuid, &None).is_ok());
+        // Player 1 gives up and lets player 2 leave the gambling round.
+        assert!(game_logic.pass(&player1_uuid).is_ok());
+
+        // Since player 1 is the only player left in the gambling round, the round ends and player 1's OrderDrinks turn phase starts.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player1_uuid)
+                .unwrap()
+                .get_gold(),
+            9
+        );
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player2_uuid)
+                .unwrap()
+                .get_gold(),
+            7
         );
         assert!(!game_logic.gambling_manager.round_in_progress());
         assert_eq!(game_logic.turn_info.turn_phase, TurnPhase::OrderDrinks);
