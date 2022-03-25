@@ -642,7 +642,7 @@ mod tests {
     use super::super::player_card::{
         change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
         gambling_im_in_card, i_dont_think_so_card, i_raise_card, ignore_drink_card,
-        ignore_root_card_affecting_fortitude, leave_gambling_round_instead_of_anteing,
+        ignore_root_card_affecting_fortitude, leave_gambling_round_instead_of_anteing_card,
         wench_bring_some_drinks_for_my_friends_card, winning_hand_card,
     };
     use super::*;
@@ -917,7 +917,7 @@ mod tests {
             .is_turn_to_interrupt(&player2_uuid));
         assert!(game_logic
             .process_card(
-                leave_gambling_round_instead_of_anteing("Leave gambling round").into(),
+                leave_gambling_round_instead_of_anteing_card("Leave gambling round").into(),
                 &player2_uuid,
                 &None
             )

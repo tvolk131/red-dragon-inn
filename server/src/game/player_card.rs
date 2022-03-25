@@ -640,7 +640,7 @@ pub fn ignore_drink_card(display_name: impl ToString) -> InterruptPlayerCard {
     }
 }
 
-pub fn leave_gambling_round_instead_of_anteing(display_name: impl ToString) -> InterruptPlayerCard {
+pub fn leave_gambling_round_instead_of_anteing_card(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
         can_interrupt_fn: |current_interrupt| {
