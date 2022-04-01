@@ -34,8 +34,15 @@ pub struct GameViewInterruptData {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameViewInterruptStack {
-    pub root_card_name: String,
+    pub root_item: GameViewInterruptStackRootItem,
     pub interrupt_card_names: Vec<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GameViewInterruptStackRootItem {
+    pub name: String,
+    pub item_type: String,
 }
 
 #[derive(Serialize)]

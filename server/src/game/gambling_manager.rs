@@ -1,6 +1,7 @@
 use super::game_logic::TurnInfo;
 use super::player_manager::PlayerManager;
 use super::uuid::PlayerUUID;
+use super::Error;
 use std::default::Default;
 
 #[derive(Clone, Debug)]
@@ -46,7 +47,7 @@ impl GamblingManager {
         gambling_round.need_cheating_card_to_take_next_control =
             need_cheating_card_to_take_next_control;
         gambling_round.current_player_turn = player_uuid;
-        self.increment_player_turn();
+        gambling_round.increment_player_turn();
     }
 
     pub fn ante_up(&mut self, player_uuid: &PlayerUUID, player_manager: &mut PlayerManager) {
@@ -62,9 +63,16 @@ impl GamblingManager {
     }
 
     pub fn pass(&mut self, player_manager: &mut PlayerManager, turn_info: &mut TurnInfo) {
-        self.increment_player_turn();
-
         let (winner_or, pot_amount) = {
+            {
+                let gambling_round = match &mut self.gambling_round_or {
+                    Some(gambling_round) => gambling_round,
+                    None => return,
+                };
+
+                gambling_round.increment_player_turn();
+            }
+
             let gambling_round = match &self.gambling_round_or {
                 Some(gambling_round) => gambling_round,
                 None => return,
@@ -107,35 +115,27 @@ impl GamblingManager {
         }
     }
 
-    fn increment_player_turn(&mut self) {
-        let gambling_round = match &mut self.gambling_round_or {
-            Some(gambling_round) => gambling_round,
-            None => return,
-        };
-
-        let current_player_gambling_round_index_or = gambling_round
-            .active_player_uuids
-            .iter()
-            .position(|player_uuid| player_uuid == &gambling_round.current_player_turn);
-
-        let next_player_gambling_round_index = match current_player_gambling_round_index_or {
-            Some(current_player_gambling_round_index) => {
-                if current_player_gambling_round_index
-                    < gambling_round.active_player_uuids.len() - 1
-                {
-                    current_player_gambling_round_index + 1
-                } else {
-                    0
-                }
+    pub fn leave_gambling_round(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
+        if let Some(gambling_round) = &mut self.gambling_round_or {
+            // The last player in a gambling round can't leave
+            if gambling_round.active_player_uuids.len() < 2 {
+                return Err(Error::new(
+                    "Last player in gambling round cannot leave the round",
+                ));
             }
-            None => 0,
-        };
 
-        gambling_round.current_player_turn = gambling_round
-            .active_player_uuids
-            .get(next_player_gambling_round_index)
-            .unwrap()
-            .clone();
+            if &gambling_round.current_player_turn == player_uuid {
+                gambling_round.increment_player_turn();
+            }
+
+            gambling_round
+                .active_player_uuids
+                .retain(|active_player_uuid| active_player_uuid != player_uuid);
+
+            Ok(())
+        } else {
+            Err(Error::new("Gambling round not running"))
+        }
     }
 
     pub fn is_turn(&self, player_uuid: &PlayerUUID) -> bool {
@@ -159,4 +159,30 @@ struct GamblingRound {
     winning_player: PlayerUUID,
     pot_amount: i32,
     need_cheating_card_to_take_next_control: bool,
+}
+
+impl GamblingRound {
+    fn increment_player_turn(&mut self) {
+        let current_player_gambling_round_index_or = self
+            .active_player_uuids
+            .iter()
+            .position(|player_uuid| player_uuid == &self.current_player_turn);
+
+        let next_player_gambling_round_index = match current_player_gambling_round_index_or {
+            Some(current_player_gambling_round_index) => {
+                if current_player_gambling_round_index < self.active_player_uuids.len() - 1 {
+                    current_player_gambling_round_index + 1
+                } else {
+                    0
+                }
+            }
+            None => 0,
+        };
+
+        self.current_player_turn = self
+            .active_player_uuids
+            .get(next_player_gambling_round_index)
+            .unwrap()
+            .clone();
+    }
 }

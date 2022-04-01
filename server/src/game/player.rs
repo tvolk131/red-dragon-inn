@@ -129,28 +129,8 @@ impl Player {
         self.drink_me_pile.drink_cards.push(drink);
     }
 
-    pub fn drink_from_drink_pile(&mut self) -> Vec<DrinkCard> {
-        let revealed_drink = match self.drink_me_pile.get_revealed_drink() {
-            Some(revealed_drink) => revealed_drink,
-            None => {
-                // TODO - Sober up.
-                return Vec::new();
-            }
-        };
-
-        match revealed_drink {
-            RevealedDrink::DrinkWithPossibleChasers(drink_with_possible_chasers) => {
-                drink_with_possible_chasers
-                    .get_drinks()
-                    .iter()
-                    .for_each(|drink| drink.process(self));
-                drink_with_possible_chasers.take_all_discardable_drink_cards()
-            }
-            RevealedDrink::DrinkEvent(drink_event) => {
-                // TODO - Process drink event. It currently doesn't do anything.
-                vec![drink_event.into()]
-            }
-        }
+    pub fn reveal_drink_from_drink_pile(&mut self) -> Option<RevealedDrink> {
+        self.drink_me_pile.get_revealed_drink()
     }
 
     pub fn change_alcohol_content(&mut self, amount: i32) {

@@ -16,8 +16,10 @@ pub use error::Error;
 
 use game_logic::GameLogic;
 use player_card::{
-    change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
-    gambling_im_in_card, i_dont_think_so_card, i_raise_card, ignore_root_card_affecting_fortitude,
+    change_other_player_fortitude_card, combined_interrupt_player_card,
+    gain_fortitude_anytime_card, gambling_cheat_card, gambling_im_in_card, i_dont_think_so_card,
+    i_raise_card, ignore_drink_card, ignore_root_card_affecting_fortitude,
+    leave_gambling_round_instead_of_anteing_card,
     oh_i_guess_the_wench_thought_that_was_her_tip_card,
     wench_bring_some_drinks_for_my_friends_card, winning_hand_card, PlayerCard,
 };
@@ -355,6 +357,13 @@ impl Character {
                 winning_hand_card().into(),
                 winning_hand_card().into(),
                 i_dont_think_so_card().into(),
+                ignore_drink_card("Bad Pooky! Don't drink that!").into(),
+                combined_interrupt_player_card(
+                    "Not now, I'm meditating.",
+                    leave_gambling_round_instead_of_anteing_card(""),
+                    ignore_drink_card(""),
+                )
+                .into(),
             ],
             Self::Deirdre => vec![
                 gambling_im_in_card().into(),
@@ -469,13 +478,18 @@ mod tests {
         );
         assert_eq!(game.start(&player1_uuid), Ok(()));
 
-        for _ in 1..5 {
+        for _ in 1..10 {
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
                 Ok(())
             );
             assert_eq!(game.pass(&player1_uuid), Ok(()));
             assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), Ok(()));
+            if game.player_can_pass(&player1_uuid) {
+                game.pass(&player1_uuid).unwrap();
+                game.pass(&player2_uuid).unwrap();
+                game.pass(&player1_uuid).unwrap();
+            }
 
             assert_eq!(
                 game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
@@ -483,6 +497,11 @@ mod tests {
             );
             assert_eq!(game.pass(&player2_uuid), Ok(()));
             assert_eq!(game.order_drink(&player2_uuid, &player1_uuid), Ok(()));
+            if game.player_can_pass(&player2_uuid) {
+                game.pass(&player2_uuid).unwrap();
+                game.pass(&player1_uuid).unwrap();
+                game.pass(&player2_uuid).unwrap();
+            }
         }
     }
 }
