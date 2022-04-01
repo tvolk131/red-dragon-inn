@@ -16,9 +16,11 @@ pub use error::Error;
 
 use game_logic::GameLogic;
 use player_card::{
-    change_other_player_fortitude_card, gain_fortitude_anytime_card, gambling_cheat_card,
-    gambling_im_in_card, i_dont_think_so_card, i_raise_card, ignore_drink_card,
-    ignore_root_card_affecting_fortitude, oh_i_guess_the_wench_thought_that_was_her_tip_card,
+    change_other_player_fortitude_card, combined_interrupt_player_card,
+    gain_fortitude_anytime_card, gambling_cheat_card, gambling_im_in_card, i_dont_think_so_card,
+    i_raise_card, ignore_drink_card, ignore_root_card_affecting_fortitude,
+    leave_gambling_round_instead_of_anteing_card,
+    oh_i_guess_the_wench_thought_that_was_her_tip_card,
     wench_bring_some_drinks_for_my_friends_card, winning_hand_card, PlayerCard,
 };
 use player_view::{GameView, ListedGameView};
@@ -356,6 +358,12 @@ impl Character {
                 winning_hand_card().into(),
                 i_dont_think_so_card().into(),
                 ignore_drink_card("Bad Pooky! Don't drink that!").into(),
+                combined_interrupt_player_card(
+                    "Not now, I'm meditating.",
+                    leave_gambling_round_instead_of_anteing_card(""),
+                    ignore_drink_card(""),
+                )
+                .into(),
             ],
             Self::Deirdre => vec![
                 gambling_im_in_card().into(),

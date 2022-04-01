@@ -236,7 +236,7 @@ pub enum TargetStyle {
 #[derive(Clone)]
 pub struct InterruptPlayerCard {
     display_name: String,
-    can_interrupt_fn: fn(GameInterruptType) -> bool,
+    can_interrupt_fn: Arc<dyn Fn(GameInterruptType) -> bool + Send + Sync>,
     interrupt_type_output: GameInterruptType,
     interrupt_fn: Arc<
         dyn Fn(&PlayerUUID, &InterruptManager, &mut GamblingManager) -> ShouldCancelPreviousCard
@@ -472,14 +472,14 @@ pub fn change_other_player_fortitude_card(
 pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
-        can_interrupt_fn: |current_interrupt| {
+        can_interrupt_fn: Arc::from(|current_interrupt| {
             if let GameInterruptType::DirectedActionCardPlayed(player_card_info) = current_interrupt
             {
                 player_card_info.affects_fortitude
             } else {
                 false
             }
-        },
+        }),
         interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: false,
             is_i_dont_think_so_card: false,
@@ -602,9 +602,9 @@ pub fn oh_i_guess_the_wench_thought_that_was_her_tip_card() -> RootPlayerCard {
 pub fn i_dont_think_so_card() -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: String::from("I don't think so!"),
-        can_interrupt_fn: |current_interrupt| {
+        can_interrupt_fn: Arc::from(|current_interrupt| {
             matches!(current_interrupt, GameInterruptType::SometimesCardPlayed(_))
-        },
+        }),
         interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: false,
             is_i_dont_think_so_card: true,
@@ -623,9 +623,9 @@ pub fn i_dont_think_so_card() -> InterruptPlayerCard {
 pub fn ignore_drink_card(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
-        can_interrupt_fn: |current_interrupt| {
+        can_interrupt_fn: Arc::from(|current_interrupt| {
             matches!(current_interrupt, GameInterruptType::AboutToDrink)
-        },
+        }),
         interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: false,
             is_i_dont_think_so_card: false,
@@ -643,9 +643,9 @@ pub fn ignore_drink_card(display_name: impl ToString) -> InterruptPlayerCard {
 pub fn leave_gambling_round_instead_of_anteing_card(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
-        can_interrupt_fn: |current_interrupt| {
+        can_interrupt_fn: Arc::from(|current_interrupt| {
             matches!(current_interrupt, GameInterruptType::AboutToAnte)
-        },
+        }),
         interrupt_type_output: GameInterruptType::SometimesCardPlayed(PlayerCardInfo {
             affects_fortitude: false,
             is_i_dont_think_so_card: false,
@@ -663,3 +663,44 @@ pub fn leave_gambling_round_instead_of_anteing_card(display_name: impl ToString)
         is_i_dont_think_so_card: false,
     }
 }
+
+// TODO - Come up with a better solution for combining/composing card functionality. This was quick and easy, but it has a few downsides...
+// 1. If the two cards being combined have different values set for `interrupt_type_output`, this will lead to weird behavior. Right now the first card's `interrupt_type_output` will be used and the second card's will be ignored.
+// 2. Overall this is a bit messy and hard to test & maintain.
+//
+// When this refactor is done, we can convert the type of `can_interrupt_fn` from `Arc<dyn Fn(GameInterruptType) -> bool + Send + Sync>` back to `fn(GameInterruptType) -> bool`.
+pub fn combined_interrupt_player_card(display_name: impl ToString, first_interrupt_player_card: InterruptPlayerCard, second_interrupt_player_card: InterruptPlayerCard) -> InterruptPlayerCard {
+    let interrupt_type_output = first_interrupt_player_card.interrupt_type_output;
+    let first_interrupt_player_card_clone = first_interrupt_player_card.clone();
+    let second_interrupt_player_card_clone = second_interrupt_player_card.clone();
+
+    InterruptPlayerCard {
+        display_name: display_name.to_string(),
+        can_interrupt_fn: Arc::from(move |current_interrupt| {
+            first_interrupt_player_card.can_interrupt(current_interrupt) || second_interrupt_player_card.can_interrupt(current_interrupt)
+        }),
+        interrupt_type_output,
+        interrupt_fn: Arc::from(
+            move |player_uuid: &PlayerUUID,
+             interrupt_manager: &InterruptManager,
+             gambling_manager: &mut GamblingManager|
+             -> ShouldCancelPreviousCard {
+                 if let Some(current_interrupt) = interrupt_manager.get_current_interrupt() {
+                     if first_interrupt_player_card_clone.can_interrupt(current_interrupt) {
+                        first_interrupt_player_card_clone.interrupt(player_uuid, interrupt_manager, gambling_manager)
+                     } else if second_interrupt_player_card_clone.can_interrupt(current_interrupt) {
+                        second_interrupt_player_card_clone.interrupt(player_uuid, interrupt_manager, gambling_manager)
+                     } else {
+                        ShouldCancelPreviousCard::No
+                     }
+                 } else {
+                     ShouldCancelPreviousCard::No
+                 }
+            },
+        ),
+        is_i_dont_think_so_card: false,
+    }
+}
+
+
+
