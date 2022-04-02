@@ -261,9 +261,7 @@ impl InterruptManager {
                     };
                 }
             }
-        }
 
-        if let Some(current_interrupt_turn) = &self.get_current_interrupt_turn_or() {
             match player_manager.get_next_alive_player_uuid(current_interrupt_turn) {
                 NextPlayerUUIDOption::Some(next_player_uuid) => {
                     // If, after incrementing the player turn, the interrupt turn has
