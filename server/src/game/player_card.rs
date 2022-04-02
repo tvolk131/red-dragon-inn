@@ -323,11 +323,13 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
         interrupt_data_or: Some(RootPlayerCardInterruptData {
             interrupt_type_output: GameInterruptType::AboutToAnte,
             post_interrupt_play_fn_or: Some(Arc::from(
-                |_player_uuid: &PlayerUUID,
+                |player_uuid: &PlayerUUID,
                  player_manager: &mut PlayerManager,
                  gambling_manager: &mut GamblingManager,
                  turn_info: &mut TurnInfo| {
-                    gambling_manager.pass(player_manager, turn_info);
+                     if gambling_manager.is_turn(player_uuid) {
+                         gambling_manager.pass(player_manager, turn_info);
+                     }
                 },
             )),
         }),
