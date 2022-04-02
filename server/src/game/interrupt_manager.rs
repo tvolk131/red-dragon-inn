@@ -245,15 +245,13 @@ impl InterruptManager {
             if current_stack_session_is_only_interruptable_by_targeted_player {
                 let current_stack = match self.interrupt_stacks.first() {
                     Some(current_stack) => current_stack,
-                    None => return Err(Error::new("No interrupts are running"))
+                    None => return Err(Error::new("No interrupts are running")),
                 };
                 let current_session = match current_stack.get_current_session() {
                     Some(current_session) => current_session,
-                    None => return Err(Error::new("No interrupts are running"))
+                    None => return Err(Error::new("No interrupts are running")),
                 };
-                if is_passing
-                    && current_interrupt_turn == &current_session.targeted_player_uuid
-                {
+                if is_passing && current_interrupt_turn == &current_session.targeted_player_uuid {
                     return match self.resolve_current_stack_session(
                         player_manager,
                         gambling_manager,

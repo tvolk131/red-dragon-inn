@@ -327,9 +327,9 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
                  player_manager: &mut PlayerManager,
                  gambling_manager: &mut GamblingManager,
                  turn_info: &mut TurnInfo| {
-                     if gambling_manager.is_turn(player_uuid) {
-                         gambling_manager.pass(player_manager, turn_info);
-                     }
+                    if gambling_manager.is_turn(player_uuid) {
+                        gambling_manager.pass(player_manager, turn_info);
+                    }
                 },
             )),
         }),
