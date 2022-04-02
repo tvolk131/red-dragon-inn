@@ -1460,11 +1460,7 @@ mod tests {
             .is_ok());
         // Player 1 stops the interrupt.
         assert!(game_logic
-            .process_card(
-                i_dont_think_so_card().into(),
-                &player1_uuid,
-                &None
-            )
+            .process_card(i_dont_think_so_card().into(), &player1_uuid, &None)
             .is_ok());
         assert!(game_logic
             .interrupt_manager
