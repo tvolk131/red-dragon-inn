@@ -96,7 +96,7 @@ impl InterruptManager {
                     root_card_interrupt_type,
                     targeted_player_uuid,
                     interrupt_cards: Vec::new(),
-                    only_targeted_player_can_interrupt: false,
+                    only_targeted_player_can_interrupt: true,
                 }],
             });
             Ok(())
@@ -697,7 +697,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn player_root_player_card_interrupt_ends_after_everyone_passes_2_player_game() {
+    fn player_root_player_card_interrupt_ends_after_targeted_player_passes_2_player_game() {
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
         let mut interrupt_manager = InterruptManager::new();
@@ -723,7 +723,7 @@ mod tests {
     }
 
     #[test]
-    fn player_root_player_card_interrupt_ends_after_everyone_passes_3_player_game() {
+    fn player_root_player_card_interrupt_ends_after_targeted_player_passes_3_player_game() {
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
         let player3_uuid = PlayerUUID::new();
@@ -740,12 +740,8 @@ mod tests {
             .start_single_player_root_player_card_interrupt(
                 change_other_player_fortitude_card("Test card", -1),
                 player1_uuid,
-                player2_uuid.clone()
+                player3_uuid.clone()
             )
-            .is_ok());
-        assert!(interrupt_manager.is_turn_to_interrupt(&player2_uuid));
-        assert!(interrupt_manager
-            .pass(&mut player_manager, &mut gambling_manager, &mut turn_info)
             .is_ok());
         assert!(interrupt_manager.is_turn_to_interrupt(&player3_uuid));
         assert!(interrupt_manager

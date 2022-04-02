@@ -1314,10 +1314,12 @@ mod tests {
     fn can_handle_change_other_player_fortitude_card() {
         let player1_uuid = PlayerUUID::new();
         let player2_uuid = PlayerUUID::new();
+        let player3_uuid = PlayerUUID::new();
 
         let mut game_logic = GameLogic::new(vec![
             (player1_uuid.clone(), Character::Deirdre),
             (player2_uuid.clone(), Character::Gerki),
+            (player3_uuid.clone(), Character::Fiona),
         ])
         .unwrap();
         game_logic
@@ -1363,6 +1365,16 @@ mod tests {
                 .unwrap()
                 .get_fortitude(),
             18
+        );
+
+        // Fortitude for other player should remain unchanged.
+        assert_eq!(
+            game_logic
+                .player_manager
+                .get_player_by_uuid(&player3_uuid)
+                .unwrap()
+                .get_fortitude(),
+            20
         );
 
         // Should proceed to player 1's order drink phase.
