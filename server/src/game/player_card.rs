@@ -471,6 +471,45 @@ pub fn change_other_player_fortitude_card(
     }
 }
 
+// TODO - Add this card for all characters other than Zot. I only added the card to Zot's deck when I implemented this function.
+pub fn change_all_other_player_fortitude_card(
+    display_name: impl ToString,
+    amount: i32,
+) -> RootPlayerCard {
+    RootPlayerCard {
+        display_name: display_name.to_string(),
+        card_type: RootPlayerCardType::Action,
+        target_style: TargetStyle::AllOtherPlayers,
+        can_play_fn: |player_uuid: &PlayerUUID,
+                      gambling_manager: &GamblingManager,
+                      _interrupt_manager: &InterruptManager,
+                      turn_info: &TurnInfo|
+         -> bool {
+            turn_info.can_play_action_card(player_uuid, gambling_manager)
+        },
+        pre_interrupt_play_fn_or: None,
+        interrupt_play_fn: Arc::from(
+            move |_player_uuid: &PlayerUUID,
+                  targeted_player_uuid: &PlayerUUID,
+                  player_manager: &mut PlayerManager,
+                  _gambling_manager: &mut GamblingManager| {
+                if let Some(targeted_player) =
+                    player_manager.get_player_by_uuid_mut(targeted_player_uuid)
+                {
+                    targeted_player.change_fortitude(amount);
+                }
+            },
+        ),
+        interrupt_data_or: Some(RootPlayerCardInterruptData {
+            interrupt_type_output: GameInterruptType::DirectedActionCardPlayed(PlayerCardInfo {
+                affects_fortitude: true,
+                is_i_dont_think_so_card: false,
+            }),
+            post_interrupt_play_fn_or: None,
+        }),
+    }
+}
+
 pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),

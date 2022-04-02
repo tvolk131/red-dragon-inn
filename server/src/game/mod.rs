@@ -16,7 +16,7 @@ pub use error::Error;
 
 use game_logic::GameLogic;
 use player_card::{
-    change_other_player_fortitude_card, combined_interrupt_player_card,
+    change_other_player_fortitude_card, change_all_other_player_fortitude_card, combined_interrupt_player_card,
     gain_fortitude_anytime_card, gambling_cheat_card, gambling_im_in_card, i_dont_think_so_card,
     i_raise_card, ignore_drink_card, ignore_root_card_affecting_fortitude,
     leave_gambling_round_instead_of_anteing_card,
@@ -347,6 +347,8 @@ impl Character {
                 change_other_player_fortitude_card("I told you not to distract me!", -2).into(),
                 change_other_player_fortitude_card("Watch out! Don't step on Pooky!", -2).into(),
                 change_other_player_fortitude_card("Down Pooky!", -1).into(),
+                change_all_other_player_fortitude_card("Oh no! Not again! Pooky's on a drunken rampage!", -1).into(),
+                change_all_other_player_fortitude_card("Oh no! Not again! Pooky's on a drunken rampage!", -1).into(),
                 ignore_root_card_affecting_fortitude("Now you see me... Now you don't!").into(),
                 wench_bring_some_drinks_for_my_friends_card().into(),
                 wench_bring_some_drinks_for_my_friends_card().into(),
