@@ -730,7 +730,7 @@ mod tests {
         let mut interrupt_manager = InterruptManager::new();
         let mut player_manager = PlayerManager::new(vec![
             (player1_uuid.clone(), Character::Gerki),
-            (player2_uuid.clone(), Character::Deirdre),
+            (player2_uuid, Character::Deirdre),
             (player3_uuid.clone(), Character::Zot),
         ]);
         let mut gambling_manager = GamblingManager::new();
