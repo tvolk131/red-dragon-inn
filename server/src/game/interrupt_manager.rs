@@ -255,7 +255,9 @@ impl InterruptManager {
                     Some(current_session) => current_session,
                     None => return Err(Error::new("No interrupts are running")),
                 };
-                if is_passing && current_interrupt_turn == &current_session.primary_targeted_player_uuid {
+                if is_passing
+                    && current_interrupt_turn == &current_session.primary_targeted_player_uuid
+                {
                     return match self.resolve_current_stack_session(
                         player_manager,
                         gambling_manager,
@@ -428,8 +430,8 @@ impl InterruptManager {
                         }
                     }
                     InterruptRoot::Drink(drink_with_interrupt_data) => {
-                        if let Some(targeted_player) =
-                            player_manager.get_player_by_uuid_mut(&session.primary_targeted_player_uuid)
+                        if let Some(targeted_player) = player_manager
+                            .get_player_by_uuid_mut(&session.primary_targeted_player_uuid)
                         {
                             if session.root_card_interrupt_type == GameInterruptType::AboutToDrink {
                                 drink_with_interrupt_data.drink.process(targeted_player);
@@ -440,7 +442,9 @@ impl InterruptManager {
                             if let Some(targeted_player) =
                                 player_manager.get_player_by_uuid_mut(&secondary_player_uuid)
                             {
-                                if session.root_card_interrupt_type == GameInterruptType::AboutToDrink {
+                                if session.root_card_interrupt_type
+                                    == GameInterruptType::AboutToDrink
+                                {
                                     drink_with_interrupt_data.drink.process(targeted_player);
                                 }
                             };
@@ -535,7 +539,9 @@ impl InterruptManager {
                         &root_player_card_with_interrupt_data.root_card_owner_uuid
                     }
                     InterruptRoot::Drink(_) => {
-                        &current_stack.get_current_session()?.primary_targeted_player_uuid
+                        &current_stack
+                            .get_current_session()?
+                            .primary_targeted_player_uuid
                     }
                 },
             },
