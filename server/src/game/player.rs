@@ -1,7 +1,5 @@
 use super::deck::AutoShufflingDeck;
-use super::drink::{
-    impl_get_revealed_drink, Drink, DrinkCard, DrinkWithPossibleChasers, RevealedDrink,
-};
+use super::drink::{get_revealed_drink, DrinkCard, DrinkDeck, RevealedDrink};
 use super::gambling_manager::GamblingManager;
 use super::game_logic::TurnInfo;
 use super::interrupt_manager::InterruptManager;
@@ -130,7 +128,7 @@ impl Player {
     }
 
     pub fn reveal_drink_from_drink_pile(&mut self) -> Option<RevealedDrink> {
-        self.drink_me_pile.get_revealed_drink()
+        get_revealed_drink(&mut self.drink_me_pile)
     }
 
     pub fn change_alcohol_content(&mut self, amount: i32) {
@@ -184,4 +182,8 @@ struct DrinkMePile {
     drink_cards: Vec<DrinkCard>,
 }
 
-impl_get_revealed_drink!(DrinkMePile, |deck: &mut DrinkMePile| deck.drink_cards.pop());
+impl DrinkDeck for DrinkMePile {
+    fn get_next_drink_card_or(&mut self) -> Option<DrinkCard> {
+        self.drink_cards.pop()
+    }
+}
