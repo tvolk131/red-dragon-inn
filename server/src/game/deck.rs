@@ -1,3 +1,4 @@
+use super::drink::{DrinkCard, DrinkDeck};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
@@ -40,8 +41,8 @@ impl<T> AutoShufflingDeck<T> {
     }
 }
 
-// TODO - Uncomment this macro once we need to call the functions that it implements.
-// impl_get_revealed_drink!(
-//     AutoShufflingDeck<DrinkCard>,
-//     |deck: &mut AutoShufflingDeck<DrinkCard>| deck.draw_card()
-// );
+impl DrinkDeck for AutoShufflingDeck<DrinkCard> {
+    fn get_next_drink_card_or(&mut self) -> Option<DrinkCard> {
+        self.draw_card()
+    }
+}
