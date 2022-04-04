@@ -188,6 +188,34 @@ impl InterruptManager {
         }
     }
 
+    pub fn start_multi_player_drink_interrupt(
+        &mut self,
+        drink: DrinkWithPossibleChasers,
+        targeted_player_uuid: PlayerUUID,
+        secondary_player_uuids: Vec<PlayerUUID>,
+    ) {
+        self.interrupt_stacks.push(GameInterruptStack {
+            root: InterruptRoot::Drink(DrinkWithInterruptData { drink }),
+            current_interrupt_turn: targeted_player_uuid.clone(),
+            sessions: vec![
+                GameInterruptStackSession {
+                    root_card_interrupt_type: GameInterruptType::AboutToDrink,
+                    primary_targeted_player_uuid: targeted_player_uuid.clone(),
+                    secondary_player_uuids,
+                    interrupt_cards: Vec::new(),
+                    only_targeted_player_can_interrupt: true,
+                },
+                GameInterruptStackSession {
+                    root_card_interrupt_type: GameInterruptType::ModifyDrink,
+                    primary_targeted_player_uuid: targeted_player_uuid,
+                    secondary_player_uuids: Vec::new(),
+                    interrupt_cards: Vec::new(),
+                    only_targeted_player_can_interrupt: false,
+                },
+            ],
+        });
+    }
+
     pub fn play_interrupt_card(
         &mut self,
         card: InterruptPlayerCard,

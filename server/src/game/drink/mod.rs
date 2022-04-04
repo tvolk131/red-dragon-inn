@@ -101,6 +101,25 @@ pub fn get_revealed_drink(drink_deck: &mut impl DrinkDeck) -> Option<RevealedDri
     })
 }
 
+pub fn get_drink_with_possible_chasers_skipping_drink_events(
+    drink_deck: &mut impl DrinkDeck,
+) -> Option<(DrinkWithPossibleChasers, Vec<DrinkEvent>)> {
+    let mut drink_events = Vec::new();
+    loop {
+        match get_revealed_drink(drink_deck) {
+            Some(revealed_drink) => {
+                match revealed_drink {
+                    RevealedDrink::DrinkWithPossibleChasers(drink) => {
+                        return Some((drink, drink_events))
+                    }
+                    RevealedDrink::DrinkEvent(drink_event) => drink_events.push(drink_event),
+                };
+            }
+            None => return None,
+        };
+    }
+}
+
 fn push_drink_to_vec_or(
     drink_deck: &mut impl DrinkDeck,
     mut drinks: Vec<Drink>,

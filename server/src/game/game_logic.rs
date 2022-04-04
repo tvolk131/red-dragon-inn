@@ -195,7 +195,7 @@ impl GameLogic {
 
         self.turn_info.drinks_to_order -= 1;
         if self.turn_info.drinks_to_order == 0 {
-            self.perform_drink_phase(player_uuid)?;
+            self.start_drink_phase(player_uuid)?;
         }
 
         Ok(())
@@ -327,7 +327,7 @@ impl GameLogic {
         }
     }
 
-    fn perform_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
+    fn start_drink_phase(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
         self.turn_info.turn_phase = TurnPhase::Drink;
         let player = match self.player_manager.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player,
