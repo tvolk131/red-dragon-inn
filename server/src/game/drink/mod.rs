@@ -1,8 +1,10 @@
 mod drink_struct;
 mod drink_with_possible_chasers;
 
+use super::uuid::PlayerUUID;
 use drink_struct::{orcish_rotgut, simple_drink, troll_swill, Drink};
 pub use drink_with_possible_chasers::DrinkWithPossibleChasers;
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 #[derive(Clone, Debug)]
@@ -27,6 +29,60 @@ impl From<DrinkEvent> for DrinkCard {
 pub enum DrinkEvent {
     DrinkingContest,
     RoundOnTheHouse,
+}
+
+impl DrinkEvent {
+    pub fn to_default_drink_event_with_data(&self) -> DrinkEventWithData {
+        match &self {
+            Self::DrinkingContest => {
+                DrinkEventWithData::DrinkingContest(DrinkingContestData::new())
+            }
+            Self::RoundOnTheHouse => DrinkEventWithData::RoundOnTheHouse,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum DrinkEventWithData {
+    DrinkingContest(DrinkingContestData),
+    RoundOnTheHouse,
+}
+
+#[derive(Clone, Debug)]
+pub struct DrinkingContestData {
+    currently_winning_players: HashSet<PlayerUUID>,
+}
+
+impl DrinkingContestData {
+    fn new() -> Self {
+        Self {
+            currently_winning_players: HashSet::new(),
+        }
+    }
+
+    pub fn get_currently_winning_players(&self) -> &HashSet<PlayerUUID> {
+        &self.currently_winning_players
+    }
+
+    pub fn overwrite_currently_winning_players(&mut self, winning_players: HashSet<PlayerUUID>) {
+        self.currently_winning_players = winning_players;
+    }
+
+    pub fn get_single_winner_uuid_or(&self) -> Option<PlayerUUID> {
+        if self.currently_winning_players.len() == 1 {
+            Some(
+                (*self
+                    .currently_winning_players
+                    .iter()
+                    .collect::<Vec<&PlayerUUID>>()
+                    .first()
+                    .unwrap())
+                .clone(),
+            )
+        } else {
+            None
+        }
+    }
 }
 
 pub enum RevealedDrink {
