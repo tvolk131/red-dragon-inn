@@ -223,6 +223,10 @@ impl Game {
                 Some(game_logic) => game_logic.get_game_view_interrupt_data_or(),
                 None => None,
             },
+            drink_event: match &self.game_logic_or {
+                Some(game_logic) => game_logic.get_game_view_drink_event_or(),
+                None => None,
+            },
         })
     }
 
