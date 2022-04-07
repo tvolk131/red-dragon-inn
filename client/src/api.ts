@@ -17,6 +17,11 @@ interface GameViewPlayerData {
   isDead: boolean;
 }
 
+interface GameViewDrinkEvent {
+  eventName: string;
+  drinkingContestRemainingPlayerUuids?: string[];
+}
+
 interface GameViewInterruptData {
   interrupts: GameViewInterruptStack[];
   currentInterruptTurn: string;
@@ -42,6 +47,7 @@ export interface GameView {
   playerData: GameViewPlayerData[];
   playerDisplayNames: {[key: string]: string};
   interrupts?: GameViewInterruptData;
+  drinkEvent?: GameViewDrinkEvent;
 }
 
 export interface ListedGameView {

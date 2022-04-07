@@ -7,7 +7,9 @@ use super::gambling_manager::GamblingManager;
 use super::interrupt_manager::{InterruptManager, InterruptStackResolveData};
 use super::player_card::{PlayerCard, RootPlayerCard, ShouldInterrupt, TargetStyle};
 use super::player_manager::{NextPlayerUUIDOption, PlayerManager};
-use super::player_view::{GameViewInterruptData, GameViewPlayerCard, GameViewPlayerData};
+use super::player_view::{
+    GameViewDrinkEvent, GameViewInterruptData, GameViewPlayerCard, GameViewPlayerData,
+};
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use serde::Serialize;
@@ -60,6 +62,28 @@ impl GameLogic {
                 &self.turn_info,
             ),
             None => Vec::new(),
+        }
+    }
+
+    pub fn get_game_view_drink_event_or(&self) -> Option<GameViewDrinkEvent> {
+        match &self.drink_event_or {
+            Some(drink_event) => Some(match drink_event {
+                DrinkEventWithData::DrinkingContest(drinking_contest_data) => GameViewDrinkEvent {
+                    event_name: "drinkingContest".to_string(),
+                    drinking_contest_remaining_player_uuids: Some(
+                        drinking_contest_data
+                            .get_currently_winning_players()
+                            .iter()
+                            .cloned()
+                            .collect(),
+                    ),
+                },
+                DrinkEventWithData::RoundOnTheHouse => GameViewDrinkEvent {
+                    event_name: "roundOnTheHouse".to_string(),
+                    drinking_contest_remaining_player_uuids: None,
+                },
+            }),
+            None => None,
         }
     }
 

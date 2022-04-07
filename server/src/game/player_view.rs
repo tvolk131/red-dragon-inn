@@ -26,6 +26,13 @@ pub struct GameViewPlayerData {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GameViewDrinkEvent {
+    pub event_name: String,
+    pub drinking_contest_remaining_player_uuids: Option<Vec<PlayerUUID>>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameViewInterruptData {
     pub interrupts: Vec<GameViewInterruptStack>,
     pub current_interrupt_turn: PlayerUUID,
@@ -57,6 +64,7 @@ pub struct GameView {
     pub player_data: Vec<GameViewPlayerData>,
     pub player_display_names: HashMap<PlayerUUID, String>,
     pub interrupts: Option<GameViewInterruptData>,
+    pub drink_event: Option<GameViewDrinkEvent>,
 }
 
 #[derive(Serialize, PartialEq, Eq)]

@@ -99,6 +99,15 @@ export const GamePage = (props: GamePageProps) => {
           </CardContent>
         </Card>
       ))}
+      {props.gameView.drinkEvent && <Paper>
+        <Typography>Drink Event: {props.gameView.drinkEvent.eventName}</Typography>
+        {props.gameView.drinkEvent.drinkingContestRemainingPlayerUuids && 
+          <div>
+            <Typography>Drinking contest remaining contestants</Typography>
+            {props.gameView.drinkEvent.drinkingContestRemainingPlayerUuids.map((playerUuid) => <Typography>{props.gameView?.playerDisplayNames[playerUuid]}</Typography>)}
+          </div>
+        }
+      </Paper>}
       {props.gameView.interrupts && <Paper>
         <Typography>Game Interrupts</Typography>
         <Typography>
