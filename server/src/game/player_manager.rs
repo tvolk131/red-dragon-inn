@@ -38,6 +38,10 @@ impl PlayerManager {
             .collect()
     }
 
+    pub fn iter_mut_players(&mut self) -> std::slice::IterMut<(PlayerUUID, Player)> {
+        self.players.iter_mut()
+    }
+
     pub fn get_player_by_uuid(&self, player_uuid: &PlayerUUID) -> Option<&Player> {
         match self.players.iter().find(|(uuid, _)| uuid == player_uuid) {
             Some((_, player)) => Some(player),

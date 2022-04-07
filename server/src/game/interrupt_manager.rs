@@ -110,11 +110,7 @@ impl InterruptManager {
         &mut self,
         drink: DrinkWithPossibleChasers,
         targeted_player_uuid: PlayerUUID,
-    ) -> Result<(), (DrinkWithPossibleChasers, Error)> {
-        if self.interrupt_in_progress() {
-            return Err((drink, Error::new("An interrupt is already in progress")));
-        }
-
+    ) {
         self.interrupt_stacks.push(GameInterruptStack {
             root: InterruptRoot::Drink(DrinkWithInterruptData { drink }),
             current_interrupt_turn: targeted_player_uuid.clone(),
@@ -135,7 +131,6 @@ impl InterruptManager {
                 },
             ],
         });
-        Ok(())
     }
 
     /// Create multiple consecutive interrupt stacks each targeting a different player.
@@ -822,12 +817,10 @@ mod tests {
         let mut gambling_manager = GamblingManager::new();
         let mut turn_info = TurnInfo::new_test(player1_uuid.clone());
 
-        assert!(interrupt_manager
-            .start_single_player_drink_interrupt(
-                DrinkWithPossibleChasers::new(vec![], None),
-                player1_uuid.clone()
-            )
-            .is_ok());
+        interrupt_manager.start_single_player_drink_interrupt(
+            DrinkWithPossibleChasers::new(vec![], None),
+            player1_uuid.clone(),
+        );
         // All players pass on the chance to modify the drink.
         assert!(interrupt_manager.is_turn_to_interrupt(&player1_uuid));
         assert!(interrupt_manager
@@ -860,12 +853,10 @@ mod tests {
         let mut gambling_manager = GamblingManager::new();
         let mut turn_info = TurnInfo::new_test(player1_uuid.clone());
 
-        assert!(interrupt_manager
-            .start_single_player_drink_interrupt(
-                DrinkWithPossibleChasers::new(vec![], None),
-                player1_uuid.clone()
-            )
-            .is_ok());
+        interrupt_manager.start_single_player_drink_interrupt(
+            DrinkWithPossibleChasers::new(vec![], None),
+            player1_uuid.clone(),
+        );
         // All players pass on the chance to modify the drink.
         assert!(interrupt_manager.is_turn_to_interrupt(&player1_uuid));
         assert!(interrupt_manager

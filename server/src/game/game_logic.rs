@@ -1,5 +1,8 @@
 use super::deck::AutoShufflingDeck;
-use super::drink::{create_drink_deck, DrinkCard, RevealedDrink};
+use super::drink::{
+    create_drink_deck, get_drink_with_possible_chasers_skipping_drink_events, get_revealed_drink,
+    DrinkCard, DrinkEventWithData, DrinkWithPossibleChasers, DrinkingContestData, RevealedDrink,
+};
 use super::gambling_manager::GamblingManager;
 use super::interrupt_manager::{InterruptManager, InterruptStackResolveData};
 use super::player_card::{PlayerCard, RootPlayerCard, ShouldInterrupt, TargetStyle};
@@ -8,7 +11,7 @@ use super::player_view::{GameViewInterruptData, GameViewPlayerCard, GameViewPlay
 use super::uuid::PlayerUUID;
 use super::{Character, Error};
 use serde::Serialize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct GameLogic {
@@ -17,6 +20,7 @@ pub struct GameLogic {
     interrupt_manager: InterruptManager,
     drink_deck: AutoShufflingDeck<DrinkCard>,
     turn_info: TurnInfo,
+    drink_event_or: Option<DrinkEventWithData>,
 }
 
 impl GameLogic {
@@ -34,6 +38,7 @@ impl GameLogic {
             interrupt_manager: InterruptManager::new(),
             drink_deck: AutoShufflingDeck::new(create_drink_deck()),
             turn_info: TurnInfo::new(first_player_uuid),
+            drink_event_or: None,
         })
     }
 
@@ -232,7 +237,47 @@ impl GameLogic {
                     if !self.interrupt_manager.interrupt_in_progress()
                         && self.turn_info.turn_phase == TurnPhase::Drink
                     {
-                        self.start_next_player_turn();
+                        match &mut self.drink_event_or {
+                            Some(drink_event) => {
+                                match drink_event {
+                                    DrinkEventWithData::DrinkingContest(drinking_contest_data) => {
+                                        if let Some(winner_uuid) =
+                                            drinking_contest_data.get_single_winner_uuid_or()
+                                        {
+                                            // Pay the winner.
+                                            let mut winning_gold_amount = 0;
+                                            for (player_uuid, player) in
+                                                self.player_manager.iter_mut_players()
+                                            {
+                                                if player_uuid != &winner_uuid {
+                                                    player.change_gold(-1);
+                                                    winning_gold_amount += 1;
+                                                }
+                                            }
+                                            if let Some(winner) = self
+                                                .player_manager
+                                                .get_player_by_uuid_mut(&winner_uuid)
+                                            {
+                                                winner.change_gold(winning_gold_amount);
+                                            }
+
+                                            self.start_next_player_turn();
+                                        } else {
+                                            Self::perform_drinking_contest_round(
+                                                &self.player_manager,
+                                                &mut self.interrupt_manager,
+                                                &mut self.drink_deck,
+                                                drinking_contest_data,
+                                            );
+                                        }
+                                    }
+                                    DrinkEventWithData::RoundOnTheHouse => {
+                                        self.start_next_player_turn()
+                                    }
+                                }
+                            }
+                            None => self.start_next_player_turn(),
+                        };
                     }
                 }
                 return Ok(());
@@ -349,24 +394,91 @@ impl GameLogic {
         };
 
         match revealed_drink {
-            RevealedDrink::DrinkWithPossibleChasers(drink) => {
-                if let Err((drink, err)) = self
-                    .interrupt_manager
-                    .start_single_player_drink_interrupt(drink, player_uuid.clone())
-                {
-                    for drink_card in drink.take_all_discardable_drink_cards() {
-                        self.drink_deck.discard_card(drink_card);
-                    }
-                    return Err(err);
-                }
-            }
+            RevealedDrink::DrinkWithPossibleChasers(drink) => self
+                .interrupt_manager
+                .start_single_player_drink_interrupt(drink, player_uuid.clone()),
+            // TODO - Add tests to verify drink event logic.
             RevealedDrink::DrinkEvent(drink_event) => {
-                // TODO - Process drink event. It currently doesn't do anything. Also remove the two lines below.
+                let mut drink_event_with_data = drink_event.to_default_drink_event_with_data();
                 self.drink_deck.discard_card(drink_event.into());
-                self.start_next_player_turn();
+
+                match &mut drink_event_with_data {
+                    DrinkEventWithData::DrinkingContest(drinking_contest_data) => {
+                        drinking_contest_data.overwrite_currently_winning_players(
+                            self.player_manager
+                                .clone_uuids_of_all_alive_players()
+                                .into_iter()
+                                .collect(),
+                        );
+                        Self::perform_drinking_contest_round(
+                            &self.player_manager,
+                            &mut self.interrupt_manager,
+                            &mut self.drink_deck,
+                            drinking_contest_data,
+                        );
+                    }
+                    DrinkEventWithData::RoundOnTheHouse => {
+                        let (drink, discardable_drink_events) =
+                            match get_drink_with_possible_chasers_skipping_drink_events(
+                                &mut self.drink_deck,
+                            ) {
+                                Some((drink, discardable_drink_events)) => {
+                                    (drink, discardable_drink_events)
+                                }
+                                None => {
+                                    self.start_next_player_turn();
+                                    return Ok(());
+                                }
+                            };
+                        for event in discardable_drink_events {
+                            self.drink_deck.discard_card(event.into());
+                        }
+                        self.interrupt_manager.start_multi_player_drink_interrupt(
+                            drink,
+                            player_uuid.clone(),
+                            self.player_manager
+                                .clone_uuids_of_all_alive_players()
+                                .into_iter()
+                                .filter(|uuid| uuid != player_uuid)
+                                .collect(),
+                        );
+                    }
+                }
+                self.drink_event_or = Some(drink_event_with_data);
             }
         };
         Ok(())
+    }
+
+    fn perform_drinking_contest_round(
+        player_manager: &PlayerManager,
+        interrupt_manager: &mut InterruptManager,
+        drink_deck: &mut AutoShufflingDeck<DrinkCard>,
+        drinking_contest_data: &mut DrinkingContestData,
+    ) {
+        let mut player_drink_alcohol_contents: HashMap<PlayerUUID, i32> = HashMap::new();
+        let mut max_alcohol_content = i32::MIN;
+        for player_uuid in drinking_contest_data.get_currently_winning_players() {
+            if let Some(revealed_drink) = get_revealed_drink(drink_deck) {
+                let drink = DrinkWithPossibleChasers::from_revealed_drink_treating_drink_event_as_empty_drink(revealed_drink);
+                if let Some(player) = player_manager.get_player_by_uuid(player_uuid) {
+                    let drink_alcohol_content = drink.get_combined_alcohol_content_modifier(player);
+                    if drink_alcohol_content > max_alcohol_content {
+                        max_alcohol_content = drink_alcohol_content;
+                    }
+                    player_drink_alcohol_contents
+                        .insert(player_uuid.clone(), drink_alcohol_content);
+                }
+                interrupt_manager.start_single_player_drink_interrupt(drink, player_uuid.clone());
+            }
+        }
+        let mut winning_players = HashSet::new();
+        for (player_uuid, drink_alcohol_content) in player_drink_alcohol_contents {
+            if drink_alcohol_content == max_alcohol_content {
+                winning_players.insert(player_uuid);
+            }
+        }
+        drinking_contest_data.overwrite_currently_winning_players(winning_players);
     }
 
     fn start_next_player_turn(&mut self) {

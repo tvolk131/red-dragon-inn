@@ -1,5 +1,5 @@
 use super::super::player::Player;
-use super::{Drink, DrinkCard};
+use super::{Drink, DrinkCard, RevealedDrink};
 
 #[derive(Clone, Debug)]
 pub struct DrinkWithPossibleChasers {
@@ -12,6 +12,16 @@ impl DrinkWithPossibleChasers {
         Self {
             drinks,
             ignored_card_or,
+        }
+    }
+
+    pub fn from_revealed_drink_treating_drink_event_as_empty_drink(drink: RevealedDrink) -> Self {
+        match drink {
+            RevealedDrink::DrinkWithPossibleChasers(drink) => drink,
+            RevealedDrink::DrinkEvent(drink_event) => Self {
+                drinks: Vec::new(),
+                ignored_card_or: Some(drink_event.into()),
+            },
         }
     }
 
@@ -44,7 +54,7 @@ impl DrinkWithPossibleChasers {
         player.change_fortitude(fortitude_modifier);
     }
 
-    fn get_combined_alcohol_content_modifier(&self, player: &Player) -> i32 {
+    pub fn get_combined_alcohol_content_modifier(&self, player: &Player) -> i32 {
         let mut modifier = 0;
         for drink in &self.drinks {
             modifier += drink.get_alcohol_content_modifier(player);
