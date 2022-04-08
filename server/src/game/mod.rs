@@ -526,11 +526,11 @@ mod tests {
             }
 
             assert_eq!(
-                game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
+                game.discard_cards_and_draw_to_full(player1_uuid, Vec::new()),
                 Ok(())
             );
-            assert_eq!(game.pass(&player1_uuid), Ok(()));
-            assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), Ok(()));
+            assert_eq!(game.pass(player1_uuid), Ok(()));
+            assert_eq!(game.order_drink(player1_uuid, player2_uuid), Ok(()));
 
             while game.get_game_logic().unwrap().is_running()
                 && game
@@ -539,10 +539,10 @@ mod tests {
                     .get_turn_info()
                     .is_drink_phase()
             {
-                if game.player_can_pass(&player1_uuid) {
-                    game.pass(&player1_uuid).unwrap();
-                } else if game.player_can_pass(&player2_uuid) {
-                    game.pass(&player2_uuid).unwrap();
+                if game.player_can_pass(player1_uuid) {
+                    game.pass(player1_uuid).unwrap();
+                } else if game.player_can_pass(player2_uuid) {
+                    game.pass(player2_uuid).unwrap();
                 } else {
                     panic!("Neither player can pass");
                 }
@@ -553,11 +553,11 @@ mod tests {
             }
 
             assert_eq!(
-                game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
+                game.discard_cards_and_draw_to_full(player2_uuid, Vec::new()),
                 Ok(())
             );
-            assert_eq!(game.pass(&player2_uuid), Ok(()));
-            assert_eq!(game.order_drink(&player2_uuid, &player1_uuid), Ok(()));
+            assert_eq!(game.pass(player2_uuid), Ok(()));
+            assert_eq!(game.order_drink(player2_uuid, player1_uuid), Ok(()));
 
             while game.get_game_logic().unwrap().is_running()
                 && game
@@ -566,10 +566,10 @@ mod tests {
                     .get_turn_info()
                     .is_drink_phase()
             {
-                if game.player_can_pass(&player1_uuid) {
-                    game.pass(&player1_uuid).unwrap();
-                } else if game.player_can_pass(&player2_uuid) {
-                    game.pass(&player2_uuid).unwrap();
+                if game.player_can_pass(player1_uuid) {
+                    game.pass(player1_uuid).unwrap();
+                } else if game.player_can_pass(player2_uuid) {
+                    game.pass(player2_uuid).unwrap();
                 } else {
                     panic!("Neither player can pass");
                 }
