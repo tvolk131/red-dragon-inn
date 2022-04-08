@@ -196,18 +196,15 @@ impl Game {
                 Some(game_logic) => game_logic.get_game_view_player_data_of_all_players(),
                 None => Vec::new(),
             },
-            // TODO - Handle this `unwrap`.
             player_display_names: self
                 .players
                 .iter()
-                .map(|(player_uuid, _)| {
-                    (
-                        player_uuid.clone(),
-                        player_uuids_to_display_names
-                            .get(player_uuid)
-                            .unwrap()
-                            .to_string(),
-                    )
+                .cloned()
+                .filter_map(|(player_uuid, _)| {
+                    match player_uuids_to_display_names.get(&player_uuid) {
+                        Some(display_name) => Some((player_uuid, display_name.to_string())),
+                        None => None,
+                    }
                 })
                 .collect(),
             interrupts: match &self.game_logic_or {

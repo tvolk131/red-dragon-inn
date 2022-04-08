@@ -146,18 +146,19 @@ impl InterruptManager {
             return Err((root_card, Error::new("An interrupt is already in progress")));
         }
 
-        if targeted_player_uuids.is_empty() {
-            return Err((
-                root_card,
-                Error::new("Cannot start an interrupt with no targeted players"),
-            ));
-        }
+        let current_interrupt_turn = match targeted_player_uuids.first() {
+            Some(current_interrupt_turn) => current_interrupt_turn.clone(),
+            None => {
+                return Err((
+                    root_card,
+                    Error::new("Cannot start an interrupt with no targeted players"),
+                ))
+            }
+        };
 
         if let Some(interrupt_data) = root_card.get_interrupt_data_or() {
             let root_card_interrupt_type = interrupt_data.get_interrupt_type_output();
             let mut sessions = Vec::new();
-
-            let current_interrupt_turn = targeted_player_uuids.first().unwrap().clone(); // TODO - Handle this unwrap.
 
             for targeted_player_uuid in targeted_player_uuids.into_iter().rev() {
                 sessions.push(GameInterruptStackSession {

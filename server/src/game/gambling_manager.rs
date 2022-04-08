@@ -50,16 +50,24 @@ impl GamblingManager {
         gambling_round.increment_player_turn();
     }
 
+    /// Forces a player to ante up. Fails silently if...
+    /// 1. A gambling round is not running.
+    /// 2. The player uuid doesn't map to an existing player in the game.
+    ///
+    /// This method can be considered atomic, since both conditions are verified before any modification.
     pub fn ante_up(&mut self, player_uuid: &PlayerUUID, player_manager: &mut PlayerManager) {
-        match &mut self.gambling_round_or {
-            Some(gambling_round) => gambling_round.pot_amount += 1,
+        let player = match player_manager.get_player_by_uuid_mut(player_uuid) {
+            Some(player) => player,
             None => return,
         };
 
-        player_manager
-            .get_player_by_uuid_mut(player_uuid)
-            .unwrap()
-            .change_gold(-1);
+        let gambling_round = match &mut self.gambling_round_or {
+            Some(gambling_round) => gambling_round,
+            None => return,
+        };
+
+        player.change_gold(-1);
+        gambling_round.pot_amount += 1;
     }
 
     pub fn pass(&mut self, player_manager: &mut PlayerManager, turn_info: &mut TurnInfo) {
