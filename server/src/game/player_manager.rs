@@ -106,6 +106,34 @@ impl PlayerManager {
         NextPlayerUUIDOption::Some(next_player_uuid)
     }
 
+    #[cfg(test)]
+    pub fn get_running_state(&self) -> GameRunningState {
+        let mut remaining_player_uuids = Vec::new();
+        for (player_uuid, player) in self.players.iter() {
+            if !player.is_out_of_game() {
+                remaining_player_uuids.push(player_uuid);
+            }
+        }
+
+        if remaining_player_uuids.len() > 1 {
+            return GameRunningState::Running;
+        }
+
+        if let Some(winning_player_uuid) = remaining_player_uuids.first() {
+            GameRunningState::Finished(Some((*winning_player_uuid).clone()))
+        } else {
+            GameRunningState::Finished(None)
+        }
+    }
+
+    #[cfg(test)]
+    pub fn is_game_running(&self) -> bool {
+        match self.get_running_state() {
+            GameRunningState::Running => true,
+            _ => false,
+        }
+    }
+
     pub fn discard_cards(
         &mut self,
         cards: Vec<(PlayerUUID, PlayerCard)>,
@@ -141,4 +169,10 @@ pub enum NextPlayerUUIDOption<'a> {
     Some(&'a PlayerUUID),
     PlayerNotFound,
     OnlyPlayerLeft,
+}
+
+#[cfg(test)]
+pub enum GameRunningState {
+    Running,
+    Finished(Option<PlayerUUID>), // Contains the winner of the game, if there is one. Is empty if the remaining players all died at the same time.
 }

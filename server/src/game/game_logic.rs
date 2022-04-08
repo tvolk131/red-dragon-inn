@@ -48,6 +48,11 @@ impl GameLogic {
         &self.turn_info
     }
 
+    #[cfg(test)]
+    pub fn is_game_running(&self) -> bool {
+        self.player_manager.is_game_running()
+    }
+
     pub fn get_game_view_player_data_of_all_players(&self) -> Vec<GameViewPlayerData> {
         self.player_manager
             .get_game_view_player_data_of_all_players()
@@ -66,8 +71,9 @@ impl GameLogic {
     }
 
     pub fn get_game_view_drink_event_or(&self) -> Option<GameViewDrinkEvent> {
-        match &self.drink_event_or {
-            Some(drink_event) => Some(match drink_event {
+        self.drink_event_or
+            .as_ref()
+            .map(|drink_event| match drink_event {
                 DrinkEventWithData::DrinkingContest(drinking_contest_data) => GameViewDrinkEvent {
                     event_name: "drinkingContest".to_string(),
                     drinking_contest_remaining_player_uuids: Some(
@@ -82,9 +88,7 @@ impl GameLogic {
                     event_name: "roundOnTheHouse".to_string(),
                     drinking_contest_remaining_player_uuids: None,
                 },
-            }),
-            None => None,
-        }
+            })
     }
 
     pub fn get_game_view_interrupt_data_or(&self) -> Option<GameViewInterruptData> {
@@ -146,7 +150,10 @@ impl GameLogic {
         if self.get_turn_info().get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw
         {
-            return Err(Error::new("Cannot discard cards at this time"));
+            return Err(Error::new(format!(
+                "Cannot discard cards at this time {:?} {:#?}",
+                self.turn_info.turn_phase, self.interrupt_manager
+            )));
         }
 
         let player = match self.player_manager.get_player_by_uuid_mut(player_uuid) {
@@ -256,9 +263,7 @@ impl GameLogic {
                 if let Some(spent_cards) = spent_cards_or {
                     if spent_cards.current_user_action_phase_is_over() {
                         self.skip_action_phase()?;
-                    }
-                    self.discard_cards(spent_cards);
-                    if !self.interrupt_manager.interrupt_in_progress()
+                    } else if !self.interrupt_manager.interrupt_in_progress() // TODO - Let's replace this with a function called `current_user_drink_phase_is_over`.
                         && self.turn_info.turn_phase == TurnPhase::Drink
                     {
                         match &mut self.drink_event_or {
@@ -296,13 +301,14 @@ impl GameLogic {
                                         }
                                     }
                                     DrinkEventWithData::RoundOnTheHouse => {
-                                        self.start_next_player_turn()
+                                        self.start_next_player_turn();
                                     }
                                 }
                             }
                             None => self.start_next_player_turn(),
                         };
                     }
+                    self.discard_cards(spent_cards);
                 }
                 return Ok(());
             } else {
@@ -511,9 +517,11 @@ impl GameLogic {
             .get_next_alive_player_uuid(&self.turn_info.player_turn)
         {
             NextPlayerUUIDOption::Some(next_player_uuid) => {
-                self.turn_info = TurnInfo::new(next_player_uuid.clone())
+                self.turn_info = TurnInfo::new(next_player_uuid.clone());
+                self.drink_event_or = None;
             }
             NextPlayerUUIDOption::PlayerNotFound => {
+                panic!("Player not found... How'd this happen?");
                 // TODO - Figure out how to handle this. It SHOULD never be hit here. If it is, that means there's a bug.
             }
             NextPlayerUUIDOption::OnlyPlayerLeft => {
@@ -731,6 +739,11 @@ impl TurnInfo {
 
     pub fn is_order_drink_phase(&self) -> bool {
         self.turn_phase == TurnPhase::OrderDrinks
+    }
+
+    #[cfg(test)]
+    pub fn is_drink_phase(&self) -> bool {
+        self.turn_phase == TurnPhase::Drink
     }
 
     pub fn add_drinks_to_order(&mut self, amount: i32) {
