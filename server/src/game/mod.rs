@@ -201,10 +201,9 @@ impl Game {
                 .iter()
                 .cloned()
                 .filter_map(|(player_uuid, _)| {
-                    match player_uuids_to_display_names.get(&player_uuid) {
-                        Some(display_name) => Some((player_uuid, display_name.to_string())),
-                        None => None,
-                    }
+                    player_uuids_to_display_names
+                        .get(&player_uuid)
+                        .map(|display_name| (player_uuid, display_name.to_string()))
                 })
                 .collect(),
             interrupts: match &self.game_logic_or {
