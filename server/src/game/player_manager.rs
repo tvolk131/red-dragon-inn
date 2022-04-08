@@ -128,10 +128,7 @@ impl PlayerManager {
 
     #[cfg(test)]
     pub fn is_game_running(&self) -> bool {
-        match self.get_running_state() {
-            GameRunningState::Running => true,
-            _ => false,
-        }
+        matches!(self.get_running_state(), GameRunningState::Running)
     }
 
     pub fn discard_cards(
