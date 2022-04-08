@@ -48,11 +48,6 @@ impl GameLogic {
         &self.turn_info
     }
 
-    #[cfg(test)]
-    pub fn is_game_running(&self) -> bool {
-        self.player_manager.is_game_running()
-    }
-
     pub fn get_game_view_player_data_of_all_players(&self) -> Vec<GameViewPlayerData> {
         self.player_manager
             .get_game_view_player_data_of_all_players()
@@ -105,6 +100,8 @@ impl GameLogic {
         other_player_uuid_or: &Option<PlayerUUID>,
         card_index: usize,
     ) -> Result<(), Error> {
+        self.assert_is_running()?;
+
         let card_or = match self.player_manager.get_player_by_uuid_mut(player_uuid) {
             Some(player) => player.pop_card_from_hand(card_index),
             None => {
@@ -147,13 +144,12 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         mut card_indices: Vec<usize>,
     ) -> Result<(), Error> {
+        self.assert_is_running()?;
+
         if self.get_turn_info().get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::DiscardAndDraw
         {
-            return Err(Error::new(format!(
-                "Cannot discard cards at this time {:?} {:#?}",
-                self.turn_info.turn_phase, self.interrupt_manager
-            )));
+            return Err(Error::new("Cannot discard cards at this time"));
         }
 
         let player = match self.player_manager.get_player_by_uuid_mut(player_uuid) {
@@ -202,6 +198,8 @@ impl GameLogic {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Result<(), Error> {
+        self.assert_is_running()?;
+
         if self.get_turn_info().get_current_player_turn() != player_uuid
             || self.turn_info.turn_phase != TurnPhase::OrderDrinks
         {
@@ -253,6 +251,8 @@ impl GameLogic {
     }
 
     pub fn pass(&mut self, player_uuid: &PlayerUUID) -> Result<(), Error> {
+        self.assert_is_running()?;
+
         if self.interrupt_manager.interrupt_in_progress() {
             if self.interrupt_manager.is_turn_to_interrupt(player_uuid) {
                 let spent_cards_or = self.interrupt_manager.pass(
@@ -528,6 +528,22 @@ impl GameLogic {
                 // TODO - Declare this player as the winner.
             }
         };
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.player_manager.is_game_running()
+    }
+
+    fn assert_is_running(&self) -> Result<(), Error> {
+        if self.is_running() {
+            Ok(())
+        } else {
+            Err(Error::new("Game must be running to perform this action"))
+        }
+    }
+
+    pub fn get_winner_or(&self) -> Option<PlayerUUID> {
+        self.player_manager.get_winner_or()
     }
 }
 

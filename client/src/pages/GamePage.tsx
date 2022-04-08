@@ -57,21 +57,28 @@ export const GamePage = (props: GamePageProps) => {
   return (
     <div>
       <Typography>Game: {props.gameView.gameName}</Typography>
-      <Button onClick={() => startGame()}>
+      <Button onClick={() => startGame()} disabled={props.gameView.isRunning}>
         Start Game
       </Button>
-      <Button onClick={() => selectCharacter(characterToString(Character.Fiona))}>
-        Select Fiona
-      </Button>
-      <Button onClick={() => selectCharacter(characterToString(Character.Zot))}>
-        Select Zot
-      </Button>
-      <Button onClick={() => selectCharacter(characterToString(Character.Deirdre))}>
-        Select Deirdre
-      </Button>
-      <Button onClick={() => selectCharacter(characterToString(Character.Gerki))}>
-        Select Gerki
-      </Button>
+      {(!props.gameView.isRunning) &&
+        <div>
+          <Button onClick={() => selectCharacter(characterToString(Character.Fiona))}>
+            Select Fiona
+          </Button>
+          <Button onClick={() => selectCharacter(characterToString(Character.Zot))}>
+            Select Zot
+          </Button>
+          <Button onClick={() => selectCharacter(characterToString(Character.Deirdre))}>
+            Select Deirdre
+          </Button>
+          <Button onClick={() => selectCharacter(characterToString(Character.Gerki))}>
+            Select Gerki
+          </Button>
+        </div>
+      }
+      <Typography>{props.gameView.isRunning ? 'Game is running' : 'Game is not running'}</Typography>
+      {props.gameView.winnerUuid &&
+        <Typography>Winner: {props.gameView.playerDisplayNames[props.gameView.winnerUuid]}</Typography>}
       {props.gameView.playerData.map((playerData) => (
         <Card>
           <CardContent>

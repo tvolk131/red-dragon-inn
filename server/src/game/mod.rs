@@ -68,28 +68,28 @@ impl Game {
         if !self.is_owner(player_uuid) {
             return Err(Error::new("Must be game owner to start game"));
         }
-        match self.game_logic_or {
-            Some(_) => return Err(Error::new("Game is already running")),
-            None => {
-                let players: Vec<(PlayerUUID, Character)> = self
-                    .players
-                    .iter()
-                    .filter_map(|(player_uuid, character_or)| {
-                        character_or
-                            .as_ref()
-                            .map(|character| (player_uuid.clone(), *character))
-                    })
-                    .collect();
-                if players.len() < self.players.len() {
-                    return Err(Error::new("Not all players have selected a character"));
-                }
-                let game_logic = match GameLogic::new(players) {
-                    Ok(game_logic) => game_logic,
-                    Err(err) => return Err(err),
-                };
-                self.game_logic_or = Some(game_logic);
-            }
+
+        if self.is_running() {
+            return Err(Error::new("Game is already running"));
+        }
+
+        let players: Vec<(PlayerUUID, Character)> = self
+            .players
+            .iter()
+            .filter_map(|(player_uuid, character_or)| {
+                character_or
+                    .as_ref()
+                    .map(|character| (player_uuid.clone(), *character))
+            })
+            .collect();
+        if players.len() < self.players.len() {
+            return Err(Error::new("Not all players have selected a character"));
+        }
+        let game_logic = match GameLogic::new(players) {
+            Ok(game_logic) => game_logic,
+            Err(err) => return Err(err),
         };
+        self.game_logic_or = Some(game_logic);
         Ok(())
     }
 
@@ -101,7 +101,7 @@ impl Game {
         if !self.player_is_in_game(player_uuid) {
             return Err(Error::new("Player is not in this game"));
         }
-        if self.game_logic_or.is_some() {
+        if self.is_running() {
             return Err(Error::new("Cannot change characters while game is running"));
         }
         self.players.iter_mut().for_each(|(uuid, character_or)| {
@@ -126,11 +126,8 @@ impl Game {
         other_player_uuid_or: &Option<PlayerUUID>,
         card_index: usize,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_game_logic_mut() {
-            Ok(game_logic) => game_logic,
-            Err(err) => return Err(err),
-        };
-        game_logic.play_card(player_uuid, other_player_uuid_or, card_index)
+        self.get_game_logic_mut()?
+            .play_card(player_uuid, other_player_uuid_or, card_index)
     }
 
     /// Discards any number of cards from the given player's hand.
@@ -144,11 +141,8 @@ impl Game {
         player_uuid: &PlayerUUID,
         card_indices: Vec<usize>,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_game_logic_mut() {
-            Ok(game_logic) => game_logic,
-            Err(err) => return Err(err),
-        };
-        game_logic.discard_cards_and_draw_to_full(player_uuid, card_indices)
+        self.get_game_logic_mut()?
+            .discard_cards_and_draw_to_full(player_uuid, card_indices)
     }
 
     /// Order a drink for another player.
@@ -161,11 +155,8 @@ impl Game {
         player_uuid: &PlayerUUID,
         other_player_uuid: &PlayerUUID,
     ) -> Result<(), Error> {
-        let game_logic = match self.get_game_logic_mut() {
-            Ok(game_logic) => game_logic,
-            Err(err) => return Err(err),
-        };
-        game_logic.order_drink(player_uuid, other_player_uuid)
+        self.get_game_logic_mut()?
+            .order_drink(player_uuid, other_player_uuid)
     }
 
     fn player_can_pass(&self, player_uuid: &PlayerUUID) -> bool {
@@ -227,6 +218,11 @@ impl Game {
                 Some(game_logic) => game_logic.get_game_view_drink_event_or(),
                 None => None,
             },
+            is_running: self.is_running(),
+            winner_uuid: match &self.game_logic_or {
+                Some(game_logic) => game_logic.get_winner_or(),
+                None => None,
+            },
         })
     }
 
@@ -239,11 +235,8 @@ impl Game {
     }
 
     #[cfg(test)]
-    fn get_game_logic(&self) -> Result<&GameLogic, Error> {
-        match &self.game_logic_or {
-            Some(game_logic) => Ok(game_logic),
-            None => Err(Error::new("Game is not currently running")),
-        }
+    fn get_game_logic(&self) -> Option<&GameLogic> {
+        self.game_logic_or.as_ref()
     }
 
     fn get_game_logic_mut(&mut self) -> Result<&mut GameLogic, Error> {
@@ -264,6 +257,13 @@ impl Game {
     fn is_owner(&self, player_uuid: &PlayerUUID) -> bool {
         match self.get_owner() {
             Some(owner_uuid) => owner_uuid == player_uuid,
+            None => false,
+        }
+    }
+
+    fn is_running(&self) -> bool {
+        match &self.game_logic_or {
+            Some(game_logic) => game_logic.is_running(),
             None => false,
         }
     }
@@ -485,7 +485,7 @@ mod tests {
     #[test]
     fn can_perform_full_round() {
         // We're running this loop many times to make sure that the test isn't flaky.
-        for _ in 1..1000 {
+        for _ in 1..100 {
             // Setup game with 2 players.
             let mut game = Game::new("Test Game".to_string());
             let player1_uuid = PlayerUUID::new();
@@ -502,59 +502,76 @@ mod tests {
             );
             assert_eq!(game.start(&player1_uuid), Ok(()));
 
-            loop {
-                if !game.get_game_logic().unwrap().is_game_running() {
-                    break;
+            pass_until_game_ends_2_player_game(&mut game, &player1_uuid, &player2_uuid);
+
+            // Players can change characters after the game ends.
+            assert_eq!(
+                game.select_character(&player1_uuid, Character::Deirdre),
+                Ok(())
+            );
+            assert_eq!(game.start(&player1_uuid), Ok(()));
+
+            pass_until_game_ends_2_player_game(&mut game, &player1_uuid, &player2_uuid);
+        }
+    }
+
+    fn pass_until_game_ends_2_player_game(
+        game: &mut Game,
+        player1_uuid: &PlayerUUID,
+        player2_uuid: &PlayerUUID,
+    ) {
+        loop {
+            if !game.get_game_logic().unwrap().is_running() {
+                break;
+            }
+
+            assert_eq!(
+                game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
+                Ok(())
+            );
+            assert_eq!(game.pass(&player1_uuid), Ok(()));
+            assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), Ok(()));
+
+            while game.get_game_logic().unwrap().is_running()
+                && game
+                    .get_game_logic()
+                    .unwrap()
+                    .get_turn_info()
+                    .is_drink_phase()
+            {
+                if game.player_can_pass(&player1_uuid) {
+                    game.pass(&player1_uuid).unwrap();
+                } else if game.player_can_pass(&player2_uuid) {
+                    game.pass(&player2_uuid).unwrap();
+                } else {
+                    panic!("Neither player can pass");
                 }
+            }
 
-                assert_eq!(
-                    game.discard_cards_and_draw_to_full(&player1_uuid, Vec::new()),
-                    Ok(())
-                );
-                assert_eq!(game.pass(&player1_uuid), Ok(()));
-                assert_eq!(game.order_drink(&player1_uuid, &player2_uuid), Ok(()));
+            if !game.get_game_logic().unwrap().is_running() {
+                break;
+            }
 
-                while game.get_game_logic().unwrap().is_game_running()
-                    && game
-                        .get_game_logic()
-                        .unwrap()
-                        .get_turn_info()
-                        .is_drink_phase()
-                {
-                    if game.player_can_pass(&player1_uuid) {
-                        game.pass(&player1_uuid).unwrap();
-                    } else if game.player_can_pass(&player2_uuid) {
-                        game.pass(&player2_uuid).unwrap();
-                    } else {
-                        panic!("Neither player can pass");
-                    }
-                }
+            assert_eq!(
+                game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
+                Ok(())
+            );
+            assert_eq!(game.pass(&player2_uuid), Ok(()));
+            assert_eq!(game.order_drink(&player2_uuid, &player1_uuid), Ok(()));
 
-                if !game.get_game_logic().unwrap().is_game_running() {
-                    break;
-                }
-
-                assert_eq!(
-                    game.discard_cards_and_draw_to_full(&player2_uuid, Vec::new()),
-                    Ok(())
-                );
-                assert_eq!(game.pass(&player2_uuid), Ok(()));
-                assert_eq!(game.order_drink(&player2_uuid, &player1_uuid), Ok(()));
-
-                while game.get_game_logic().unwrap().is_game_running()
-                    && game
-                        .get_game_logic()
-                        .unwrap()
-                        .get_turn_info()
-                        .is_drink_phase()
-                {
-                    if game.player_can_pass(&player1_uuid) {
-                        game.pass(&player1_uuid).unwrap();
-                    } else if game.player_can_pass(&player2_uuid) {
-                        game.pass(&player2_uuid).unwrap();
-                    } else {
-                        panic!("Neither player can pass");
-                    }
+            while game.get_game_logic().unwrap().is_running()
+                && game
+                    .get_game_logic()
+                    .unwrap()
+                    .get_turn_info()
+                    .is_drink_phase()
+            {
+                if game.player_can_pass(&player1_uuid) {
+                    game.pass(&player1_uuid).unwrap();
+                } else if game.player_can_pass(&player2_uuid) {
+                    game.pass(&player2_uuid).unwrap();
+                } else {
+                    panic!("Neither player can pass");
                 }
             }
         }

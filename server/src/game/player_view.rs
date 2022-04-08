@@ -65,6 +65,8 @@ pub struct GameView {
     pub player_display_names: HashMap<PlayerUUID, String>,
     pub interrupts: Option<GameViewInterruptData>,
     pub drink_event: Option<GameViewDrinkEvent>,
+    pub is_running: bool,
+    pub winner_uuid: Option<PlayerUUID>,
 }
 
 #[derive(Serialize, PartialEq, Eq)]

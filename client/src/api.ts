@@ -48,6 +48,8 @@ export interface GameView {
   playerDisplayNames: {[key: string]: string};
   interrupts?: GameViewInterruptData;
   drinkEvent?: GameViewDrinkEvent;
+  isRunning: boolean;
+  winnerUuid?: string;
 }
 
 export interface ListedGameView {

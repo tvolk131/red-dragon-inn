@@ -106,7 +106,6 @@ impl PlayerManager {
         NextPlayerUUIDOption::Some(next_player_uuid)
     }
 
-    #[cfg(test)]
     pub fn get_running_state(&self) -> GameRunningState {
         let mut remaining_player_uuids = Vec::new();
         for (player_uuid, player) in self.players.iter() {
@@ -126,7 +125,13 @@ impl PlayerManager {
         }
     }
 
-    #[cfg(test)]
+    pub fn get_winner_or(&self) -> Option<PlayerUUID> {
+        match self.get_running_state() {
+            GameRunningState::Running => None,
+            GameRunningState::Finished(winner_or) => winner_or,
+        }
+    }
+
     pub fn is_game_running(&self) -> bool {
         matches!(self.get_running_state(), GameRunningState::Running)
     }
@@ -168,7 +173,6 @@ pub enum NextPlayerUUIDOption<'a> {
     OnlyPlayerLeft,
 }
 
-#[cfg(test)]
 pub enum GameRunningState {
     Running,
     Finished(Option<PlayerUUID>), // Contains the winner of the game, if there is one. Is empty if the remaining players all died at the same time.
