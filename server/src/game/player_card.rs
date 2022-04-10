@@ -359,7 +359,9 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
 pub fn i_raise_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("I raise!"),
-        display_description: String::from("Take control of a Round of Gambling.\nEach player (including you) must ante again."),
+        display_description: String::from(
+            "Take control of a Round of Gambling.\nEach player (including you) must ante again.",
+        ),
         card_type: RootPlayerCardType::Gambling,
         target_style: TargetStyle::AllGamblingPlayersIncludingSelf,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -558,7 +560,9 @@ pub fn change_all_other_player_fortitude_card(
 pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
-        display_description: String::from("Ignore an Action or Sometimes Card that affects your Fortitude."),
+        display_description: String::from(
+            "Ignore an Action or Sometimes Card that affects your Fortitude.",
+        ),
         can_interrupt_fn: Arc::from(|current_interrupt| {
             if let GameInterruptType::DirectedActionCardPlayed(player_card_info) = current_interrupt
             {
@@ -775,7 +779,11 @@ pub fn combined_interrupt_player_card(
 
     InterruptPlayerCard {
         display_name: display_name.to_string(),
-        display_description: format!("{}\n- OR -\n{}", first_interrupt_player_card.display_description, second_interrupt_player_card.display_description),
+        display_description: format!(
+            "{}\n- OR -\n{}",
+            first_interrupt_player_card.display_description,
+            second_interrupt_player_card.display_description
+        ),
         can_interrupt_fn: Arc::from(move |current_interrupt| {
             first_interrupt_player_card.can_interrupt(current_interrupt)
                 || second_interrupt_player_card.can_interrupt(current_interrupt)
