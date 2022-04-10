@@ -71,6 +71,7 @@ impl Player {
             .iter()
             .map(|card| GameViewPlayerCard {
                 card_name: card.get_display_name().to_string(),
+                card_description: card.get_display_description().to_string(),
                 is_playable: card.can_play(
                     player_uuid,
                     gambling_manager,

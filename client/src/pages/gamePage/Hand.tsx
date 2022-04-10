@@ -22,9 +22,10 @@ export const Hand = (props: HandProps) => {
       <Stack direction={'row'}>
         {props.gameView.hand.map((card, index) => {
           return (
-            <Card style={{margin: '10px'}}>
+            <Card style={{margin: '10px', maxWidth: '200px'}}>
               <CardContent>
                 {card.cardName}
+                <div style={{margin: '10px 0'}}>{card.cardDescription}</div>
                 {props.canDiscardCards && <Checkbox onChange={(event) => {
                   if (event.target.checked) {
                     setSelectedCardIndices([...selectedCardIndices, index]);

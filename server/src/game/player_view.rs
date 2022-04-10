@@ -7,6 +7,7 @@ use std::collections::HashMap;
 #[serde(rename_all = "camelCase")]
 pub struct GameViewPlayerCard {
     pub card_name: String,
+    pub card_description: String,
     pub is_playable: bool,
     pub is_directed: bool,
 }

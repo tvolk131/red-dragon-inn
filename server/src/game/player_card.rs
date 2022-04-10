@@ -22,6 +22,15 @@ impl PlayerCard {
         }
     }
 
+    pub fn get_display_description(&self) -> &str {
+        match &self {
+            Self::RootPlayerCard(root_player_card) => root_player_card.get_display_description(),
+            Self::InterruptPlayerCard(interrupt_player_card) => {
+                interrupt_player_card.get_display_description()
+            }
+        }
+    }
+
     pub fn can_play(
         &self,
         player_uuid: &PlayerUUID,
@@ -85,6 +94,7 @@ type PostInterruptPlayFn =
 #[derive(Clone)]
 pub struct RootPlayerCard {
     display_name: String,
+    display_description: String,
     card_type: RootPlayerCardType,
     target_style: TargetStyle,
     can_play_fn: fn(
@@ -107,6 +117,10 @@ impl Debug for RootPlayerCard {
 impl RootPlayerCard {
     pub fn get_display_name(&self) -> &str {
         &self.display_name
+    }
+
+    pub fn get_display_description(&self) -> &str {
+        &self.display_description
     }
 
     pub fn get_target_style(&self) -> TargetStyle {
@@ -236,6 +250,7 @@ pub enum TargetStyle {
 #[derive(Clone)]
 pub struct InterruptPlayerCard {
     display_name: String,
+    display_description: String,
     can_interrupt_fn: Arc<dyn Fn(GameInterruptType) -> bool + Send + Sync>,
     interrupt_type_output: GameInterruptType,
     interrupt_fn: Arc<
@@ -255,6 +270,10 @@ impl Debug for InterruptPlayerCard {
 impl InterruptPlayerCard {
     pub fn get_display_name(&self) -> &str {
         &self.display_name
+    }
+
+    pub fn get_display_description(&self) -> &str {
+        &self.display_description
     }
 
     pub fn can_interrupt(&self, current_interrupt: GameInterruptType) -> bool {
@@ -284,6 +303,7 @@ pub enum ShouldCancelPreviousCard {
 pub fn gambling_im_in_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Gambling? I'm in!"),
+        display_description: String::from("Start a Round of Gambling. (Each player, including you, must ante.)\n- OR -\nTake control of a Round of Gambling."),
         card_type: RootPlayerCardType::ActionGambling,
         target_style: TargetStyle::AllOtherPlayers,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -339,6 +359,7 @@ pub fn gambling_im_in_card() -> RootPlayerCard {
 pub fn i_raise_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("I raise!"),
+        display_description: String::from("Take control of a Round of Gambling.\nEach player (including you) must ante again."),
         card_type: RootPlayerCardType::Gambling,
         target_style: TargetStyle::AllGamblingPlayersIncludingSelf,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -375,6 +396,7 @@ pub fn i_raise_card() -> RootPlayerCard {
 pub fn winning_hand_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Winning Hand!"),
+        display_description: String::from("Take control of a Round of Gambling.\nThe next card to take control must be a Cheating Card."),
         card_type: RootPlayerCardType::Cheating,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -407,6 +429,7 @@ pub fn winning_hand_card() -> RootPlayerCard {
 pub fn gambling_cheat_card(display_name: impl ToString) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        display_description: String::from("Take control of a Round of Gambling."),
         card_type: RootPlayerCardType::Cheating,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -433,12 +456,23 @@ pub fn gambling_cheat_card(display_name: impl ToString) -> RootPlayerCard {
     }
 }
 
+fn get_change_other_player_fortitude_card_description(amount: i32) -> String {
+    let modifier = if amount > 0 {
+        format!("gain {}", amount)
+    } else {
+        format!("lose {}", -amount)
+    };
+
+    format!("Pick another player. They {} Fortitude.", modifier)
+}
+
 pub fn change_other_player_fortitude_card(
     display_name: impl ToString,
     amount: i32,
 ) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        display_description: get_change_other_player_fortitude_card_description(amount),
         card_type: RootPlayerCardType::Action,
         target_style: TargetStyle::SingleOtherPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -471,6 +505,16 @@ pub fn change_other_player_fortitude_card(
     }
 }
 
+fn get_change_all_other_player_fortitude_card_description(amount: i32) -> String {
+    let modifier = if amount > 0 {
+        format!("gains {}", amount)
+    } else {
+        format!("loses {}", -amount)
+    };
+
+    format!("Each other player {} Fortitude.", modifier)
+}
+
 // TODO - Add this card for all characters other than Zot. I only added the card to Zot's deck when I implemented this function.
 pub fn change_all_other_player_fortitude_card(
     display_name: impl ToString,
@@ -478,6 +522,7 @@ pub fn change_all_other_player_fortitude_card(
 ) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        display_description: get_change_all_other_player_fortitude_card_description(amount),
         card_type: RootPlayerCardType::Action,
         target_style: TargetStyle::AllOtherPlayers,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -513,6 +558,7 @@ pub fn change_all_other_player_fortitude_card(
 pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
+        display_description: String::from("Ignore an Action or Sometimes Card that affects your Fortitude."),
         can_interrupt_fn: Arc::from(|current_interrupt| {
             if let GameInterruptType::DirectedActionCardPlayed(player_card_info) = current_interrupt
             {
@@ -538,6 +584,7 @@ pub fn ignore_root_card_affecting_fortitude(display_name: impl ToString) -> Inte
 pub fn gain_fortitude_anytime_card(display_name: impl ToString, amount: i32) -> RootPlayerCard {
     RootPlayerCard {
         display_name: display_name.to_string(),
+        display_description: format!("Gain {} Fortitude.", amount),
         card_type: RootPlayerCardType::Anytime,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |_player_uuid: &PlayerUUID,
@@ -569,6 +616,7 @@ pub fn gain_fortitude_anytime_card(display_name: impl ToString, amount: i32) -> 
 pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Wench, bring some drinks for my friends!"),
+        display_description: String::from("You may play this card during the Order a Drink Phase of your turn.\nPay 1 Gold to the Inn. Order 2 additional Drinks. (Drinks you order may be placed on any other players' Drink Me! Piles.)"),
         card_type: RootPlayerCardType::Sometimes,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |player_uuid: &PlayerUUID,
@@ -606,6 +654,7 @@ pub fn wench_bring_some_drinks_for_my_friends_card() -> RootPlayerCard {
 pub fn oh_i_guess_the_wench_thought_that_was_her_tip_card() -> RootPlayerCard {
     RootPlayerCard {
         display_name: String::from("Oh, I guess the Wench thought that was her tip..."),
+        display_description: String::from("You may play this card at any time during a Round of Gambling, even if you have left the Round. You may not play this card if the Round has already ended. You may not play it in response to a card that would make players ante or would end the Round when it resolves.\nThe Round of Gambling ends immediately. All anted Gold goes to the Inn."),
         card_type: RootPlayerCardType::Sometimes,
         target_style: TargetStyle::SelfPlayer,
         can_play_fn: |_player_uuid: &PlayerUUID,
@@ -643,6 +692,7 @@ pub fn oh_i_guess_the_wench_thought_that_was_her_tip_card() -> RootPlayerCard {
 pub fn i_dont_think_so_card() -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: String::from("I don't think so!"),
+        display_description: String::from("Negate a Sometimes Card.\nThis card can only be affected by another I don't think so !"),
         can_interrupt_fn: Arc::from(|current_interrupt| {
             matches!(current_interrupt, GameInterruptType::SometimesCardPlayed(_))
         }),
@@ -664,6 +714,7 @@ pub fn i_dont_think_so_card() -> InterruptPlayerCard {
 pub fn ignore_drink_card(display_name: impl ToString) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
+        display_description: String::from("Ignore a Drink.\n(Reveal the Drink first!)"),
         can_interrupt_fn: Arc::from(|current_interrupt| {
             matches!(current_interrupt, GameInterruptType::AboutToDrink)
         }),
@@ -686,6 +737,7 @@ pub fn leave_gambling_round_instead_of_anteing_card(
 ) -> InterruptPlayerCard {
     InterruptPlayerCard {
         display_name: display_name.to_string(),
+        display_description: String::from("You may play this card when you must ante. Instead of anteing, you leave the Round of Gambling."),
         can_interrupt_fn: Arc::from(|current_interrupt| {
             matches!(current_interrupt, GameInterruptType::AboutToAnte)
         }),
@@ -723,6 +775,7 @@ pub fn combined_interrupt_player_card(
 
     InterruptPlayerCard {
         display_name: display_name.to_string(),
+        display_description: format!("{}\n- OR -\n{}", first_interrupt_player_card.display_description, second_interrupt_player_card.display_description),
         can_interrupt_fn: Arc::from(move |current_interrupt| {
             first_interrupt_player_card.can_interrupt(current_interrupt)
                 || second_interrupt_player_card.can_interrupt(current_interrupt)
